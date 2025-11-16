@@ -1,0 +1,78 @@
+body {
+    font-family: Arial, sans-serif;
+}
+
+header {
+    background-color: #333;
+    color: white;
+    padding: 10px;
+    text-align: center;
+}
+
+header a {
+    color: white;
+    margin: 0 15px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+cardTable tbody:nth-child(2) {
+    text-decoration: none;
+    cursor: pointer;
+    target: _blank;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+.content {
+    padding: 20px;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+th,
+td {
+    padding: 8px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+th {
+    background-color: #f2f2f2;
+}
+
+.hidden {
+    display: none;
+}
+
+.collapsible {
+    cursor: pointer;
+}
+
+.contentCollapsible {
+    display: none;
+    overflow: hidden;
+}
+
+.authorized {
+    background-color: #90ee90;
+}
+
+.unauthorized {
+    background-color: #ff4433;
+}
+
+.inputRow td {
+    padding: 4px;
+}
+
+.inputRow input {
+    width: 100%;
+    box-sizing: border-box;
+}

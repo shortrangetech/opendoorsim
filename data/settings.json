@@ -1,0 +1,14 @@
+{
+    "mode": "CTF",
+    "displayTimeout": 30000,
+    "ap_mode": 1,
+    "ap_ssid": "doorsim",
+    "ap_pwd": "",
+    "ap_channel": 1,
+    "ssid_hidden": 0,
+    "spkOnInvalid": 1,
+    "spkOnValid": 1,
+    "ledValid": 1,
+    "customMessage": "",
+    "welcomeMessage": "default"
+}

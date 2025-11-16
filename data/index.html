@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Card Data</title>
+    <link rel="stylesheet" href="style.css">    
+</head>
+
+<body>
+    <header>
+        <a onclick="showSection('lastRead')">Last Read</a>
+        <a onclick="showSection('ctfMode')">CTF Mode</a>
+        <a onclick="showSection('settings')">Settings</a>
+    </header>
+    <div class="content">
+        <div id="lastRead">
+            <h1>Card Data</h1>
+            <table id="cardTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Bit Length</th>
+                        <th>Facility Code</th>
+                        <th>Card Number</th>
+                        <th>Hex Data</th>
+                        <th>Raw Data</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+        <div id="ctfMode" class="hidden">
+            <h1>CTF Mode</h1>
+            <h2>Last Read Cards</h2>
+            <table id="lastReadCardsTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Status</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+            <h2 class="collapsible" onclick="toggleCollapsible()">Card Data (click to expand/collapse)</h2>
+            <div class="contentCollapsible">
+                <table id="userTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Facility Code</th>
+                            <th>Card Number</th>
+                            <th>Name</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+                <textarea id="importExportArea" rows="4" cols="50"></textarea>
+                <br>
+                <button onclick="importData()">Import</button>
+                <button onclick="exportData()">Export</button>
+            </div>
+        </div>
+        <div id="settings" class="hidden">
+            <h1>Settings</h1>
+            <h2>General</h2>
+            <label for="modeSelect">Mode:</label>
+            <select id="modeSelect">
+                <option value="DEMO">Demo</option>
+                <option value="CTF">CTF</option>
+            </select>
+            <br><br>
+            <label for="timeoutSelect">Display Timeout:</label>
+            <select id="timeoutSelect">
+                <option value="20000">20 seconds</option>
+                <option value="30000">30 seconds</option>
+                <option value="60000">1 minute</option>
+                <option value="120000">2 minutes</option>
+                <option value="0">Never</option>
+            </select>
+            <br><br>
+            <h3>Wifi</h3>
+            <div id="apSettings">
+                <label for="ap_ssid">SSID:</label>
+                <input type="text" id="ap_ssid">
+                <br><br>
+                <label for="ap_passphrase">Password:</label>
+                <input type="text" id="ap_passphrase">
+                <br><br>
+                <label for="ssid_hidden">Hidden:</label>
+                <input type="checkbox" id="ssid_hidden">
+                <br><br>
+                <label for="ap_channel">Channel:</label>
+                <input type="number" id="ap_channel" min="1" max="12">
+            </div>
+            <br><br>
+            <h2>CTF Mode</h2>
+            <label for="welcomeMessage">Welcome Message:</label>
+            <select id="welcomeMessage" onchange="toggleWelcomeMessage()">
+                <option value="default">Default</option>
+                <option value="custom">Custom</option>
+            </select>
+            <div id="customMessageDiv" hidden="hidden">
+                <label for="customMessage">Custom Message:</label>
+                <input type="text" id="customMessage" maxlength="20">
+            </div>
+            <br><br>
+            <div>
+                <label for="ledValid">On Valid Card - LED:</label>
+                <select id="ledValid">
+                    <option value="1">Flashing</option>
+                    <option value="2">Solid</option>
+                    <option value="0">Off</option>
+                </select>
+                <br><br>
+                <label for="spkOnValid">On Valid Card - Speaker:</label>
+                <select id="spkOnValid">
+                    <option value="1">Pop Beeps</option>
+                    <option value="2">Melody Beeps</option>
+                    <option value="0">Off</option>
+                </select>
+            </div>
+            <br><br>
+            <div>
+                <label for="spkOnInvalid">On Invalid Card - Speaker:</label>
+                <select id="spkOnInvalid">
+                    <option value=1>Sad Beeps</option>
+                    <option value=0>Off</option>
+                </select>
+            </div>
+            <br><br>
+            <button onclick="saveSettings()">Save Settings</button>
+        </div>
+    </div>
+<script src="script.js"></script>
+</body>
+
+</html>
