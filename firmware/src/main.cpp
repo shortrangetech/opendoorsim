@@ -16,8 +16,15 @@ AsyncWebServer server(80);
 const char *settingsFile = "/settings.json";
 const char *credentialsFile = "/credentials.json";
 
-#define I2C_SDA 19
-#define I2C_SCL 18
+// I2C Pins
+#define I2C_SDA 21
+#define I2C_SCL 22
+
+// Rotary Encoder Pins
+#define ROTARY_CLK 25
+#define ROTARY_DT 26
+#define ROTARY_SW 27
+
 // Set the LCD I2C address
 LiquidCrystal_I2C lcd(0x20, 20, 4);
 
@@ -90,9 +97,9 @@ unsigned long cardChunk2 = 0;
 
 // Define reader input pins
 // card reader DATA0
-#define DATA0 21
+#define DATA0 18
 // card reader DATA1
-#define DATA1 22
+#define DATA1 19
 
 // define reader output pins
 //  LED Output for a GND tie back
@@ -100,7 +107,7 @@ unsigned long cardChunk2 = 0;
 // Speaker Output for a GND tie back
 #define SPK 33
 
-// define relay modules
+// define relay modules TODO: determine functionality / swap to tamper detection switch
 #define RELAY1 25
 #define RELAY2 26
 
