@@ -1,8 +1,8 @@
 {
     "mode": "CTF",
-    "displayTimeout": 30000,
+    "displayTimeout": 7000,
     "ap_mode": 1,
-    "ap_ssid": "doorsim",
+    "ap_ssid": "OpenDoorSim",
     "ap_pwd": "",
     "ap_channel": 1,
     "ssid_hidden": 0,

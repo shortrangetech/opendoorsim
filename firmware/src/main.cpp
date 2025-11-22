@@ -16,8 +16,8 @@ AsyncWebServer server(80);
 const char *settingsFile = "/settings.json";
 const char *credentialsFile = "/credentials.json";
 
-#define I2C_SDA 21
-#define I2C_SCL 22
+#define I2C_SDA 19
+#define I2C_SCL 18
 // Set the LCD I2C address
 LiquidCrystal_I2C lcd(0x20, 20, 4);
 
@@ -30,7 +30,7 @@ String MODE = "CTF";
 // max number of bits
 #define MAX_BITS 100
 // time to wait for another weigand pulse
-#define WEIGAND_WAIT_TIME 3000
+#define WEIGAND_WAIT_TIME 6000
 
 // stores all of the data bits
 volatile unsigned char databits[MAX_BITS];
@@ -47,7 +47,7 @@ volatile unsigned char flagDone;
 volatile unsigned int weigandCounter;
 
 // Display screen timer
-unsigned long displayTimeout = 30000; // 30 seconds
+unsigned long displayTimeout = 7000; // 7 seconds
 unsigned long lastCardTime = 0;
 bool displayingCard = false;
 
@@ -90,9 +90,9 @@ unsigned long cardChunk2 = 0;
 
 // Define reader input pins
 // card reader DATA0
-#define DATA0 19
+#define DATA0 21
 // card reader DATA1
-#define DATA1 18
+#define DATA1 22
 
 // define reader output pins
 //  LED Output for a GND tie back
@@ -260,10 +260,12 @@ void saveCredentialsToPreferences()
   // Write settings to JSON
   JsonDocument doc;
   doc["validCount"] = validCount;
-  JsonArray credentialsArray = doc.createNestedArray("credentials");
+
+  JsonArray credentialsArray = doc["credentials"].to<JsonArray>();
+
   for (int i = 0; i < validCount; i++)
   {
-    JsonObject credential = credentialsArray.createNestedObject();
+    JsonObject credential = credentialsArray.add<JsonObject>();
     credential["facilityCode"] = credentials[i].facilityCode;
     credential["cardNumber"] = credentials[i].cardNumber;
     credential["name"] = credentials[i].name;
