@@ -54,6 +54,7 @@
                             <th>Facility Code</th>
                             <th>Card Number</th>
                             <th>Name</th>
+                            <th>Flag</th>
                             <th>Action</th>
                         </tr>
                     </thead>
@@ -100,15 +101,8 @@
             </div>
             <br><br>
             <h2>CTF Mode</h2>
-            <label for="welcomeMessage">Welcome Message:</label>
-            <select id="welcomeMessage" onchange="toggleWelcomeMessage()">
-                <option value="default">Default</option>
-                <option value="custom">Custom</option>
-            </select>
-            <div id="customMessageDiv" hidden="hidden">
-                <label for="customMessage">Custom Message:</label>
-                <input type="text" id="customMessage" maxlength="20">
-            </div>
+            <label for="customMessage">Welcome Message:</label>
+            <input type="text" id="customMessage" maxlength="20">
             <br><br>
             <div>
                 <label for="ledValid">On Valid Card - LED:</label>

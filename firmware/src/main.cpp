@@ -40,11 +40,11 @@ int spkPin = 33;
 
 
 // Set the LCD I2C address
-LiquidCrystal_I2C lcd(0x20, 20, 4);
+LiquidCrystal_I2C lcd(0x27, 20, 4); //address may be 0x27, 0x20, or something
 
 // general device settings
 bool isCapturing = true;
-String MODE = "CTF";
+String MODE = "user";
 
 // card reader config and variables
 
@@ -90,8 +90,7 @@ int spkOnValid = 1;
 int ledValid = 1;
 
 // Custom Display Message
-String customMessage;
-String welcomeMessage = "default";
+String customBanner = "SHORTRANGE TECH";
 
 // decoded facility code and card code
 unsigned long facilityCode = 0;
@@ -171,8 +170,7 @@ void saveSettingsToPreferences()
   doc["spkOnInvalid"] = spkOnInvalid;
   doc["spkOnValid"] = spkOnValid;
   doc["ledValid"] = ledValid;
-  doc["customMessage"] = customMessage;
-  doc["welcomeMessage"] = welcomeMessage;
+  doc["customMessage"] = customBanner;
   // pins and timing
   doc["i2c_scl"] = i2cScl;
   doc["i2c_sda"] = i2cSda;
@@ -192,7 +190,7 @@ void saveSettingsToPreferences()
   }
   else
   {
-    Serial.println("customMessage: " + customMessage);
+    Serial.println("customMessage: " + customBanner);
     Serial.println("Settings saved successfully.");
   }
   file.close();
@@ -235,7 +233,7 @@ void loadSettingsFromPreferences()
   }
 
   // Load settings
-  MODE = doc["MODE"] | "CTF";
+  MODE = doc["MODE"] | "user";
   displayTimeout = doc["displayTimeout"] | 30000;
   ap_mode = doc["ap_mode"] | true;
   ap_ssid = doc["ap_ssid"] | "doorsim";
@@ -245,11 +243,7 @@ void loadSettingsFromPreferences()
   spkOnInvalid = doc["spkOnInvalid"] | 1;
   spkOnValid = doc["spkOnValid"] | 1;
   ledValid = doc["ledValid"] | 1;
-  welcomeMessage = doc["welcomeMessage"] | "default";
-  if (welcomeMessage != "default")
-  {
-    customMessage = doc["customMessage"] | "";
-  }
+  customBanner = doc["customMessage"] | "SHORTRANGE TECH";
   // Load pins and timing (clamp maxBits to the compile-time array size)
   i2cScl = doc["i2c_scl"] | i2cScl;
   i2cSda = doc["i2c_sda"] | i2cSda;
@@ -298,6 +292,7 @@ void saveCredentialsToPreferences()
     credential["facilityCode"] = credentials[i].facilityCode;
     credential["cardNumber"] = credentials[i].cardNumber;
     credential["name"] = credentials[i].name;
+    credential["flag"] = credentials[i].flag;
   }
 
   if (serializeJson(doc, file) == 0)
@@ -320,6 +315,8 @@ void saveCredentialsToPreferences()
     Serial.print(credentials[i].cardNumber);
     Serial.print(", Name=");
     Serial.println(credentials[i].name);
+    Serial.print(", Flag=");
+    Serial.println(credentials[i].flag);
   }
   Serial.print("Valid Count: ");
   Serial.println(validCount);
@@ -431,6 +428,9 @@ void loadCredentialsFromPreferences()
       String name = credential["name"] | "";
       strncpy(credentials[i].name, name.c_str(), sizeof(credentials[i].name) - 1);
       credentials[i].name[sizeof(credentials[i].name) - 1] = '\0';
+      String flag = credential["flag"] | "";
+      strncpy(credentials[i].flag, flag.c_str(), sizeof(credentials[i].flag) - 1);
+      credentials[i].flag[sizeof(credentials[i].flag) - 1] = '\0';
     }
   }
   else
@@ -448,6 +448,8 @@ void loadCredentialsFromPreferences()
     Serial.print(credentials[i].cardNumber);
     Serial.print(", Name=");
     Serial.println(credentials[i].name);
+    Serial.print(", Flag=");
+    Serial.println(credentials[i].flag);
   }
   Serial.print("Valid Count: ");
   Serial.println(validCount);
@@ -566,7 +568,7 @@ void speakerOnFailure()
 
 void printCardData()
 {
-  if (MODE == "CTF")
+  if (MODE == "user")
   {
     const Credential *result = checkCredential(facilityCode, cardNumber);
     if (result != nullptr)
@@ -813,22 +815,11 @@ void printWelcomeMessage()
 {
   if (MODE == "CTF")
   {
-    if (customMessage != NULL)
-    {
-      lcd.clear();
-      lcd.setCursor(0, 0);
-      lcd.print(centerText(String(customMessage), 20));
-      lcd.setCursor(0, 2);
-      lcd.print(centerText("Present Card", 20));
-    }
-    else
-    {
-      lcd.clear();
-      lcd.setCursor(0, 0);
-      lcd.print(centerText("CTF Mode", 20));
-      lcd.setCursor(0, 2);
-      lcd.print(centerText("Present Card", 20));
-    }
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print(centerText(customBanner, 20));
+    lcd.setCursor(0, 2);
+    lcd.print(centerText("Present Card", 20));
   }
   else
   {
@@ -905,6 +896,7 @@ void webServer()
           user["facilityCode"] = credentials[i].facilityCode;
           user["cardNumber"] = credentials[i].cardNumber;
           user["name"] = credentials[i].name;
+          user["flag"] = credentials[i].flag;
       }
       String response;
       serializeJson(doc, response);
@@ -919,8 +911,7 @@ void webServer()
       doc["apPassphrase"] = ap_passphrase;
       doc["ssidHidden"] = ssid_hidden;
       doc["apChannel"] = ap_channel;
-      doc["welcomeMessage"] = customMessage.length() > 0 ? "custom" : "default";
-      doc["customMessage"] = customMessage;
+      doc["customMessage"] = customBanner;
       doc["ledValid"] = ledValid;
       doc["spkOnValid"] = spkOnValid;
       doc["spkOnInvalid"] = spkOnInvalid;
@@ -939,8 +930,7 @@ void webServer()
       ap_passphrase = jsonObj["apPassphrase"] | "";
       ap_channel = jsonObj["apChannel"] | 1;
       ssid_hidden = jsonObj["ssidHidden"] | 0;
-      welcomeMessage = jsonObj["welcomeMessage"] | "default";
-      customMessage = jsonObj["customMessage"] | "";
+      customBanner = jsonObj["customMessage"] | "SHORTRANGE TECH";
       spkOnInvalid = jsonObj["spkOnInvalid"] | 1;
       spkOnValid = jsonObj["spkOnValid"] | 1;
       ledValid = jsonObj["ledValid"] | 1;
@@ -957,11 +947,14 @@ void webServer()
         String facilityCodeStr = request->getParam("facilityCode")->value();
         String cardNumberStr = request->getParam("cardNumber")->value();
         String name = request->getParam("name")->value();
+        String flag = request->hasParam("flag") ? request->getParam("flag")->value() : "";
 
         credentials[validCount].facilityCode = facilityCodeStr.toInt();
         credentials[validCount].cardNumber = cardNumberStr.toInt();
         strncpy(credentials[validCount].name, name.c_str(), sizeof(credentials[validCount].name) - 1);
         credentials[validCount].name[sizeof(credentials[validCount].name) - 1] = '\0';
+        strncpy(credentials[validCount].flag, flag.c_str(), sizeof(credentials[validCount].flag) - 1);
+        credentials[validCount].flag[sizeof(credentials[validCount].flag) - 1] = '\0';
         validCount++;
         saveCredentialsToPreferences();
         request->send(200, "text/plain", "Card added successfully");
@@ -1000,6 +993,7 @@ void webServer()
         user["facilityCode"] = credentials[i].facilityCode;
         user["cardNumber"] = credentials[i].cardNumber;
         user["name"] = credentials[i].name;
+        user["flag"] = credentials[i].flag;
     }
     JsonArray cards = doc["cards"].to<JsonArray>();    
     for (int i = 0; i < cardDataIndex; i++) {

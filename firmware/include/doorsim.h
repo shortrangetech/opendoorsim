@@ -19,6 +19,7 @@ struct Credential
     unsigned long facilityCode;
     unsigned long cardNumber;
     char name[50];
+    char flag[50];
 };
 
 struct WiegandFormat
