@@ -9,7 +9,6 @@ struct CardData
     unsigned int bitCount;
     unsigned long facilityCode;
     unsigned long cardNumber;
-    String hexCardData;
     String rawCardData;
     String status;
     String details;
@@ -29,9 +28,6 @@ struct WiegandFormat
     unsigned int facilityCodeEnd;
     unsigned int cardNumberStart;
     unsigned int cardNumberEnd;
-    unsigned int cardChunk1Offset;
-    unsigned int bitHolderOffset;
-    unsigned int cardChunk2Offset;
 };
 
 
@@ -50,7 +46,7 @@ void speakerOnFailure();
 void printCardData();
 unsigned long decodeHIDFacilityCode(unsigned int start, unsigned int end);
 unsigned long decodeHIDCardNumber(unsigned int start, unsigned int end);
-void setCardChunkBits(unsigned int cardChunk1Offset, unsigned int bitHolderOffset, unsigned int cardChunk2Offset);
+// Pure-binary mode: no card chunking helper
 String prefixPad(const String &in, const char c, const size_t len);
 void processHIDCard();
 void processCardData();
