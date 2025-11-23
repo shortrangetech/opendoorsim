@@ -15,15 +15,29 @@ AsyncWebServer server(80);
 
 const char *settingsFile = "/settings.json";
 const char *credentialsFile = "/credentials.json";
+const char *wiegandFormatsFile = "/wiegand_formats.json";
 
-// I2C Pins
-#define I2C_SDA 21
-#define I2C_SCL 22
+// I2C Pins (defaults; may be overridden by settings.json at runtime)
+int i2cScl = 18;
+int i2cSda = 19;
 
 // Rotary Encoder Pins
-#define ROTARY_CLK 25
-#define ROTARY_DT 26
-#define ROTARY_SW 27
+int rotaryClk = 25;
+int rotaryDt = 26;
+int rotarySw = 27;
+
+// Define reader input pins
+// card reader DATA0
+int data0Pin = 21;
+// card reader DATA1
+int data1Pin = 22;
+
+// define reader output pins
+// LED Output for a GND tie back
+int ledPin = 32;
+// Speaker Output for a GND tie back
+int spkPin = 33;
+
 
 // Set the LCD I2C address
 LiquidCrystal_I2C lcd(0x20, 20, 4);
@@ -34,17 +48,19 @@ String MODE = "CTF";
 
 // card reader config and variables
 
-// max number of bits
-#define MAX_BITS 100
-// time to wait for another weigand pulse
-#define WEIGAND_WAIT_TIME 6000
+// compile-time array size for bits (kept as a safe upper bound)
+const int MAX_BITS_CONST = 100;
+// runtime-configurable max bits (loaded from settings.json)
+volatile unsigned int maxBits = MAX_BITS_CONST;
+// time to wait for another weigand pulse (runtime-configurable)
+volatile unsigned int weigandWaitTime = 30000;
 
-// stores all of the data bits
-volatile unsigned char databits[MAX_BITS];
+// stores all of the data bits (sized to compile-time const)
+volatile unsigned char databits[MAX_BITS_CONST];
 volatile unsigned int bitCount = 0;
 
 // stores the last written card's data bits
-unsigned char lastWrittenDatabits[MAX_BITS];
+unsigned char lastWrittenDatabits[MAX_BITS_CONST];
 unsigned int lastWrittenBitCount = 0;
 
 // goes low when data is currently being captured
@@ -95,21 +111,6 @@ volatile unsigned long bitHolder2 = 0;
 unsigned long cardChunk1 = 0;
 unsigned long cardChunk2 = 0;
 
-// Define reader input pins
-// card reader DATA0
-#define DATA0 18
-// card reader DATA1
-#define DATA1 19
-
-// define reader output pins
-//  LED Output for a GND tie back
-#define LED 32
-// Speaker Output for a GND tie back
-#define SPK 33
-
-// define relay modules TODO: determine functionality / swap to tamper detection switch
-#define RELAY1 25
-#define RELAY2 26
 
 const int MAX_CREDENTIALS = 100;
 Credential credentials[MAX_CREDENTIALS];
@@ -119,6 +120,11 @@ int validCount = 0;
 const int MAX_CARDS = 100;
 CardData cardDataArray[MAX_CARDS];
 int cardDataIndex = 0;
+
+// Wiegand formats
+const int MAX_WIEGAND_FORMATS = 50;
+WiegandFormat wiegandFormats[MAX_WIEGAND_FORMATS];
+int wiegandFormatCount = 0;
 
 // Interrupts for card reader
 void ISR_INT0()
@@ -135,13 +141,13 @@ void ISR_INT0()
     bitHolder2 = bitHolder2 << 1;
   }
   // Reset the wait timer
-  weigandCounter = WEIGAND_WAIT_TIME;
+  weigandCounter = weigandWaitTime;
 }
 
 // interrupt that happens when INT1 goes low (1 bit)
 void ISR_INT1()
 {
-  if (bitCount < MAX_BITS)
+  if (bitCount < maxBits)
   {
     databits[bitCount] = 1;
     bitCount++;
@@ -159,7 +165,7 @@ void ISR_INT1()
     bitHolder2 |= 1;
   }
   // Reset the wait timer
-  weigandCounter = WEIGAND_WAIT_TIME;
+  weigandCounter = weigandWaitTime;
 }
 
 void saveSettingsToPreferences()
@@ -187,6 +193,18 @@ void saveSettingsToPreferences()
   doc["ledValid"] = ledValid;
   doc["customMessage"] = customMessage;
   doc["welcomeMessage"] = welcomeMessage;
+  // pins and timing
+  doc["i2c_scl"] = i2cScl;
+  doc["i2c_sda"] = i2cSda;
+  doc["rotary_clk"] = rotaryClk;
+  doc["rotary_dt"] = rotaryDt;
+  doc["rotary_sw"] = rotarySw;
+  doc["data0"] = data0Pin;
+  doc["data1"] = data1Pin;
+  doc["led_pin"] = ledPin;
+  doc["spk_pin"] = spkPin;
+  doc["max_bits"] = maxBits;
+  doc["wiegand_wait_time"] = weigandWaitTime;
 
   if (serializeJson(doc, file) == 0)
   {
@@ -252,6 +270,30 @@ void loadSettingsFromPreferences()
   {
     customMessage = doc["customMessage"] | "";
   }
+  // Load pins and timing (clamp maxBits to the compile-time array size)
+  i2cScl = doc["i2c_scl"] | i2cScl;
+  i2cSda = doc["i2c_sda"] | i2cSda;
+  rotaryClk = doc["rotary_clk"] | rotaryClk;
+  rotaryDt = doc["rotary_dt"] | rotaryDt;
+  rotarySw = doc["rotary_sw"] | rotarySw;
+  data0Pin = doc["data0"] | data0Pin;
+  data1Pin = doc["data1"] | data1Pin;
+  ledPin = doc["led_pin"] | ledPin;
+  spkPin = doc["spk_pin"] | spkPin;
+  unsigned int loadedMaxBits = doc["max_bits"] | (unsigned int)MAX_BITS_CONST;
+  if (loadedMaxBits == 0)
+  {
+    loadedMaxBits = MAX_BITS_CONST;
+  }
+  if (loadedMaxBits > MAX_BITS_CONST)
+  {
+    maxBits = MAX_BITS_CONST;
+  }
+  else
+  {
+    maxBits = loadedMaxBits;
+  }
+  weigandWaitTime = doc["wiegand_wait_time"] | weigandWaitTime;
   Serial.println("Settings loaded successfully:");
 }
 
@@ -301,6 +343,63 @@ void saveCredentialsToPreferences()
   }
   Serial.print("Valid Count: ");
   Serial.println(validCount);
+}
+
+void loadWiegandFormats()
+{
+  Serial.println("Loading Wiegand formats from JSON...");
+
+  if (!LittleFS.exists(wiegandFormatsFile))
+  {
+    Serial.println("Wiegand formats file does not exist.");
+    return;
+  }
+
+  File file = LittleFS.open(wiegandFormatsFile, "r");
+  if (!file)
+  {
+    Serial.println("Failed to open wiegand formats file for reading.");
+    return;
+  }
+
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, file);
+  file.close();
+
+  if (error)
+  {
+    Serial.print("Failed to parse wiegand formats .json file: ");
+    Serial.println(error.c_str());
+    return;
+  }
+
+  JsonArray formatsArray = doc["wiegandFormats"].as<JsonArray>();
+  wiegandFormatCount = 0;
+
+  for (JsonObject format : formatsArray)
+  {
+    if (wiegandFormatCount >= MAX_WIEGAND_FORMATS)
+    {
+      Serial.println("Maximum Wiegand formats reached.");
+      break;
+    }
+
+    wiegandFormats[wiegandFormatCount].bitCount = format["bitCount"] | 0;
+    wiegandFormats[wiegandFormatCount].facilityCodeStart = format["facilityCodeStart"] | 0;
+    wiegandFormats[wiegandFormatCount].facilityCodeEnd = format["facilityCodeEnd"] | 0;
+    wiegandFormats[wiegandFormatCount].cardNumberStart = format["cardNumberStart"] | 0;
+    wiegandFormats[wiegandFormatCount].cardNumberEnd = format["cardNumberEnd"] | 0;
+    wiegandFormats[wiegandFormatCount].cardChunk1Offset = format["cardChunk1Offset"] | 0;
+    wiegandFormats[wiegandFormatCount].bitHolderOffset = format["bitHolderOffset"] | 0;
+    wiegandFormats[wiegandFormatCount].cardChunk2Offset = format["cardChunk2Offset"] | 0;
+
+    Serial.print("Loaded format: bitCount=");
+    Serial.println(wiegandFormats[wiegandFormatCount].bitCount);
+    wiegandFormatCount++;
+  }
+
+  Serial.print("Total Wiegand formats loaded: ");
+  Serial.println(wiegandFormatCount);
 }
 
 void loadCredentialsFromPreferences()
@@ -400,19 +499,19 @@ void ledOnValid()
 
   case 1:
     // Flashing LED
-    digitalWrite(LED, LOW);
+    digitalWrite(ledPin, LOW);
     delay(250);
-    digitalWrite(LED, HIGH);
+    digitalWrite(ledPin, HIGH);
     delay(100);
-    digitalWrite(LED, LOW);
+    digitalWrite(ledPin, LOW);
     delay(250);
-    digitalWrite(LED, HIGH);
+    digitalWrite(ledPin, HIGH);
     break;
 
   case 2:
-    digitalWrite(LED, LOW);
+    digitalWrite(ledPin, LOW);
     delay(2000);
-    digitalWrite(LED, HIGH);
+    digitalWrite(ledPin, HIGH);
     break;
   }
 }
@@ -427,20 +526,20 @@ void speakerOnValid()
 
   case 1:
     // Nice Beeps LED
-    digitalWrite(SPK, LOW);
+    digitalWrite(spkPin, LOW);
     delay(100);
-    digitalWrite(SPK, HIGH);
+    digitalWrite(spkPin, HIGH);
     delay(50);
-    digitalWrite(SPK, LOW);
+    digitalWrite(spkPin, LOW);
     delay(100);
-    digitalWrite(SPK, HIGH);
+    digitalWrite(spkPin, HIGH);
     break;
 
   case 2:
     // Long Beeps
-    digitalWrite(SPK, LOW);
+    digitalWrite(spkPin, LOW);
     delay(2000);
-    digitalWrite(SPK, HIGH);
+    digitalWrite(spkPin, HIGH);
     break;
   }
 }
@@ -468,21 +567,21 @@ void speakerOnFailure()
 
   case 1:
     // Sad Beeps
-    digitalWrite(SPK, LOW);
+    digitalWrite(spkPin, LOW);
     delay(100);
-    digitalWrite(SPK, HIGH);
+    digitalWrite(spkPin, HIGH);
     delay(50);
-    digitalWrite(SPK, LOW);
+    digitalWrite(spkPin, LOW);
     delay(100);
-    digitalWrite(SPK, HIGH);
+    digitalWrite(spkPin, HIGH);
     delay(50);
-    digitalWrite(SPK, LOW);
+    digitalWrite(spkPin, LOW);
     delay(100);
-    digitalWrite(SPK, HIGH);
+    digitalWrite(spkPin, HIGH);
     delay(50);
-    digitalWrite(SPK, LOW);
+    digitalWrite(spkPin, LOW);
     delay(100);
-    digitalWrite(SPK, HIGH);
+    digitalWrite(spkPin, HIGH);
     break;
   }
 }
@@ -658,101 +757,32 @@ void processHIDCard()
   // 000000100000000001 11 111000100000100100111000
   // |> write to chunk1 <| |>  write to chunk2   <|
 
-  unsigned int cardChunk1Offset, bitHolderOffset, cardChunk2Offset;
-
   Serial.print("[*] Bit length: ");
   Serial.println(bitCount);
-  switch (bitCount)
+
+  // Find the matching Wiegand format
+  WiegandFormat *format = nullptr;
+  for (int i = 0; i < wiegandFormatCount; i++)
   {
-  case 26:
-    facilityCode = decodeHIDFacilityCode(1, 9);
-    cardNumber = decodeHIDCardNumber(9, 25);
-    cardChunk1Offset = 2;
-    bitHolderOffset = 20;
-    cardChunk2Offset = 4;
-    break;
+    if (wiegandFormats[i].bitCount == bitCount)
+    {
+      format = &wiegandFormats[i];
+      break;
+    }
+  }
 
-  case 27:
-    facilityCode = decodeHIDFacilityCode(1, 13);
-    cardNumber = decodeHIDCardNumber(13, 27);
-    cardChunk1Offset = 3;
-    bitHolderOffset = 19;
-    cardChunk2Offset = 5;
-    break;
-
-  case 29:
-    facilityCode = decodeHIDFacilityCode(1, 13);
-    cardNumber = decodeHIDCardNumber(13, 29);
-    cardChunk1Offset = 5;
-    bitHolderOffset = 17;
-    cardChunk2Offset = 7;
-    break;
-
-  case 30:
-    facilityCode = decodeHIDFacilityCode(1, 13);
-    cardNumber = decodeHIDCardNumber(13, 29);
-    cardChunk1Offset = 6;
-    bitHolderOffset = 16;
-    cardChunk2Offset = 8;
-    break;
-
-  case 31:
-    facilityCode = decodeHIDFacilityCode(1, 5);
-    cardNumber = decodeHIDCardNumber(5, 28);
-    cardChunk1Offset = 7;
-    bitHolderOffset = 15;
-    cardChunk2Offset = 9;
-    break;
-
-  // modified to wiegand 32 bit format instead of HID
-  case 32:
-    facilityCode = decodeHIDFacilityCode(5, 16);
-    cardNumber = decodeHIDCardNumber(17, 32);
-    cardChunk1Offset = 8;
-    bitHolderOffset = 14;
-    cardChunk2Offset = 10;
-    break;
-
-  case 33:
-    facilityCode = decodeHIDFacilityCode(1, 8);
-    cardNumber = decodeHIDCardNumber(8, 32);
-    cardChunk1Offset = 9;
-    bitHolderOffset = 13;
-    cardChunk2Offset = 11;
-    break;
-
-  case 34:
-    facilityCode = decodeHIDFacilityCode(1, 17);
-    cardNumber = decodeHIDCardNumber(17, 33);
-    cardChunk1Offset = 10;
-    bitHolderOffset = 12;
-    cardChunk2Offset = 12;
-    break;
-
-  case 35:
-    facilityCode = decodeHIDFacilityCode(2, 14);
-    cardNumber = decodeHIDCardNumber(14, 34);
-    cardChunk1Offset = 11;
-    bitHolderOffset = 11;
-    cardChunk2Offset = 13;
-    break;
-
-  case 36:
-    facilityCode = decodeHIDFacilityCode(21, 33);
-    cardNumber = decodeHIDCardNumber(1, 17);
-    cardChunk1Offset = 12;
-    bitHolderOffset = 10;
-    cardChunk2Offset = 14;
-    break;
-
-  default:
+  if (format == nullptr)
+  {
     Serial.println("[-] Unsupported bitCount for HID card");
     return;
   }
 
-  setCardChunkBits(cardChunk1Offset, bitHolderOffset, cardChunk2Offset);
+  // Extract facility code and card number using the format
+  facilityCode = decodeHIDFacilityCode(format->facilityCodeStart, format->facilityCodeEnd);
+  cardNumber = decodeHIDCardNumber(format->cardNumberStart, format->cardNumberEnd);
+
+  setCardChunkBits(format->cardChunk1Offset, format->bitHolderOffset, format->cardChunk2Offset);
   hexCardData = String(cardChunk1, HEX) + prefixPad(String(cardChunk2, HEX), '0', 6);
-  // hexCardData = String(cardChunk1, HEX) + String(cardChunk2, HEX);
 }
 
 void processCardData()
@@ -780,7 +810,7 @@ void clearDatabits()
 {
   Serial.println("Clearing databits...");
   // clear the databits array
-  for (unsigned char i = 0; i < MAX_BITS; i++)
+  for (unsigned char i = 0; i < MAX_BITS_CONST; i++)
   {
     databits[i] = 0;
   }
@@ -804,7 +834,7 @@ void cleanupCardData()
 
 bool allBitsAreOnes()
 {
-  for (int i = 0; i < MAX_BITS; i++)
+  for (int i = 0; i < MAX_BITS_CONST; i++)
   {
     if (databits[i] != 0xFF)
     {               // Check if each byte is not equal to 0xFF
@@ -1055,34 +1085,31 @@ void webServer()
 
 void setup()
 {
-  pinMode(DATA0, INPUT);
-  pinMode(DATA1, INPUT);
-  pinMode(LED, OUTPUT);
-  pinMode(SPK, OUTPUT);
-  pinMode(RELAY1, OUTPUT);
-  pinMode(RELAY2, OUTPUT);
+  pinMode(data0Pin, INPUT);
+  pinMode(data1Pin, INPUT);
+  pinMode(ledPin, OUTPUT);
+  pinMode(spkPin, OUTPUT);
+
 
   // turn off led
-  digitalWrite(LED, HIGH);
+  digitalWrite(ledPin, HIGH);
   // turn off buzzers
-  digitalWrite(SPK, HIGH);
-  // turn on relay, lock the door!
-  digitalWrite(RELAY1, HIGH);
+  digitalWrite(spkPin, HIGH);
+
 
   Serial.begin(115200);
   delay(100);
   Serial.println("Starting DoorSim...");
 
   Serial.println("LCD Initialized");
-  lcd.init(I2C_SDA, I2C_SCL);
+  lcd.init(i2cSda, i2cScl);
   lcd.backlight();
   displaySetupMassage("Initializing...");
+  attachInterrupt(data0Pin, ISR_INT0, FALLING);
+  attachInterrupt(data1Pin, ISR_INT1, FALLING);
 
-  attachInterrupt(DATA0, ISR_INT0, FALLING);
-  attachInterrupt(DATA1, ISR_INT1, FALLING);
-
-  weigandCounter = WEIGAND_WAIT_TIME;
-  for (unsigned char i = 0; i < MAX_BITS; i++)
+  weigandCounter = weigandWaitTime;
+  for (unsigned char i = 0; i < MAX_BITS_CONST; i++)
   {
     lastWrittenDatabits[i] = 0;
   }
@@ -1095,6 +1122,7 @@ void setup()
     Serial.println("An Error has occurred while mounting LittleFS");
     return;
   }
+  loadWiegandFormats();
   loadSettingsFromPreferences();
   loadCredentialsFromPreferences();
 

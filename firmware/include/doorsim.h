@@ -22,9 +22,22 @@ struct Credential
     char name[50];
 };
 
+struct WiegandFormat
+{
+    unsigned int bitCount;
+    unsigned int facilityCodeStart;
+    unsigned int facilityCodeEnd;
+    unsigned int cardNumberStart;
+    unsigned int cardNumberEnd;
+    unsigned int cardChunk1Offset;
+    unsigned int bitHolderOffset;
+    unsigned int cardChunk2Offset;
+};
+
 
 void ISR_INT0();
 void ISR_INT1();
+void loadWiegandFormats();
 void saveSettingsToPreferences();
 void loadSettingsFromPreferences();
 void saveCredentialsToPreferences();
