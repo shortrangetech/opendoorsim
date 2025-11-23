@@ -1,5 +1,5 @@
 {
-    "mode": "CTF",
+    "mode": "user",
     "displayTimeout": 7000,
     "ap_mode": 1,
     "ap_ssid": "OpenDoorSim",
@@ -14,12 +14,8 @@
     "data0": 21,
     "data1": 22,
     "led_pin": 32,
-    "spk_pin": 33,
     "max_bits": 100,
     "wiegand_wait_time": 30000,
-    "spkOnInvalid": 1,
-    "spkOnValid": 1,
     "ledValid": 1,
-    "customMessage": "",
-    "welcomeMessage": "default"
+    "customMessage": "SHORTRANGE TECH"
 }

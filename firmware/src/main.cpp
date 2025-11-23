@@ -35,9 +35,6 @@ int data1Pin = 22;
 // define reader output pins
 // LED Output for a GND tie back
 int ledPin = 32;
-// Speaker Output for a GND tie back
-int spkPin = 33;
-
 
 // Set the LCD I2C address
 LiquidCrystal_I2C lcd(0x27, 20, 4); //address may be 0x27, 0x20, or something
@@ -85,12 +82,10 @@ int ap_channel = 1;
 int ssid_hidden;
 
 // Speaker and LED Settings
-int spkOnInvalid = 1;
-int spkOnValid = 1;
 int ledValid = 1;
 
 // Custom Display Message
-String customBanner = "SHORTRANGE TECH";
+String customMessage = "SHORTRANGE TECH";
 
 // decoded facility code and card code
 unsigned long facilityCode = 0;
@@ -167,10 +162,8 @@ void saveSettingsToPreferences()
   doc["ap_passphrase"] = ap_passphrase;
   doc["ap_channel"] = ap_channel;
   doc["ssid_hidden"] = ssid_hidden;
-  doc["spkOnInvalid"] = spkOnInvalid;
-  doc["spkOnValid"] = spkOnValid;
   doc["ledValid"] = ledValid;
-  doc["customMessage"] = customBanner;
+  doc["customMessage"] = customMessage;
   // pins and timing
   doc["i2c_scl"] = i2cScl;
   doc["i2c_sda"] = i2cSda;
@@ -180,7 +173,6 @@ void saveSettingsToPreferences()
   doc["data0"] = data0Pin;
   doc["data1"] = data1Pin;
   doc["led_pin"] = ledPin;
-  doc["spk_pin"] = spkPin;
   doc["max_bits"] = maxBits;
   doc["wiegand_wait_time"] = weigandWaitTime;
 
@@ -190,7 +182,7 @@ void saveSettingsToPreferences()
   }
   else
   {
-    Serial.println("customMessage: " + customBanner);
+    Serial.println("customMessage: " + customMessage);
     Serial.println("Settings saved successfully.");
   }
   file.close();
@@ -240,10 +232,8 @@ void loadSettingsFromPreferences()
   ap_passphrase = doc["ap_passphrase"] | "";
   ap_channel = doc["ap_channel"] | 1;
   ssid_hidden = doc["ssid_hidden"] | 0;
-  spkOnInvalid = doc["spkOnInvalid"] | 1;
-  spkOnValid = doc["spkOnValid"] | 1;
   ledValid = doc["ledValid"] | 1;
-  customBanner = doc["customMessage"] | "SHORTRANGE TECH";
+  customMessage = doc["customMessage"] | "SHORTRANGE TECH";
   // Load pins and timing (clamp maxBits to the compile-time array size)
   i2cScl = doc["i2c_scl"] | i2cScl;
   i2cSda = doc["i2c_sda"] | i2cSda;
@@ -253,7 +243,6 @@ void loadSettingsFromPreferences()
   data0Pin = doc["data0"] | data0Pin;
   data1Pin = doc["data1"] | data1Pin;
   ledPin = doc["led_pin"] | ledPin;
-  spkPin = doc["spk_pin"] | spkPin;
   unsigned int loadedMaxBits = doc["max_bits"] | (unsigned int)MAX_BITS_CONST;
   if (loadedMaxBits == 0)
   {
@@ -496,76 +485,6 @@ void ledOnValid()
   }
 }
 
-// Functions to handle valid credentials
-void speakerOnValid()
-{
-  switch (spkOnValid)
-  {
-  case 0:
-    break;
-
-  case 1:
-    // Nice Beeps LED
-    digitalWrite(spkPin, LOW);
-    delay(100);
-    digitalWrite(spkPin, HIGH);
-    delay(50);
-    digitalWrite(spkPin, LOW);
-    delay(100);
-    digitalWrite(spkPin, HIGH);
-    break;
-
-  case 2:
-    // Long Beeps
-    digitalWrite(spkPin, LOW);
-    delay(2000);
-    digitalWrite(spkPin, HIGH);
-    break;
-  }
-}
-
-// Functions to handle invalid credentials
-void lcdInvalidCredentials()
-{
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("Card Read: ");
-  lcd.setCursor(11, 0);
-  lcd.print("INVALID");
-  lcd.setCursor(0, 2);
-  lcd.print(" THIS INCIDENT WILL");
-  lcd.setCursor(0, 3);
-  lcd.print("    BE REPORTED    ");
-}
-
-void speakerOnFailure()
-{
-  switch (spkOnInvalid)
-  {
-  case 0:
-    break;
-
-  case 1:
-    // Sad Beeps
-    digitalWrite(spkPin, LOW);
-    delay(100);
-    digitalWrite(spkPin, HIGH);
-    delay(50);
-    digitalWrite(spkPin, LOW);
-    delay(100);
-    digitalWrite(spkPin, HIGH);
-    delay(50);
-    digitalWrite(spkPin, LOW);
-    delay(100);
-    digitalWrite(spkPin, HIGH);
-    delay(50);
-    digitalWrite(spkPin, LOW);
-    delay(100);
-    digitalWrite(spkPin, HIGH);
-    break;
-  }
-}
-
 void printCardData()
 {
   if (MODE == "user")
@@ -573,22 +492,20 @@ void printCardData()
     const Credential *result = checkCredential(facilityCode, cardNumber);
     if (result != nullptr)
     {
-      // Valid credential found
+      // Valid credential found - serial console
       Serial.println("Valid credential found:");
       Serial.println("FC: " + String(result->facilityCode) + ", CN: " + String(result->cardNumber) + ", Name: " + result->name);
+      
+      // LCD Printing
       lcd.clear();
       lcd.setCursor(0, 0);
-      lcd.print("Card Read: ");
-      lcd.setCursor(11, 0);
-      lcd.print("VALID");
-      lcd.setCursor(0, 1);
-      lcd.print("FC: " + String(result->facilityCode));
-      lcd.setCursor(9, 1);
-      lcd.print("CN:" + String(result->cardNumber));
+      lcd.print(centerText("ACCESS GRANTED", 20));
+      lcd.setCursor(0, 2);
+      lcd.print("Welcome, " + String(result->name));
       lcd.setCursor(0, 3);
-      lcd.print("Name: " + String(result->name));
+      lcd.print(String(result->flag));
+
       ledOnValid();
-      speakerOnValid();
 
       // Update card data status and details
       status = "Authorized";
@@ -596,10 +513,17 @@ void printCardData()
     }
     else
     {
-      // No valid credential found
+      // No valid credential found - serial console
       Serial.println("Error: No valid credential found.");
-      lcdInvalidCredentials();
-      speakerOnFailure();
+
+      // LCD Printing 
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("ACCESS DENIED");
+      lcd.setCursor(0, 2);
+      lcd.print(centerText("THIS INCIDENT WILL",20));
+      lcd.setCursor(0, 3);
+      lcd.print(centerText("BE REPORTED", 20));
 
       // Update card data status and details
       status = "Unauthorized";
@@ -624,10 +548,10 @@ void printCardData()
       // LCD Printing
       lcd.clear();
       lcd.setCursor(0, 0);
-      lcd.print("Card Read: ");
+      lcd.print("CARD READ: ");
       lcd.setCursor(11, 0);
       lcd.print(bitCount);
-      lcd.print("bits");
+      lcd.print(" bits");
       lcd.setCursor(0, 1);
       lcd.print("FC: ");
       lcd.print(facilityCode);
@@ -806,18 +730,18 @@ void displaySetupMassage(const char *message)
 {
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print(centerText("Setup", 20));
+  lcd.print(centerText("Setting up...", 20));
   lcd.setCursor(0, 2);
   lcd.print(centerText(message, 20));
 }
 
 void printWelcomeMessage()
 {
-  if (MODE == "CTF")
+  if (MODE == "user")
   {
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print(centerText(customBanner, 20));
+    lcd.print(centerText(customMessage, 20));
     lcd.setCursor(0, 2);
     lcd.print(centerText("Present Card", 20));
   }
@@ -825,7 +749,7 @@ void printWelcomeMessage()
   {
     lcd.clear();
     lcd.setCursor(0, 0);
-    lcd.print(centerText("Door Sim - Ready", 20));
+    lcd.print(centerText("RAW READ MODE", 20));
     lcd.setCursor(0, 2);
     lcd.print(centerText("Present Card", 20));
   }
@@ -911,10 +835,8 @@ void webServer()
       doc["apPassphrase"] = ap_passphrase;
       doc["ssidHidden"] = ssid_hidden;
       doc["apChannel"] = ap_channel;
-      doc["customMessage"] = customBanner;
+      doc["customMessage"] = customMessage;
       doc["ledValid"] = ledValid;
-      doc["spkOnValid"] = spkOnValid;
-      doc["spkOnInvalid"] = spkOnInvalid;
       String response;
       serializeJson(doc, response);
       request->send(200, "application/json", response); });
@@ -924,15 +846,13 @@ void webServer()
       JsonObject jsonObj = json.as<JsonObject>();
 
       // Parse the JSON and update settings
-      MODE = jsonObj["mode"] | "CTF";
+      MODE = jsonObj["mode"] | "user";
       displayTimeout = jsonObj["displayTimeout"] | 30000;
       ap_ssid = jsonObj["apSsid"] | "doorsim";
       ap_passphrase = jsonObj["apPassphrase"] | "";
       ap_channel = jsonObj["apChannel"] | 1;
       ssid_hidden = jsonObj["ssidHidden"] | 0;
-      customBanner = jsonObj["customMessage"] | "SHORTRANGE TECH";
-      spkOnInvalid = jsonObj["spkOnInvalid"] | 1;
-      spkOnValid = jsonObj["spkOnValid"] | 1;
+      customMessage = jsonObj["customMessage"] | "SHORTRANGE TECH";
       ledValid = jsonObj["ledValid"] | 1;
 
       saveSettingsToPreferences();
@@ -1018,14 +938,9 @@ void setup()
   pinMode(data0Pin, INPUT);
   pinMode(data1Pin, INPUT);
   pinMode(ledPin, OUTPUT);
-  pinMode(spkPin, OUTPUT);
-
 
   // turn off led
   digitalWrite(ledPin, HIGH);
-  // turn off buzzers
-  digitalWrite(spkPin, HIGH);
-
 
   Serial.begin(115200);
   delay(100);
