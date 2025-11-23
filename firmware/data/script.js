@@ -39,12 +39,14 @@ function updateUserTable() {
                 let cellFacilityCode = row.insertCell(1);
                 let cellCardNumber = row.insertCell(2);
                 let cellName = row.insertCell(3);
-                let cellAction = row.insertCell(4);
+                let cellFlag = row.insertCell(4);
+                let cellAction = row.insertCell(5);
 
                 cellIndex.innerHTML = index + 1;
                 cellFacilityCode.innerHTML = user.facilityCode;
                 cellCardNumber.innerHTML = user.cardNumber;
                 cellName.innerHTML = user.name;
+                cellFlag.innerHTML = user.flag || '';
                 cellAction.innerHTML = '<button onclick="deleteCard(' + index + ')">Delete</button>';
             });
 
@@ -55,11 +57,13 @@ function updateUserTable() {
             let cellFacilityCode = inputRow.insertCell(1);
             let cellCardNumber = inputRow.insertCell(2);
             let cellName = inputRow.insertCell(3);
-            let cellAction = inputRow.insertCell(4);
+            let cellFlag = inputRow.insertCell(4);
+            let cellAction = inputRow.insertCell(5);
 
             cellFacilityCode.innerHTML = '<input type="number" id="newFacilityCode">';
             cellCardNumber.innerHTML = '<input type="number" id="newCardNumber">';
             cellName.innerHTML = '<input type="text" id="newName">';
+            cellFlag.innerHTML = '<input type="text" id="newFlag">';
             cellAction.innerHTML = '<button onclick="addCard()">Save</button>';
         })
         .catch(error => console.error('Error fetching user data:', error));
@@ -106,8 +110,9 @@ function addCard() {
     const facilityCode = document.getElementById('newFacilityCode').value;
     const cardNumber = document.getElementById('newCardNumber').value;
     const name = document.getElementById('newName').value;
+    const flag = document.getElementById('newFlag').value;
 
-    fetch(`/addCard?facilityCode=${facilityCode}&cardNumber=${cardNumber}&name=${name}`)
+    fetch(`/addCard?facilityCode=${facilityCode}&cardNumber=${cardNumber}&name=${name}&flag=${encodeURIComponent(flag)}`)
         .then(response => {
             if (response.ok) {
                 updateUserTable();
@@ -144,16 +149,6 @@ function toggleCollapsible() {
     content.style.display = content.style.display === "block" ? "none" : "block";
 }
 
-function toggleWelcomeMessage() {
-    const welcomeMessage = document.getElementById('welcomeMessage').value;
-    const customMessageDiv = document.getElementById('customMessageDiv');
-    if (welcomeMessage === 'custom') {
-        customMessageDiv.removeAttribute("hidden");
-    } else {
-        customMessageDiv.setAttribute("hidden", "hidden");
-    }
-}
-
 function updateSettingsUI(settings) {
     document.getElementById('modeSelect').value = settings.mode;
     document.getElementById('timeoutSelect').value = settings.displayTimeout;
@@ -161,13 +156,10 @@ function updateSettingsUI(settings) {
     document.getElementById('ap_passphrase').value = settings.apPassphrase;
     document.getElementById('ssid_hidden').checked = settings.ssidHidden;
     document.getElementById('ap_channel').value = settings.apChannel;
-    document.getElementById('welcomeMessage').value = settings.welcomeMessage;
     document.getElementById('customMessage').value = settings.customMessage;
     document.getElementById('ledValid').value = settings.ledValid;
     document.getElementById('spkOnValid').value = settings.spkOnValid;
     document.getElementById('spkOnInvalid').value = settings.spkOnInvalid;
-    //toggleWifiSettings();
-    toggleWelcomeMessage();
 }
 
 function saveSettings() {
@@ -177,7 +169,6 @@ function saveSettings() {
     const apPassphrase = document.getElementById('ap_passphrase').value;
     const ssidHidden = document.getElementById('ssid_hidden').checked;
     const apChannel = document.getElementById('ap_channel').value;
-    const welcomeMessage = document.getElementById('welcomeMessage').value;
     const customMessage = document.getElementById('customMessage').value;
     const ledValid = document.getElementById('ledValid').value;
     const spkOnValid = document.getElementById('spkOnValid').value;
@@ -190,7 +181,6 @@ function saveSettings() {
         apPassphrase: apPassphrase,
         ssidHidden: ssidHidden,
         apChannel: parseInt(apChannel),
-        welcomeMessage: welcomeMessage,
         customMessage: customMessage,
         ledValid: parseInt(ledValid),
         spkOnValid: parseInt(spkOnValid),
@@ -246,8 +236,9 @@ function importData() {
                 const facilityCode = card.facilityCode;
                 const cardNumber = card.cardNumber;
                 const name = card.name;
+                const flag = card.flag || '';
 
-                fetch(`/addCard?facilityCode=${facilityCode}&cardNumber=${cardNumber}&name=${name}`)
+                fetch(`/addCard?facilityCode=${facilityCode}&cardNumber=${cardNumber}&name=${name}&flag=${encodeURIComponent(flag)}`)
                     .then(response => {
                         if (!response.ok) {
                             throw new Error('Failed to add card');
