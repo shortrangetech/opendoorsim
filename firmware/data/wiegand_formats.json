@@ -6,9 +6,6 @@
       "facilityCodeEnd": 9,
       "cardNumberStart": 9,
       "cardNumberEnd": 25,
-      "cardChunk1Offset": 2,
-      "bitHolderOffset": 20,
-      "cardChunk2Offset": 4,
       "description": "Standard 26-bit HID format"
     },
     {
@@ -17,9 +14,6 @@
       "facilityCodeEnd": 13,
       "cardNumberStart": 13,
       "cardNumberEnd": 27,
-      "cardChunk1Offset": 3,
-      "bitHolderOffset": 19,
-      "cardChunk2Offset": 5,
       "description": "27-bit HID format"
     },
     {
@@ -28,9 +22,6 @@
       "facilityCodeEnd": 13,
       "cardNumberStart": 13,
       "cardNumberEnd": 29,
-      "cardChunk1Offset": 5,
-      "bitHolderOffset": 17,
-      "cardChunk2Offset": 7,
       "description": "29-bit HID format"
     },
     {
@@ -39,9 +30,6 @@
       "facilityCodeEnd": 13,
       "cardNumberStart": 13,
       "cardNumberEnd": 29,
-      "cardChunk1Offset": 6,
-      "bitHolderOffset": 16,
-      "cardChunk2Offset": 8,
       "description": "30-bit HID format"
     },
     {
@@ -50,9 +38,6 @@
       "facilityCodeEnd": 5,
       "cardNumberStart": 5,
       "cardNumberEnd": 28,
-      "cardChunk1Offset": 7,
-      "bitHolderOffset": 15,
-      "cardChunk2Offset": 9,
       "description": "31-bit HID format"
     },
     {
@@ -61,9 +46,6 @@
       "facilityCodeEnd": 16,
       "cardNumberStart": 17,
       "cardNumberEnd": 32,
-      "cardChunk1Offset": 8,
-      "bitHolderOffset": 14,
-      "cardChunk2Offset": 10,
       "description": "32-bit Wiegand format (modified, not standard HID)"
     },
     {
@@ -72,9 +54,6 @@
       "facilityCodeEnd": 8,
       "cardNumberStart": 8,
       "cardNumberEnd": 32,
-      "cardChunk1Offset": 9,
-      "bitHolderOffset": 13,
-      "cardChunk2Offset": 11,
       "description": "33-bit HID format"
     },
     {
@@ -83,9 +62,6 @@
       "facilityCodeEnd": 17,
       "cardNumberStart": 17,
       "cardNumberEnd": 33,
-      "cardChunk1Offset": 10,
-      "bitHolderOffset": 12,
-      "cardChunk2Offset": 12,
       "description": "34-bit HID format"
     },
     {
@@ -94,9 +70,6 @@
       "facilityCodeEnd": 14,
       "cardNumberStart": 14,
       "cardNumberEnd": 34,
-      "cardChunk1Offset": 11,
-      "bitHolderOffset": 11,
-      "cardChunk2Offset": 13,
       "description": "35-bit HID format"
     },
     {
@@ -105,10 +78,15 @@
       "facilityCodeEnd": 33,
       "cardNumberStart": 1,
       "cardNumberEnd": 17,
-      "cardChunk1Offset": 12,
-      "bitHolderOffset": 10,
-      "cardChunk2Offset": 14,
       "description": "36-bit HID format (facility code in different position)"
+    },
+    {
+      "bitCount": 48,
+      "facilityCodeStart": 2,
+      "facilityCodeEnd": 23,
+      "cardNumberStart": 23,
+      "cardNumberEnd": 46,
+      "description": "HID 48-bit Corporate 1000 format (H2004064)"
     }
   ]
 }

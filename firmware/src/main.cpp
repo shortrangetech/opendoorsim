@@ -97,19 +97,13 @@ String welcomeMessage = "default";
 unsigned long facilityCode = 0;
 unsigned long cardNumber = 0;
 
-// hex data string
-String hexCardData;
-
 // raw data string
 String rawCardData;
 String status;
 String details;
 
 // breaking up card value into 2 chunks to create 10 char HEX value
-volatile unsigned long bitHolder1 = 0;
-volatile unsigned long bitHolder2 = 0;
-unsigned long cardChunk1 = 0;
-unsigned long cardChunk2 = 0;
+
 
 
 const int MAX_CREDENTIALS = 100;
@@ -129,17 +123,13 @@ int wiegandFormatCount = 0;
 // Interrupts for card reader
 void ISR_INT0()
 {
-  bitCount++;
+  // DATA0 pulse represents a 0 bit
+  if (bitCount < maxBits)
+  {
+    databits[bitCount] = 0;
+    bitCount++;
+  }
   flagDone = 0;
-
-  if (bitCount < 23)
-  {
-    bitHolder1 = bitHolder1 << 1;
-  }
-  else
-  {
-    bitHolder2 = bitHolder2 << 1;
-  }
   // Reset the wait timer
   weigandCounter = weigandWaitTime;
 }
@@ -147,23 +137,13 @@ void ISR_INT0()
 // interrupt that happens when INT1 goes low (1 bit)
 void ISR_INT1()
 {
+  // DATA1 pulse represents a 1 bit
   if (bitCount < maxBits)
   {
     databits[bitCount] = 1;
     bitCount++;
   }
   flagDone = 0;
-
-  if (bitCount < 23)
-  {
-    bitHolder1 = bitHolder1 << 1;
-    bitHolder1 |= 1;
-  }
-  else
-  {
-    bitHolder2 = bitHolder2 << 1;
-    bitHolder2 |= 1;
-  }
   // Reset the wait timer
   weigandCounter = weigandWaitTime;
 }
@@ -389,9 +369,7 @@ void loadWiegandFormats()
     wiegandFormats[wiegandFormatCount].facilityCodeEnd = format["facilityCodeEnd"] | 0;
     wiegandFormats[wiegandFormatCount].cardNumberStart = format["cardNumberStart"] | 0;
     wiegandFormats[wiegandFormatCount].cardNumberEnd = format["cardNumberEnd"] | 0;
-    wiegandFormats[wiegandFormatCount].cardChunk1Offset = format["cardChunk1Offset"] | 0;
-    wiegandFormats[wiegandFormatCount].bitHolderOffset = format["bitHolderOffset"] | 0;
-    wiegandFormats[wiegandFormatCount].cardChunk2Offset = format["cardChunk2Offset"] | 0;
+    // Pure-binary mode: offsets are no longer used
 
     Serial.print("Loaded format: bitCount=");
     Serial.println(wiegandFormats[wiegandFormatCount].bitCount);
@@ -638,8 +616,6 @@ void printCardData()
       Serial.println(facilityCode);
       Serial.print("[*] Card number: ");
       Serial.println(cardNumber);
-      Serial.print("[*] Hex: ");
-      Serial.println(hexCardData);
       Serial.print("[*] Raw: ");
       Serial.println(rawCardData);
 
@@ -657,13 +633,12 @@ void printCardData()
       lcd.print(" CN: ");
       lcd.print(cardNumber);
       lcd.setCursor(0, 3);
-      lcd.print("Hex: ");
-      hexCardData.toUpperCase();
-      lcd.print(hexCardData);
+      lcd.print("Raw: ");
+      lcd.print(rawCardData);
 
       // Update card data status and details
       status = "Read";
-      details = "Hex: " + hexCardData;
+      details = "Raw: " + rawCardData;
     }
   }
 
@@ -673,7 +648,6 @@ void printCardData()
     cardDataArray[cardDataIndex].bitCount = bitCount;
     cardDataArray[cardDataIndex].facilityCode = facilityCode;
     cardDataArray[cardDataIndex].cardNumber = cardNumber;
-    cardDataArray[cardDataIndex].hexCardData = hexCardData;
     cardDataArray[cardDataIndex].rawCardData = rawCardData;
     cardDataArray[cardDataIndex].status = status;
     cardDataArray[cardDataIndex].details = details;
@@ -706,36 +680,7 @@ unsigned long decodeHIDCardNumber(unsigned int start, unsigned int end)
   return HIDCardNumber;
 }
 
-// Card value processing functions
-// Function to append the card value (bitHolder1 and bitHolder2) to the
-// necessary array then translate that to the two chunks for the card value that
-// will be output
-void setCardChunkBits(unsigned int cardChunk1Offset, unsigned int bitHolderOffset, unsigned int cardChunk2Offset)
-{
-  for (int i = 19; i >= 0; i--)
-  {
-    if (i == 13 || i == cardChunk1Offset)
-    {
-      bitWrite(cardChunk1, i, 1);
-    }
-    else if (i > cardChunk1Offset)
-    {
-      bitWrite(cardChunk1, i, 0);
-    }
-    else
-    {
-      bitWrite(cardChunk1, i, bitRead(bitHolder1, i + bitHolderOffset));
-    }
-    if (i < bitHolderOffset)
-    {
-      bitWrite(cardChunk2, i + cardChunk2Offset, bitRead(bitHolder1, i));
-    }
-    if (i < cardChunk2Offset)
-    {
-      bitWrite(cardChunk2, i, bitRead(bitHolder2, i));
-    }
-  }
-}
+// Card chunking logic removed for Pure Binary mode
 
 String prefixPad(const String &in, const char c, const size_t len)
 {
@@ -781,8 +726,8 @@ void processHIDCard()
   facilityCode = decodeHIDFacilityCode(format->facilityCodeStart, format->facilityCodeEnd);
   cardNumber = decodeHIDCardNumber(format->cardNumberStart, format->cardNumberEnd);
 
-  setCardChunkBits(format->cardChunk1Offset, format->bitHolderOffset, format->cardChunk2Offset);
-  hexCardData = String(cardChunk1, HEX) + prefixPad(String(cardChunk2, HEX), '0', 6);
+  // Pure-binary mode: facilityCode and cardNumber are derived directly
+  // from databits[]. No hex/card chunk generation is performed.
 }
 
 void processCardData()
@@ -820,14 +765,9 @@ void clearDatabits()
 void cleanupCardData()
 {
   rawCardData = "";
-  hexCardData = "";
   bitCount = 0;
   facilityCode = 0;
   cardNumber = 0;
-  bitHolder1 = 0;
-  bitHolder2 = 0;
-  cardChunk1 = 0;
-  cardChunk2 = 0;
   status = "";
   details = "";
 }
@@ -921,8 +861,6 @@ void printAllCardData()
     Serial.print(cardDataArray[i].facilityCode);
     Serial.print(", Card number: ");
     Serial.print(cardDataArray[i].cardNumber);
-    Serial.print(", Hex: ");
-    Serial.print(cardDataArray[i].hexCardData);
     Serial.print(", Raw: ");
     Serial.println(cardDataArray[i].rawCardData);
   }
@@ -950,7 +888,6 @@ void webServer()
           card["bitCount"] = cardDataArray[i].bitCount;
           card["facilityCode"] = cardDataArray[i].facilityCode;
           card["cardNumber"] = cardDataArray[i].cardNumber;
-          card["hexCardData"] = cardDataArray[i].hexCardData;
           card["rawCardData"] = cardDataArray[i].rawCardData;
           card["status"] = cardDataArray[i].status;
           card["details"] = cardDataArray[i].details;
@@ -1070,7 +1007,6 @@ void webServer()
         card["bitCount"] = cardDataArray[i].bitCount;
         card["facilityCode"] = cardDataArray[i].facilityCode;
         card["cardNumber"] = cardDataArray[i].cardNumber;
-        card["hexCardData"] = cardDataArray[i].hexCardData;
         card["rawCardData"] = cardDataArray[i].rawCardData;
     }
     String response;

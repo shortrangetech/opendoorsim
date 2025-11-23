@@ -16,15 +16,13 @@ function updateTable() {
                 let cellBitLength = row.insertCell(1);
                 let cellFacilityCode = row.insertCell(2);
                 let cellCardNumber = row.insertCell(3);
-                let cellHexData = row.insertCell(4);
-                let cellRawData = row.insertCell(5);
+                let cellRawData = row.insertCell(4);
 
                 cellIndex.innerHTML = index + 1;
                 cellBitLength.innerHTML = card.bitCount;
                 cellFacilityCode.innerHTML = card.facilityCode;
                 cellCardNumber.innerHTML = card.cardNumber;
-                cellHexData.innerHTML = `<a href="#" onclick="copyToClipboard('${card.hexCardData}')">${card.hexCardData}</a>`;
-                cellRawData.innerHTML = card.rawCardData;
+                cellRawData.innerHTML = `<a href="#" onclick="copyToClipboard('${card.rawCardData}')">${card.rawCardData}</a>`;
             });
         })
         .catch(error => console.error('Error fetching card data:', error));
