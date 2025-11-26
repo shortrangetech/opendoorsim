@@ -779,6 +779,7 @@ void printDisplayText(const char *msg1, const char *msg2, const char *msg3, cons
     oledDisplay->clearDisplay();
     oledDisplay->setTextSize(1);
     oledDisplay->setTextColor(SSD1306_WHITE);
+    oledDisplay->setCursor(0, 0);
     oledDisplay->println(msg1);
     oledDisplay->println(msg2);
     oledDisplay->println(msg3);
