@@ -17,27 +17,33 @@ const char *settingsFile = "/settings.json";
 const char *credentialsFile = "/credentials.json";
 const char *wiegandFormatsFile = "/wiegand_formats.json";
 
-// I2C Pins (defaults; may be overridden by settings.json at runtime)
-int i2cScl = 18;
-int i2cSda = 19;
+// I2C Pins (compile-time constants)
+#define I2C_SCL 18
+#define I2C_SDA 19
 
-// Rotary Encoder Pins
-int rotaryClk = 25;
-int rotaryDt = 26;
-int rotarySw = 27;
+// Rotary Encoder Pins (compile-time constants)
+#define ROTARY_CLK 25
+#define ROTARY_DT 26
+#define ROTARY_SW 27
 
-// Define reader input pins
+// Define reader input pins (compile-time constants)
 // card reader DATA0
-int data0Pin = 21;
+#define DATA0_PIN 21
 // card reader DATA1
-int data1Pin = 22;
+#define DATA1_PIN 22
 
-// define reader output pins
+// define reader output pins (compile-time constants)
 // LED Output for a GND tie back
-int ledPin = 32;
+#define LED_PIN 32
+
+#define DISPLAY_LCD 1
+#define DISPLAY_OLED_32 2
+#define DISPLAY_OLED_64 3
+
+int activeDisplayType = DISPLAY_LCD; // 1 for LCD, 2 for OLED 128x32, 3 for OLED 128x64
 
 // Set the LCD I2C address
-LiquidCrystal_I2C lcd(0x27, 20, 4); //address may be 0x27, 0x20, or something
+ //address may be 0x27, 0x20, or something
 
 // general device settings
 bool isCapturing = true;
@@ -112,7 +118,7 @@ int cardDataIndex = 0;
 // Wiegand formats
 const int MAX_WIEGAND_FORMATS = 50;
 WiegandFormat wiegandFormats[MAX_WIEGAND_FORMATS];
-int wiegandFormatCount = 0;
+int wiegandFormatCounter = 0;
 
 // Interrupts for card reader
 void ISR_INT0()
@@ -144,12 +150,12 @@ void ISR_INT1()
 
 void saveSettingsToPreferences()
 {
-  Serial.println("Saving settings to Preferences...");
+  Serial.println("[SYSTEM] Saving settings to Preferences...");
 
   File file = LittleFS.open(settingsFile, "w");
   if (!file)
   {
-    Serial.println("Failed to open settings file for writing.");
+    Serial.println("[SYSTEM] ERROR: Failed to open settings file for writing.");
     return;
   }
 
@@ -164,36 +170,29 @@ void saveSettingsToPreferences()
   doc["ssid_hidden"] = ssid_hidden;
   doc["ledValid"] = ledValid;
   doc["customMessage"] = customMessage;
-  // pins and timing
-  doc["i2c_scl"] = i2cScl;
-  doc["i2c_sda"] = i2cSda;
-  doc["rotary_clk"] = rotaryClk;
-  doc["rotary_dt"] = rotaryDt;
-  doc["rotary_sw"] = rotarySw;
-  doc["data0"] = data0Pin;
-  doc["data1"] = data1Pin;
-  doc["led_pin"] = ledPin;
+  // pins and timing (pin constants are compile-time; not stored in settings)
   doc["max_bits"] = maxBits;
   doc["wiegand_wait_time"] = weigandWaitTime;
+  doc["active_display"] = activeDisplayType; // 1 for LCD, 2 for OLED 128x32, 3 for OLED 128x64
 
   if (serializeJson(doc, file) == 0)
   {
-    Serial.println("Failed to write settings to file.");
+    Serial.println("[SYSTEM] ERROR: Failed to write settings to file.");
   }
   else
   {
     Serial.println("customMessage: " + customMessage);
-    Serial.println("Settings saved successfully.");
+    Serial.println("[SYSTEM] Settings saved successfully.");
   }
   file.close();
-  Serial.println("Settings saved!");
+  Serial.println("[SYSTEM] Settings saved!");
 }
 
 void loadSettingsFromPreferences()
 {
   if (!LittleFS.exists(settingsFile))
   {
-    Serial.println("Settings file does not exist. Creating with defaults...");
+    Serial.println("[SYSTEM] ALERT: Settings file does not exist. Creating with defaults...");
     saveSettingsToPreferences();
     return;
   }
@@ -201,7 +200,7 @@ void loadSettingsFromPreferences()
   File file = LittleFS.open(settingsFile, "r");
   if (!file)
   {
-    Serial.println("Failed to open settings file for reading.");
+    Serial.println("[SYSTEM] ERROR: Failed to open settings file for reading.");
     return;
   }
 
@@ -219,7 +218,7 @@ void loadSettingsFromPreferences()
 
   if (error)
   {
-    Serial.print("Failed to parse settings file: ");
+    Serial.print("[SYSTEM] ERROR: Failed to parse settings file: ");
     Serial.println(error.c_str());
     return;
   }
@@ -235,14 +234,9 @@ void loadSettingsFromPreferences()
   ledValid = doc["ledValid"] | 1;
   customMessage = doc["customMessage"] | "SHORTRANGE TECH";
   // Load pins and timing (clamp maxBits to the compile-time array size)
-  i2cScl = doc["i2c_scl"] | i2cScl;
-  i2cSda = doc["i2c_sda"] | i2cSda;
-  rotaryClk = doc["rotary_clk"] | rotaryClk;
-  rotaryDt = doc["rotary_dt"] | rotaryDt;
-  rotarySw = doc["rotary_sw"] | rotarySw;
-  data0Pin = doc["data0"] | data0Pin;
-  data1Pin = doc["data1"] | data1Pin;
-  ledPin = doc["led_pin"] | ledPin;
+  // Pin values are compile-time constants and not loaded from settings
+  activeDisplayType = doc["active_display"] | activeDisplayType; 
+
   unsigned int loadedMaxBits = doc["max_bits"] | (unsigned int)MAX_BITS_CONST;
   if (loadedMaxBits == 0)
   {
@@ -257,7 +251,7 @@ void loadSettingsFromPreferences()
     maxBits = loadedMaxBits;
   }
   weigandWaitTime = doc["wiegand_wait_time"] | weigandWaitTime;
-  Serial.println("Settings loaded successfully:");
+  Serial.println("[SYSTEM] Settings loaded successfully:");
 }
 
 void saveCredentialsToPreferences()
@@ -265,7 +259,7 @@ void saveCredentialsToPreferences()
   File file = LittleFS.open(credentialsFile, "w");
   if (!file)
   {
-    Serial.println("Failed to open credentials file for writing.");
+    Serial.println("[SYSTEM] ERROR: Failed to open credentials file for writing.");
     return;
   }
 
@@ -286,11 +280,11 @@ void saveCredentialsToPreferences()
 
   if (serializeJson(doc, file) == 0)
   {
-    Serial.println("Failed to write credentials to file.");
+    Serial.println("[SYSTEM] ERROR: Failed to write credentials to file.");
   }
   else
   {
-    Serial.println("credentials saved successfully.");
+    Serial.println("[SYSTEM] Credentials saved successfully.");
   }
   file.close();
 
@@ -313,18 +307,18 @@ void saveCredentialsToPreferences()
 
 void loadWiegandFormats()
 {
-  Serial.println("Loading Wiegand formats from JSON...");
+  Serial.println("[SYSTEM] Loading Wiegand formats from JSON...");
 
   if (!LittleFS.exists(wiegandFormatsFile))
   {
-    Serial.println("Wiegand formats file does not exist.");
+    Serial.println("[SYSTEM] ALERT: Wiegand formats file does not exist.");
     return;
   }
 
   File file = LittleFS.open(wiegandFormatsFile, "r");
   if (!file)
   {
-    Serial.println("Failed to open wiegand formats file for reading.");
+    Serial.println("[SYSTEM] ERROR: Failed to open wiegand formats file for reading.");
     return;
   }
 
@@ -334,45 +328,44 @@ void loadWiegandFormats()
 
   if (error)
   {
-    Serial.print("Failed to parse wiegand formats .json file: ");
+    Serial.print("[SYSTEM] ERROR: Failed to parse wiegand formats .json file: ");
     Serial.println(error.c_str());
     return;
   }
 
   JsonArray formatsArray = doc["wiegandFormats"].as<JsonArray>();
-  wiegandFormatCount = 0;
+  wiegandFormatCounter = 0;
 
   for (JsonObject format : formatsArray)
   {
-    if (wiegandFormatCount >= MAX_WIEGAND_FORMATS)
+    if (wiegandFormatCounter >= MAX_WIEGAND_FORMATS)
     {
-      Serial.println("Maximum Wiegand formats reached.");
+      Serial.println("[SYSTEM] ALERT: Maximum Wiegand formats reached.");
       break;
     }
 
-    wiegandFormats[wiegandFormatCount].bitCount = format["bitCount"] | 0;
-    wiegandFormats[wiegandFormatCount].facilityCodeStart = format["facilityCodeStart"] | 0;
-    wiegandFormats[wiegandFormatCount].facilityCodeEnd = format["facilityCodeEnd"] | 0;
-    wiegandFormats[wiegandFormatCount].cardNumberStart = format["cardNumberStart"] | 0;
-    wiegandFormats[wiegandFormatCount].cardNumberEnd = format["cardNumberEnd"] | 0;
-    // Pure-binary mode: offsets are no longer used
+    wiegandFormats[wiegandFormatCounter].bitCount = format["bitCount"] | 0;
+    wiegandFormats[wiegandFormatCounter].facilityCodeStart = format["facilityCodeStart"] | 0;
+    wiegandFormats[wiegandFormatCounter].facilityCodeEnd = format["facilityCodeEnd"] | 0;
+    wiegandFormats[wiegandFormatCounter].cardNumberStart = format["cardNumberStart"] | 0;
+    wiegandFormats[wiegandFormatCounter].cardNumberEnd = format["cardNumberEnd"] | 0;
 
     Serial.print("Loaded format: bitCount=");
-    Serial.println(wiegandFormats[wiegandFormatCount].bitCount);
-    wiegandFormatCount++;
+    Serial.println(wiegandFormats[wiegandFormatCounter].bitCount);
+    wiegandFormatCounter++;
   }
 
-  Serial.print("Total Wiegand formats loaded: ");
-  Serial.println(wiegandFormatCount);
+  Serial.print("[SYSTEM] Total Wiegand formats loaded: ");
+  Serial.println(wiegandFormatCounter);
 }
 
 void loadCredentialsFromPreferences()
 {
-  Serial.println("Loading credentials from Preferences...");
+  Serial.println("[SYSTEM] Loading credentials from Preferences...");
 
   if (!LittleFS.exists(credentialsFile))
   {
-    Serial.println("credentials file does not exist. Creating with defaults...");
+    Serial.println("[SYSTEM] ALERT: Credentials file does not exist. Creating with defaults...");
     saveCredentialsToPreferences();
     return;
   }
@@ -380,7 +373,7 @@ void loadCredentialsFromPreferences()
   File file = LittleFS.open(credentialsFile, "r");
   if (!file)
   {
-    Serial.println("Failed to open credentials file for reading.");
+    Serial.println("[SYSTEM] ERROR: Failed to open credentials file for reading.");
     return;
   }
 
@@ -398,7 +391,7 @@ void loadCredentialsFromPreferences()
 
   if (error)
   {
-    Serial.print("Failed to parse settings file: ");
+    Serial.print("[SYSTEM] ERROR: Failed to parse settings file: ");
     Serial.println(error.c_str());
     return;
   }
@@ -424,9 +417,9 @@ void loadCredentialsFromPreferences()
   }
   else
   {
-    Serial.println("No valid credentials found.");
+    Serial.println("[SYSTEM] ALERT: No valid credentials found.");
   }
-  Serial.println("Credentials loaded from Preferences:");
+  Serial.println("[SYSTEM] Credentials loaded from Preferences:");
   for (int i = 0; i < validCount; i++)
   {
     Serial.print("Credential ");
@@ -468,19 +461,19 @@ void ledOnValid()
 
   case 1:
     // Flashing LED
-    digitalWrite(ledPin, LOW);
+    digitalWrite(LED_PIN, LOW);
     delay(250);
-    digitalWrite(ledPin, HIGH);
+    digitalWrite(LED_PIN, HIGH);
     delay(100);
-    digitalWrite(ledPin, LOW);
+    digitalWrite(LED_PIN, LOW);
     delay(250);
-    digitalWrite(ledPin, HIGH);
+    digitalWrite(LED_PIN, HIGH);
     break;
 
   case 2:
-    digitalWrite(ledPin, LOW);
+    digitalWrite(LED_PIN, LOW);
     delay(2000);
-    digitalWrite(ledPin, HIGH);
+    digitalWrite(LED_PIN, HIGH);
     break;
   }
 }
@@ -495,15 +488,9 @@ void printCardData()
       // Valid credential found - serial console
       Serial.println("Valid credential found:");
       Serial.println("FC: " + String(result->facilityCode) + ", CN: " + String(result->cardNumber) + ", Name: " + result->name);
-      
+     
       // LCD Printing
-      lcd.clear();
-      lcd.setCursor(0, 0);
-      lcd.print(centerText("ACCESS GRANTED", 20));
-      lcd.setCursor(0, 2);
-      lcd.print("Welcome, " + String(result->name));
-      lcd.setCursor(0, 3);
-      lcd.print(String(result->flag));
+      printDisplayText("   ACCESS GRANTED   ","",centerText("Welcome, " + String(result->name), 20).c_str(),result->flag);
 
       ledOnValid();
 
@@ -517,13 +504,7 @@ void printCardData()
       Serial.println("Error: No valid credential found.");
 
       // LCD Printing 
-      lcd.clear();
-      lcd.setCursor(0, 0);
-      lcd.print("ACCESS DENIED");
-      lcd.setCursor(0, 2);
-      lcd.print(centerText("THIS INCIDENT WILL",20));
-      lcd.setCursor(0, 3);
-      lcd.print(centerText("BE REPORTED", 20));
+      printDisplayText("   ACCESS DENIED    ", ""," THIS INCIDENT WILL ","    BE REPORTED!    ");
 
       // Update card data status and details
       status = "Unauthorized";
@@ -546,21 +527,7 @@ void printCardData()
       Serial.println(rawCardData);
 
       // LCD Printing
-      lcd.clear();
-      lcd.setCursor(0, 0);
-      lcd.print("CARD READ: ");
-      lcd.setCursor(11, 0);
-      lcd.print(bitCount);
-      lcd.print(" bits");
-      lcd.setCursor(0, 1);
-      lcd.print("FC: ");
-      lcd.print(facilityCode);
-      lcd.setCursor(9, 1);
-      lcd.print(" CN: ");
-      lcd.print(cardNumber);
-      lcd.setCursor(0, 3);
-      lcd.print("Raw: ");
-      lcd.print(rawCardData);
+      printDisplayRawCard();
 
       // Update card data status and details
       status = "Read";
@@ -586,7 +553,7 @@ void printCardData()
 }
 
 // Process hid cards
-unsigned long decodeHIDFacilityCode(unsigned int start, unsigned int end)
+unsigned long decodeFacilityCode(unsigned int start, unsigned int end)
 {
   unsigned long HIDFacilityCode = 0;
   for (unsigned int i = start; i < end; i++)
@@ -596,7 +563,7 @@ unsigned long decodeHIDFacilityCode(unsigned int start, unsigned int end)
   return HIDFacilityCode;
 }
 
-unsigned long decodeHIDCardNumber(unsigned int start, unsigned int end)
+unsigned long decodeCardNumber(unsigned int start, unsigned int end)
 {
   unsigned long HIDCardNumber = 0;
   for (unsigned int i = start; i < end; i++)
@@ -621,19 +588,14 @@ String prefixPad(const String &in, const char c, const size_t len)
 void processHIDCard()
 {
   // bits to be decoded differently depending on card format length
-  // see http://www.pagemac.com/projects/rfid/hid_data_formats for more info
-  // also specifically: www.brivo.com/app/static_data/js/calculate.js
-  // Example of full card value
-  // |>   preamble   <| |>   Actual card value   <|
-  // 000000100000000001 11 111000100000100100111000
-  // |> write to chunk1 <| |>  write to chunk2   <|
+  // see http://www.pagemac.com/projects/rfid/hid_data_formats 
 
   Serial.print("[*] Bit length: ");
   Serial.println(bitCount);
 
   // Find the matching Wiegand format
   WiegandFormat *format = nullptr;
-  for (int i = 0; i < wiegandFormatCount; i++)
+  for (int i = 0; i < wiegandFormatCounter; i++)
   {
     if (wiegandFormats[i].bitCount == bitCount)
     {
@@ -649,8 +611,8 @@ void processHIDCard()
   }
 
   // Extract facility code and card number using the format
-  facilityCode = decodeHIDFacilityCode(format->facilityCodeStart, format->facilityCodeEnd);
-  cardNumber = decodeHIDCardNumber(format->cardNumberStart, format->cardNumberEnd);
+  facilityCode = decodeFacilityCode(format->facilityCodeStart, format->facilityCodeEnd);
+  cardNumber = decodeCardNumber(format->cardNumberStart, format->cardNumberEnd);
 
   // Pure-binary mode: facilityCode and cardNumber are derived directly
   // from databits[]. No hex/card chunk generation is performed.
@@ -658,7 +620,7 @@ void processHIDCard()
 
 void processCardData()
 {
-  Serial.println("Processing card data...");
+  Serial.println("[SYSTEM] Processing card data...");
   // clear the databits array
   rawCardData = "";
   for (unsigned int i = 0; i < bitCount; i++)
@@ -679,7 +641,7 @@ void processCardData()
 
 void clearDatabits()
 {
-  Serial.println("Clearing databits...");
+  Serial.println("[SYSTEM] Clearing databits...");
   // clear the databits array
   for (unsigned char i = 0; i < MAX_BITS_CONST; i++)
   {
@@ -726,32 +688,72 @@ String centerText(const String &text, int width)
   return spaces + text;
 }
 
-void displaySetupMassage(const char *message)
+// Prints four lines of text to the activeDisplayType
+void printDisplayText(const char *msg1 = "", const char *msg2 = "", const char *msg3 = "", const char *msg4 = "")
 {
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print(centerText("Setting up...", 20));
-  lcd.setCursor(0, 2);
-  lcd.print(centerText(message, 20));
+  if (activeDisplayType == DISPLAY_LCD) 
+  {
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print(msg1);
+    lcd.setCursor(0, 1);
+    lcd.print(msg2);
+    lcd.setCursor(0, 2);
+    lcd.print(msg3);
+    lcd.setCursor(0, 3);
+    lcd.print(msg4);
+  }
+  else if (activeDisplayType == DISPLAY_OLED_32)
+  {
+    // TODO: finish this function
+  }
+  else if (activeDisplayType == DISPLAY_OLED_64)
+  {
+    // TODO: finish this function
+  }
 }
 
-void printWelcomeMessage()
+void printDisplayRawCard()
+{
+    if (activeDisplayType == DISPLAY_LCD)
+    {
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("CARD READ: ");
+      lcd.setCursor(11, 0);
+      lcd.print(bitCount);
+      lcd.print(" bits");
+      lcd.setCursor(0, 1);
+      lcd.print("FC: ");
+      lcd.print(facilityCode);
+      lcd.setCursor(9, 1);
+      lcd.print(" CN: ");
+      lcd.print(cardNumber);
+      lcd.setCursor(0, 3);
+      lcd.print("Raw: ");
+      lcd.print(rawCardData);
+    }
+    else if (activeDisplayType == DISPLAY_OLED_32)
+    {
+      // TODO: finish this function
+    }
+    else if (activeDisplayType == DISPLAY_OLED_64)
+    {
+      // TODO: finish this function
+    }
+
+}
+
+
+void printStandbyMessage()
 {
   if (MODE == "user")
   {
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print(centerText(customMessage, 20));
-    lcd.setCursor(0, 2);
-    lcd.print(centerText("Present Card", 20));
+    printDisplayText(centerText(customMessage, 20).c_str(), "", "Present Card");
   }
   else
   {
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print(centerText("RAW READ MODE", 20));
-    lcd.setCursor(0, 2);
-    lcd.print(centerText("Present Card", 20));
+    printDisplayText("RAW Read Mode", "", "Present Card");
   }
 }
 
@@ -759,12 +761,12 @@ void updateDisplay()
 {
   if (displayingCard && (millis() - lastCardTime >= displayTimeout))
   {
-    printWelcomeMessage();
+    printStandbyMessage();
     displayingCard = false;
   }
 }
 
-void printAllCardData()
+void printCardDataSerial()
 {
   Serial.println("Previously read card data:");
   for (int i = 0; i < cardDataIndex; i++)
@@ -935,23 +937,37 @@ void webServer()
 
 void setup()
 {
-  pinMode(data0Pin, INPUT);
-  pinMode(data1Pin, INPUT);
-  pinMode(ledPin, OUTPUT);
+  pinMode(DATA0_PIN, INPUT);
+  pinMode(DATA1_PIN, INPUT);
+  pinMode(LED_PIN, OUTPUT);
 
   // turn off led
-  digitalWrite(ledPin, HIGH);
+  digitalWrite(LED_PIN, HIGH);
 
   Serial.begin(115200);
   delay(100);
-  Serial.println("Starting DoorSim...");
+  Serial.println("[SYSTEM] Starting DoorSim...");
 
-  Serial.println("LCD Initialized");
-  lcd.init(i2cSda, i2cScl);
-  lcd.backlight();
-  displaySetupMassage("Initializing...");
-  attachInterrupt(data0Pin, ISR_INT0, FALLING);
-  attachInterrupt(data1Pin, ISR_INT1, FALLING);
+  Serial.println("[SYSTEM] Initializing Display...");
+  if (activeDisplayType == DISPLAY_LCD)
+  {
+    LiquidCrystal_I2C lcd(0x27, 20, 4);
+    lcd.init(I2C_SDA, I2C_SCL);
+    lcd.backlight();
+  }
+  else if (activeDisplayType == DISPLAY_OLED_32)
+  {
+    // TODO: implement 128x32 oled display initialization here
+  }
+  else if (activeDisplayType == DISPLAY_OLED_64)
+  {
+    // TODO: implement 128x64 display oled initialization here
+  }
+  printDisplayText("[SYSTEM] Initializing Wiegand Interrupts...");
+
+
+  attachInterrupt(DATA0_PIN, ISR_INT0, FALLING);
+  attachInterrupt(DATA1_PIN, ISR_INT1, FALLING);
 
   weigandCounter = weigandWaitTime;
   for (unsigned char i = 0; i < MAX_BITS_CONST; i++)
@@ -959,31 +975,31 @@ void setup()
     lastWrittenDatabits[i] = 0;
   }
 
-  displaySetupMassage("Mounting LittleFS...");
+  printDisplayText("[SYSTEM] Mounting LittleFS...");
 
-  Serial.println("Checking for LittleFS...");
+  Serial.println("[SYSTEM] Checking for LittleFS...");
   if (!LittleFS.begin(true))
   {
-    Serial.println("An Error has occurred while mounting LittleFS");
+    Serial.println("[SYSTEM] ERROR: An Error has occurred while mounting LittleFS!");
     return;
   }
   loadWiegandFormats();
   loadSettingsFromPreferences();
   loadCredentialsFromPreferences();
 
-  displaySetupMassage("Setup WiFi...");
-  Serial.println("Setup Wifi...");
+  printDisplayText("Setting up WiFi...");
+  Serial.println("[SYSTEM] Setting up Wifi...");
   setupWifi();
-  Serial.println("Wifi Setup Complete");
+  Serial.println("[SYSTEM] Wifi Setup Complete");
 
-  displaySetupMassage("Starting Web Server...");
+  printDisplayText("Starting Web Server...");
 
-  Serial.println("Starting web server...");
+  Serial.println("[SYSTEM]Starting web server...");
   webServer();
 
-  printWelcomeMessage();
+  printStandbyMessage();
 
-  Serial.println("DoorSim Ready!");
+  Serial.println("[SYSTEM] DoorSim Ready!");
 }
 
 void loop() {
@@ -993,7 +1009,7 @@ void loop() {
   if (!flagDone) {
     if (--weigandCounter == 0) {
       flagDone = 1;  // No more data expected
-      Serial.println("Weigand transmission complete.");
+      Serial.println("[LOOP] Weigand transmission complete.");
     }
   }
 
@@ -1007,11 +1023,11 @@ void loop() {
       // Process the card data     
       processCardData();
       // Print the card data if it meets the criteria
-      if (bitCount >= 26 && bitCount <= 36 || bitCount == 96) {
+      if (bitCount >= 26 && bitCount <= (MAX_BITS_CONST - 4)) {
         // Display card data on LCD and Serial
         printCardData();
         // Print all stored card data to Serial
-        printAllCardData();
+        printCardDataSerial();
       }
     }
 

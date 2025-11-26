@@ -45,8 +45,8 @@ void speakerOnValid();
 void lcdInvalidCredentials();
 void speakerOnFailure();
 void printCardData();
-unsigned long decodeHIDFacilityCode(unsigned int start, unsigned int end);
-unsigned long decodeHIDCardNumber(unsigned int start, unsigned int end);
+unsigned long decodeFacilityCode(unsigned int start, unsigned int end);
+unsigned long decodeCardNumber(unsigned int start, unsigned int end);
 // Pure-binary mode: no card chunking helper
 String prefixPad(const String &in, const char c, const size_t len);
 void processHIDCard();
@@ -55,9 +55,9 @@ void clearDatabits();
 void cleanupCardData();
 bool allBitsAreOnes();
 String centerText(const String &text, int width);
-void printWelcomeMessage();
+void printStandbyMessage();
 void updateDisplay();
-void printAllCardData();
+void printCardDataSerial();
 void setupWifi();
 void webServer();
 
