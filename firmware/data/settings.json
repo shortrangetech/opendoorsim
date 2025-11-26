@@ -1,5 +1,5 @@
 {
-    "mode": "user",
+    "mode": "access",
     "displayTimeout": 7000,
     "ap_mode": 1,
     "ap_ssid": "OpenDoorSim",
@@ -9,6 +9,6 @@
     "max_bits": 100,
     "wiegand_wait_time": 30000,
     "ledValid": 1,
-    "customMessage": "SHORTRANGE TECH",
-    "activeDisplayType": 1
+    "customMessage": "OPENDOORSIM",
+    "active_display_type": 2
 }

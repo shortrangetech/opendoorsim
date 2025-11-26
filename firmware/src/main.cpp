@@ -8,10 +8,30 @@
 #include "AsyncJson.h"
 #include "ArduinoJson.h"
 #include <LittleFS.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 
 #include "doorsim.h"
 
 AsyncWebServer server(80);
+
+// Display objects - allocated at runtime based on active_display_type
+LiquidCrystal_I2C *lcdDisplay = nullptr;
+Adafruit_SSD1306 *oledDisplay = nullptr;
+
+// Display configuration constants
+#define LCD_ADDRESS 0x27
+#define LCD_COLUMNS 20
+#define LCD_ROWS 4
+
+#define OLED_RESET -1
+#define OLED_32_ADDRESS 0x3C
+#define OLED_64_ADDRESS 0x3D
+#define OLED_WIDTH 128
+#define OLED_32_HEIGHT 32
+#define OLED_64_HEIGHT 64
+
 
 const char *settingsFile = "/settings.json";
 const char *credentialsFile = "/credentials.json";
@@ -40,14 +60,14 @@ const char *wiegandFormatsFile = "/wiegand_formats.json";
 #define DISPLAY_OLED_32 2
 #define DISPLAY_OLED_64 3
 
-int activeDisplayType = DISPLAY_LCD; // 1 for LCD, 2 for OLED 128x32, 3 for OLED 128x64
+int active_display_type = DISPLAY_LCD; // 1 for LCD, 2 for OLED 128x32, 3 for OLED 128x64
 
 // Set the LCD I2C address
  //address may be 0x27, 0x20, or something
 
 // general device settings
 bool isCapturing = true;
-String MODE = "user";
+String MODE = "access"; // "access" or "raw"
 
 // card reader config and variables
 
@@ -91,7 +111,7 @@ int ssid_hidden;
 int ledValid = 1;
 
 // Custom Display Message
-String customMessage = "SHORTRANGE TECH";
+String customMessage = "OPENDOORSIM";
 
 // decoded facility code and card code
 unsigned long facilityCode = 0;
@@ -101,9 +121,6 @@ unsigned long cardNumber = 0;
 String rawCardData;
 String status;
 String details;
-
-// breaking up card value into 2 chunks to create 10 char HEX value
-
 
 
 const int MAX_CREDENTIALS = 100;
@@ -173,7 +190,7 @@ void saveSettingsToPreferences()
   // pins and timing (pin constants are compile-time; not stored in settings)
   doc["max_bits"] = maxBits;
   doc["wiegand_wait_time"] = weigandWaitTime;
-  doc["active_display"] = activeDisplayType; // 1 for LCD, 2 for OLED 128x32, 3 for OLED 128x64
+  doc["active_display_type"] = active_display_type; // 1 for LCD, 2 for OLED 128x32, 3 for OLED 128x64
 
   if (serializeJson(doc, file) == 0)
   {
@@ -224,7 +241,7 @@ void loadSettingsFromPreferences()
   }
 
   // Load settings
-  MODE = doc["MODE"] | "user";
+  MODE = doc["MODE"] | "access";
   displayTimeout = doc["displayTimeout"] | 30000;
   ap_mode = doc["ap_mode"] | true;
   ap_ssid = doc["ap_ssid"] | "doorsim";
@@ -232,10 +249,10 @@ void loadSettingsFromPreferences()
   ap_channel = doc["ap_channel"] | 1;
   ssid_hidden = doc["ssid_hidden"] | 0;
   ledValid = doc["ledValid"] | 1;
-  customMessage = doc["customMessage"] | "SHORTRANGE TECH";
+  customMessage = doc["customMessage"] | "OPENDOORSIM";
   // Load pins and timing (clamp maxBits to the compile-time array size)
   // Pin values are compile-time constants and not loaded from settings
-  activeDisplayType = doc["active_display"] | activeDisplayType; 
+  active_display_type = doc["active_display_type"] | active_display_type; 
 
   unsigned int loadedMaxBits = doc["max_bits"] | (unsigned int)MAX_BITS_CONST;
   if (loadedMaxBits == 0)
@@ -480,7 +497,7 @@ void ledOnValid()
 
 void printCardData()
 {
-  if (MODE == "user")
+  if (MODE == "access")
   {
     const Credential *result = checkCredential(facilityCode, cardNumber);
     if (result != nullptr)
@@ -688,72 +705,152 @@ String centerText(const String &text, int width)
   return spaces + text;
 }
 
-// Prints four lines of text to the activeDisplayType
-void printDisplayText(const char *msg1 = "", const char *msg2 = "", const char *msg3 = "", const char *msg4 = "")
+void initializeDisplay()
 {
-  if (activeDisplayType == DISPLAY_LCD) 
+  Serial.println("[SYSTEM] Initializing Display...");
+
+  Wire.begin(I2C_SDA, I2C_SCL);
+  
+  if (active_display_type == DISPLAY_LCD)
   {
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print(msg1);
-    lcd.setCursor(0, 1);
-    lcd.print(msg2);
-    lcd.setCursor(0, 2);
-    lcd.print(msg3);
-    lcd.setCursor(0, 3);
-    lcd.print(msg4);
+    lcdDisplay = new LiquidCrystal_I2C(LCD_ADDRESS, LCD_COLUMNS, LCD_ROWS);
+    lcdDisplay->init(I2C_SDA, I2C_SCL);
+    lcdDisplay->backlight();
+    lcdDisplay->clear();
+    lcdDisplay->setCursor(0, 0);
+    lcdDisplay->print("Initializing...");
+    Serial.println("[SYSTEM] LCD 20x4 initialized");
   }
-  else if (activeDisplayType == DISPLAY_OLED_32)
+  else if (active_display_type == DISPLAY_OLED_32)
   {
-    // TODO: finish this function
+    oledDisplay = new Adafruit_SSD1306(OLED_WIDTH, OLED_32_HEIGHT, &Wire, OLED_RESET);
+    if (!oledDisplay->begin(SSD1306_SWITCHCAPVCC, OLED_32_ADDRESS))
+    {
+      Serial.println("[SYSTEM] ERROR: OLED 128x32 initialization failed!");
+      delete oledDisplay;
+      oledDisplay = nullptr;
+      return;
+    }
+    oledDisplay->clearDisplay();
+    oledDisplay->setTextSize(1);
+    oledDisplay->setTextColor(SSD1306_WHITE);
+    oledDisplay->setCursor(0, 0);
+    oledDisplay->println("Initializing...");
+    oledDisplay->display();
+    Serial.println("[SYSTEM] OLED 128x32 initialized");
   }
-  else if (activeDisplayType == DISPLAY_OLED_64)
+  else if (active_display_type == DISPLAY_OLED_64)
   {
-    // TODO: finish this function
+    oledDisplay = new Adafruit_SSD1306(OLED_WIDTH, OLED_64_HEIGHT, &Wire, OLED_RESET);
+    if (!oledDisplay->begin(SSD1306_SWITCHCAPVCC, OLED_64_ADDRESS))
+    {
+      Serial.println("[SYSTEM] ERROR: OLED 128x64 initialization failed!");
+      delete oledDisplay;
+      oledDisplay = nullptr;
+      return;
+    }
+    oledDisplay->clearDisplay();
+    oledDisplay->setTextSize(1);
+    oledDisplay->setTextColor(SSD1306_WHITE);
+    oledDisplay->setCursor(0, 0);
+    oledDisplay->println("Initializing...");
+    oledDisplay->display();
+    Serial.println("[SYSTEM] OLED 128x64 initialized");
+  }
+}
+
+// Prints four lines of text to the activeDisplayType
+void printDisplayText(const char *msg1, const char *msg2, const char *msg3, const char *msg4)
+{
+  if (active_display_type == DISPLAY_LCD && lcdDisplay != nullptr)
+  {
+    lcdDisplay->clear();
+    lcdDisplay->setCursor(0, 0);
+    lcdDisplay->print(msg1);
+    lcdDisplay->setCursor(0, 1);
+    lcdDisplay->print(msg2);
+    lcdDisplay->setCursor(0, 2);
+    lcdDisplay->print(msg3);
+    lcdDisplay->setCursor(0, 3);
+    lcdDisplay->print(msg4);
+  }
+  else if (active_display_type == DISPLAY_OLED_32 && oledDisplay != nullptr)
+  {
+    oledDisplay->clearDisplay();
+    oledDisplay->setTextSize(1);
+    oledDisplay->setTextColor(SSD1306_WHITE);
+    oledDisplay->println(msg1);
+    oledDisplay->println(msg2);
+    oledDisplay->println(msg3);
+    oledDisplay->println(msg4);
+    oledDisplay->display();
+  }
+  else if (active_display_type == DISPLAY_OLED_64 && oledDisplay != nullptr)
+  {
+    oledDisplay->clearDisplay();
+    oledDisplay->setTextSize(1);
+    oledDisplay->setTextColor(SSD1306_WHITE);
+    oledDisplay->setCursor(0, 0);
+    oledDisplay->println(msg1);
+    oledDisplay->println(msg2);
+    oledDisplay->println(msg3);
+    oledDisplay->println(msg4);
+    oledDisplay->display();
   }
 }
 
 void printDisplayRawCard()
 {
-    if (activeDisplayType == DISPLAY_LCD)
-    {
-      lcd.clear();
-      lcd.setCursor(0, 0);
-      lcd.print("CARD READ: ");
-      lcd.setCursor(11, 0);
-      lcd.print(bitCount);
-      lcd.print(" bits");
-      lcd.setCursor(0, 1);
-      lcd.print("FC: ");
-      lcd.print(facilityCode);
-      lcd.setCursor(9, 1);
-      lcd.print(" CN: ");
-      lcd.print(cardNumber);
-      lcd.setCursor(0, 3);
-      lcd.print("Raw: ");
-      lcd.print(rawCardData);
-    }
-    else if (activeDisplayType == DISPLAY_OLED_32)
-    {
-      // TODO: finish this function
-    }
-    else if (activeDisplayType == DISPLAY_OLED_64)
-    {
-      // TODO: finish this function
-    }
-
+  if (active_display_type == DISPLAY_LCD && lcdDisplay != nullptr)
+  {
+    lcdDisplay->clear();
+    lcdDisplay->setCursor(0, 0);
+    lcdDisplay->print("CARD READ: ");
+    lcdDisplay->setCursor(11, 0);
+    lcdDisplay->print(bitCount);
+    lcdDisplay->print(" bits");
+    lcdDisplay->setCursor(0, 1);
+    lcdDisplay->print("FC: ");
+    lcdDisplay->setCursor(4, 1);
+    lcdDisplay->print(facilityCode);
+    lcdDisplay->setCursor(9, 1);
+    lcdDisplay->print(" CN: ");
+    lcdDisplay->setCursor(14, 1);
+    lcdDisplay->print(cardNumber);
+    lcdDisplay->setCursor(0, 2);
+    lcdDisplay->print("Raw: ");
+    lcdDisplay->setCursor(0, 3);
+    lcdDisplay->print(rawCardData);
+  }
+  else if ((active_display_type == DISPLAY_OLED_32 || active_display_type == DISPLAY_OLED_64) && oledDisplay != nullptr)
+  {
+    oledDisplay->clearDisplay();
+    oledDisplay->setTextSize(1);
+    oledDisplay->setTextColor(SSD1306_WHITE);
+    oledDisplay->setCursor(0, 0);
+    oledDisplay->print("CARD: ");
+    oledDisplay->print(bitCount);
+    oledDisplay->println("b");
+    oledDisplay->print("FC:");
+    oledDisplay->print(facilityCode);
+    oledDisplay->print(" CN:");
+    oledDisplay->println(cardNumber);
+    oledDisplay->println("Raw:");
+    oledDisplay->println(rawCardData);
+    oledDisplay->display();
+  }
 }
 
 
 void printStandbyMessage()
 {
-  if (MODE == "user")
+  if (MODE == "access")
   {
-    printDisplayText(centerText(customMessage, 20).c_str(), "", "Present Card");
+    printDisplayText(centerText(customMessage, 20).c_str(), "", "    Present Card    ", ""); 
   }
   else
   {
-    printDisplayText("RAW Read Mode", "", "Present Card");
+    printDisplayText("      RAW MODE      ", "", "    Present Card    ", "");
   }
 }
 
@@ -833,10 +930,10 @@ void webServer()
       JsonDocument doc;
       doc["mode"] = MODE;
       doc["displayTimeout"] = displayTimeout;
-      doc["apSsid"] = ap_ssid;
-      doc["apPassphrase"] = ap_passphrase;
-      doc["ssidHidden"] = ssid_hidden;
-      doc["apChannel"] = ap_channel;
+      doc["ap_ssid"] = ap_ssid;
+      doc["ap_pwd"] = ap_passphrase;
+      doc["ssid_hidden"] = ssid_hidden;
+      doc["ap_channel"] = ap_channel;
       doc["customMessage"] = customMessage;
       doc["ledValid"] = ledValid;
       String response;
@@ -848,17 +945,17 @@ void webServer()
       JsonObject jsonObj = json.as<JsonObject>();
 
       // Parse the JSON and update settings
-      MODE = jsonObj["mode"] | "user";
+      MODE = jsonObj["mode"] | "access";
       displayTimeout = jsonObj["displayTimeout"] | 30000;
-      ap_ssid = jsonObj["apSsid"] | "doorsim";
-      ap_passphrase = jsonObj["apPassphrase"] | "";
-      ap_channel = jsonObj["apChannel"] | 1;
-      ssid_hidden = jsonObj["ssidHidden"] | 0;
-      customMessage = jsonObj["customMessage"] | "SHORTRANGE TECH";
+      ap_ssid = jsonObj["ap_ssid"] | "doorsim";
+      ap_passphrase = jsonObj["ap_pwd"] | "";
+      ap_channel = jsonObj["ap_channel"] | 1;
+      ssid_hidden = jsonObj["ssid_hidden"] | 0;
+      customMessage = jsonObj["customMessage"] | "OPENDOORSIM";
       ledValid = jsonObj["ledValid"] | 1;
 
       saveSettingsToPreferences();
-      //setupWifi();
+      //setupWifi(); TODO: implement a reboot button so that they can choose to apply the new wifi settings
       request->send(200, "application/json", "{\"status\":\"success\"}"); });
   server.addHandler(handler);
 
@@ -946,38 +1043,10 @@ void setup()
 
   Serial.begin(115200);
   delay(100);
-  Serial.println("[SYSTEM] Starting DoorSim...");
 
-  Serial.println("[SYSTEM] Initializing Display...");
-  if (activeDisplayType == DISPLAY_LCD)
-  {
-    LiquidCrystal_I2C lcd(0x27, 20, 4);
-    lcd.init(I2C_SDA, I2C_SCL);
-    lcd.backlight();
-  }
-  else if (activeDisplayType == DISPLAY_OLED_32)
-  {
-    // TODO: implement 128x32 oled display initialization here
-  }
-  else if (activeDisplayType == DISPLAY_OLED_64)
-  {
-    // TODO: implement 128x64 display oled initialization here
-  }
-  printDisplayText("[SYSTEM] Initializing Wiegand Interrupts...");
+  Serial.println("[SYSTEM] Loading File System and Settings...");
 
-
-  attachInterrupt(DATA0_PIN, ISR_INT0, FALLING);
-  attachInterrupt(DATA1_PIN, ISR_INT1, FALLING);
-
-  weigandCounter = weigandWaitTime;
-  for (unsigned char i = 0; i < MAX_BITS_CONST; i++)
-  {
-    lastWrittenDatabits[i] = 0;
-  }
-
-  printDisplayText("[SYSTEM] Mounting LittleFS...");
-
-  Serial.println("[SYSTEM] Checking for LittleFS...");
+    Serial.println("[SYSTEM] Checking for LittleFS...");
   if (!LittleFS.begin(true))
   {
     Serial.println("[SYSTEM] ERROR: An Error has occurred while mounting LittleFS!");
@@ -987,19 +1056,32 @@ void setup()
   loadSettingsFromPreferences();
   loadCredentialsFromPreferences();
 
-  printDisplayText("Setting up WiFi...");
+  // INITIALIZE DISPLAY 
+  initializeDisplay();
+
+  printDisplayText("    OPENDOORSIM     ", "         by         ", "  SHORTRANGE.TECH   ", "");
+  attachInterrupt(DATA0_PIN, ISR_INT0, FALLING);
+  attachInterrupt(DATA1_PIN, ISR_INT1, FALLING);
+
+  weigandCounter = weigandWaitTime;
+  for (unsigned char i = 0; i < MAX_BITS_CONST; i++)
+  {
+    lastWrittenDatabits[i] = 0;
+  }
+
+
+
   Serial.println("[SYSTEM] Setting up Wifi...");
   setupWifi();
   Serial.println("[SYSTEM] Wifi Setup Complete");
 
-  printDisplayText("Starting Web Server...");
-
-  Serial.println("[SYSTEM]Starting web server...");
+  Serial.println("[SYSTEM] Starting web server...");
   webServer();
 
-  printStandbyMessage();
-
   Serial.println("[SYSTEM] DoorSim Ready!");
+
+  delay(4000);
+  printStandbyMessage();
 }
 
 void loop() {
