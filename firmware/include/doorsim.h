@@ -60,5 +60,8 @@ void updateDisplay();
 void printCardDataSerial();
 void setupWifi();
 void webServer();
+void initializeDisplay();
+void printDisplayText(const char *msg1, const char *msg2, const char *msg3, const char *msg4);
+void printDisplayRawCard();
 
 #endif // DOORSIM_H
