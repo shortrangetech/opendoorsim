@@ -1,7 +1,6 @@
 {
     "mode": "access",
-    "displayTimeout": 7000,
-    "ap_mode": 1,
+    "ap_mode": true,
     "ap_ssid": "OpenDoorSim",
     "ap_pwd": "",
     "ap_channel": 1,
@@ -10,5 +9,7 @@
     "wiegand_wait_time": 30000,
     "ledValid": 1,
     "customMessage": "OPENDOORSIM",
-    "active_display_type": 2
+    "displayTimeout": 7000,
+    "active_display_type": 1,
+    "enableTamperDetect": true
 }
