@@ -16,9 +16,32 @@
 
 AsyncWebServer server(80);
 
-// Display objects - allocated at runtime based on active_display_type
-LiquidCrystal_I2C *lcdDisplay = nullptr;
-Adafruit_SSD1306 *oledDisplay = nullptr;
+const char *settingsFile = "/settings.json";
+const char *credentialsFile = "/credentials.json";
+const char *wiegandFormatsFile = "/wiegand_formats.json";
+
+// I2C Pins 
+#define I2C_SCL 18
+#define I2C_SDA 19
+
+// Rotary Encoder Pins 
+#define ROTARY_CLK 25
+#define ROTARY_DT 26
+#define ROTARY_SW 27
+
+// Reader input pins 
+#define DATA0_PIN 21
+#define DATA1_PIN 22
+  // optional, tamper detection relay
+#define RELAY1_PIN 4
+
+// Reader output pins 
+#define LED_PIN 16
+
+// Display type constants
+#define DISPLAY_LCD 1
+#define DISPLAY_OLED_32 2
+#define DISPLAY_OLED_64 3
 
 // Display configuration constants
 #define LCD_ADDRESS 0x27
@@ -32,44 +55,27 @@ Adafruit_SSD1306 *oledDisplay = nullptr;
 #define OLED_32_HEIGHT 32
 #define OLED_64_HEIGHT 64
 
+// Display objects - allocated at runtime based on active_display_type
+LiquidCrystal_I2C *lcdDisplay = nullptr;
+Adafruit_SSD1306 *oledDisplay = nullptr;
 
-const char *settingsFile = "/settings.json";
-const char *credentialsFile = "/credentials.json";
-const char *wiegandFormatsFile = "/wiegand_formats.json";
-
-// I2C Pins (compile-time constants)
-#define I2C_SCL 18
-#define I2C_SDA 19
-
-// Rotary Encoder Pins (compile-time constants)
-#define ROTARY_CLK 25
-#define ROTARY_DT 26
-#define ROTARY_SW 27
-
-// Define reader input pins (compile-time constants)
-// card reader DATA0
-#define DATA0_PIN 21
-// card reader DATA1
-#define DATA1_PIN 22
-
-// define reader output pins (compile-time constants)
-// LED Output for a GND tie back
-#define LED_PIN 32
-
-#define DISPLAY_LCD 1
-#define DISPLAY_OLED_32 2
-#define DISPLAY_OLED_64 3
-
-int active_display_type = DISPLAY_LCD; // 1 for LCD, 2 for OLED 128x32, 3 for OLED 128x64
-
-// Set the LCD I2C address
- //address may be 0x27, 0x20, or something
+// Active display variable
+// 1 for LCD, 2 for OLED 128x32, 3 for OLED 128x64
+int active_display_type = DISPLAY_LCD; 
 
 // general device settings
 bool isCapturing = true;
 String MODE = "access"; // "access" or "raw"
+// TODO: actually test RAW mode
 
-// card reader config and variables
+// Tamper Relay Settings
+bool enableTamperDetect = false;
+bool tamperState = false;
+unsigned long lastTamperCheck = 0;
+const int TAMPER_CHECK_INTERVAL = 500; // milliseconds
+
+
+// Reader config and variables
 
 // compile-time array size for bits (kept as a safe upper bound)
 const int MAX_BITS_CONST = 100;
@@ -107,7 +113,7 @@ String ap_passphrase;
 int ap_channel = 1;
 int ssid_hidden;
 
-// Speaker and LED Settings
+// LED Flash Green on Valid Setting 0 (None), 1 (Rapid Flash), 2 (Long Flash) 
 int ledValid = 1;
 
 // Custom Display Message
@@ -191,6 +197,7 @@ void saveSettingsToPreferences()
   doc["max_bits"] = maxBits;
   doc["wiegand_wait_time"] = weigandWaitTime;
   doc["active_display_type"] = active_display_type; // 1 for LCD, 2 for OLED 128x32, 3 for OLED 128x64
+  doc["enableTamperDetect"] = enableTamperDetect;
 
   if (serializeJson(doc, file) == 0)
   {
@@ -250,9 +257,8 @@ void loadSettingsFromPreferences()
   ssid_hidden = doc["ssid_hidden"] | 0;
   ledValid = doc["ledValid"] | 1;
   customMessage = doc["customMessage"] | "OPENDOORSIM";
-  // Load pins and timing (clamp maxBits to the compile-time array size)
-  // Pin values are compile-time constants and not loaded from settings
-  active_display_type = doc["active_display_type"] | active_display_type; 
+  active_display_type = doc["active_display_type"] | active_display_type;
+  enableTamperDetect = doc["enableTamperDetect"] | false;
 
   unsigned int loadedMaxBits = doc["max_bits"] | (unsigned int)MAX_BITS_CONST;
   if (loadedMaxBits == 0)
@@ -474,20 +480,30 @@ void ledOnValid()
   switch (ledValid)
   {
   case 0:
+    // No Flash
     break;
 
   case 1:
-    // Flashing LED
+    // Rapid Flash
     digitalWrite(LED_PIN, LOW);
     delay(250);
     digitalWrite(LED_PIN, HIGH);
-    delay(100);
+    delay(250);
+    digitalWrite(LED_PIN, LOW);
+    delay(250);
+    digitalWrite(LED_PIN, HIGH);
+    delay(250);
+    digitalWrite(LED_PIN, LOW);
+    delay(250);
+    digitalWrite(LED_PIN, HIGH);
+    delay(250);
     digitalWrite(LED_PIN, LOW);
     delay(250);
     digitalWrite(LED_PIN, HIGH);
     break;
 
   case 2:
+  // Long Flash
     digitalWrite(LED_PIN, LOW);
     delay(2000);
     digitalWrite(LED_PIN, HIGH);
@@ -845,6 +861,12 @@ void printDisplayRawCard()
 
 void printStandbyMessage()
 {
+  if (enableTamperDetect && tamperState)
+  {
+    printDisplayText("   TAMPER ALERT!   ", "", "   THIS INCIDENT    ", "  WILL BE REPORTED! ");
+    return;
+  }
+  
   if (MODE == "access")
   {
     printDisplayText(centerText(customMessage, 20).c_str(), "", "    Present Card    ", ""); 
@@ -1033,11 +1055,39 @@ void webServer()
   server.begin();
 }
 
+void checkTamper() {
+  // Non-blocking timer: only check every X ms
+  if (millis() - lastTamperCheck >= TAMPER_CHECK_INTERVAL) {
+    lastTamperCheck = millis();
+
+    // Read pin state
+    // HIGH = Open Circuit (Reader Removed/Tampered)
+    // LOW = Grounded (Reader Mounted/Safe)
+    bool currentReading = (digitalRead(RELAY1_PIN) == HIGH);
+
+    // Only act if state has CHANGED
+    if (currentReading != tamperState) {
+      tamperState = currentReading;
+
+      if (tamperState) {
+        Serial.println("[SYSTEM] ALERT! TAMPER DETECTED!");
+        // Immediately update display to show alarm
+        printStandbyMessage(); 
+      } else {
+        Serial.println("[SYSTEM] Tamper Restored (Safe).");
+        // Restore the standby screen
+        printStandbyMessage();
+      }
+    }
+  }
+}
+
 void setup()
 {
   pinMode(DATA0_PIN, INPUT);
   pinMode(DATA1_PIN, INPUT);
   pinMode(LED_PIN, OUTPUT);
+  pinMode(RELAY1_PIN, INPUT_PULLUP);
 
   // turn off led
   digitalWrite(LED_PIN, HIGH);
@@ -1057,6 +1107,11 @@ void setup()
   loadSettingsFromPreferences();
   loadCredentialsFromPreferences();
 
+  if (enableTamperDetect) {
+    Serial.println("[SYSTEM] Tamper Detection is ENABLED");
+  } else {
+    Serial.println("[SYSTEM] Tamper Detection is DISABLED");
+  }
   // INITIALIZE DISPLAY 
   initializeDisplay();
 
@@ -1086,6 +1141,12 @@ void setup()
 }
 
 void loop() {
+
+  if (enableTamperDetect) {
+    // Check tamper state
+    checkTamper();
+  }
+
   updateDisplay();
 
   // Check if the card reader is still receiving data
