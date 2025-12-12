@@ -61,11 +61,11 @@ Adafruit_SSD1306 *oledDisplay = nullptr;
 
 // Active display variable
 // 1 for LCD, 2 for OLED 128x32, 3 for OLED 128x64
-int active_display_type = DISPLAY_LCD; 
+int activeDisplayType = DISPLAY_LCD; 
 
 // general device settings
 bool isCapturing = true;
-String MODE = "access"; // "access" or "raw"
+String deviceMode = "access"; // "access" or "raw"
 // TODO: actually test RAW mode
 
 // Tamper Relay Settings
@@ -104,14 +104,14 @@ unsigned long lastCardTime = 0;
 bool displayingCard = false;
 
 // Wifi Settings
-bool ap_mode = true;
+bool apMode = true;
 // AP Settings
 // ssid_hidden = broadcast ssid = 0, hidden = 1
 // ap_passphrase = NULL for open, min 8 chars, max 63
-String ap_ssid = "doorsim";
-String ap_passphrase;
-int ap_channel = 1;
-int ssid_hidden;
+String apSsid = "doorsim";
+String apPwd;
+int apChannel = 1;
+int ssidHidden;
 
 // LED Flash Green on Valid Setting 0 (None), 1 (Rapid Flash), 2 (Long Flash) 
 int ledValid = 1;
@@ -184,20 +184,20 @@ void saveSettingsToPreferences()
 
   // Write settings to JSON
   JsonDocument doc;
-  doc["MODE"] = MODE;
-  doc["displayTimeout"] = displayTimeout;
-  doc["ap_mode"] = ap_mode;
-  doc["ap_ssid"] = ap_ssid;
-  doc["ap_passphrase"] = ap_passphrase;
-  doc["ap_channel"] = ap_channel;
-  doc["ssid_hidden"] = ssid_hidden;
-  doc["ledValid"] = ledValid;
-  doc["customMessage"] = customMessage;
+  doc["device_mode"] = deviceMode;
+  doc["display_timeout"] = displayTimeout;
+  doc["ap_mode"] = apMode;
+  doc["ap_ssid"] = apSsid;
+  doc["ap_passphrase"] = apPwd;
+  doc["ap_channel"] = apChannel;
+  doc["ssid_hidden"] = ssidHidden;
+  doc["led_valid"] = ledValid;
+  doc["custom_message"] = customMessage;
   // pins and timing (pin constants are compile-time; not stored in settings)
   doc["max_bits"] = maxBits;
   doc["wiegand_wait_time"] = weigandWaitTime;
-  doc["active_display_type"] = active_display_type; // 1 for LCD, 2 for OLED 128x32, 3 for OLED 128x64
-  doc["enableTamperDetect"] = enableTamperDetect;
+  doc["active_display_type"] = activeDisplayType; // 1 for LCD, 2 for OLED 128x32, 3 for OLED 128x64
+  doc["enable_tamper_detect"] = enableTamperDetect;
 
   if (serializeJson(doc, file) == 0)
   {
@@ -205,7 +205,7 @@ void saveSettingsToPreferences()
   }
   else
   {
-    Serial.println("customMessage: " + customMessage);
+    Serial.println("custom_message: " + customMessage);
     Serial.println("[SYSTEM] Settings saved successfully.");
   }
   file.close();
@@ -248,17 +248,17 @@ void loadSettingsFromPreferences()
   }
 
   // Load settings
-  MODE = doc["MODE"] | "access";
-  displayTimeout = doc["displayTimeout"] | 30000;
-  ap_mode = doc["ap_mode"] | true;
-  ap_ssid = doc["ap_ssid"] | "doorsim";
-  ap_passphrase = doc["ap_passphrase"] | "";
-  ap_channel = doc["ap_channel"] | 1;
-  ssid_hidden = doc["ssid_hidden"] | 0;
-  ledValid = doc["ledValid"] | 1;
-  customMessage = doc["customMessage"] | "OPENDOORSIM";
-  active_display_type = doc["active_display_type"] | active_display_type;
-  enableTamperDetect = doc["enableTamperDetect"] | false;
+  deviceMode = doc["device_mode"] | "access";
+  displayTimeout = doc["display_timeout"] | 30000;
+  apMode = doc["ap_mode"] | true;
+  apSsid = doc["ap_ssid"] | "doorsim";
+  apPwd = doc["ap_passphrase"] | "";
+  apChannel = doc["ap_channel"] | 1;
+  ssidHidden = doc["ssid_hidden"] | 0;
+  ledValid = doc["led_valid"] | 1;
+  customMessage = doc["custom_message"] | "OPENDOORSIM";
+  activeDisplayType = doc["active_display_type"] | activeDisplayType;
+  enableTamperDetect = doc["enable_tamper_detect"] | false;
 
   unsigned int loadedMaxBits = doc["max_bits"] | (unsigned int)MAX_BITS_CONST;
   if (loadedMaxBits == 0)
@@ -513,7 +513,7 @@ void ledOnValid()
 
 void printCardData()
 {
-  if (MODE == "access")
+  if (deviceMode == "access")
   {
     const Credential *result = checkCredential(facilityCode, cardNumber);
     if (result != nullptr)
@@ -727,7 +727,7 @@ void initializeDisplay()
 
   Wire.begin(I2C_SDA, I2C_SCL);
   
-  if (active_display_type == DISPLAY_LCD)
+  if (activeDisplayType == DISPLAY_LCD)
   {
     lcdDisplay = new LiquidCrystal_I2C(LCD_ADDRESS, LCD_COLUMNS, LCD_ROWS);
     lcdDisplay->init(I2C_SDA, I2C_SCL);
@@ -737,7 +737,7 @@ void initializeDisplay()
     lcdDisplay->print("Initializing...");
     Serial.println("[SYSTEM] LCD 20x4 initialized");
   }
-  else if (active_display_type == DISPLAY_OLED_32)
+  else if (activeDisplayType == DISPLAY_OLED_32)
   {
     oledDisplay = new Adafruit_SSD1306(OLED_WIDTH, OLED_32_HEIGHT, &Wire, OLED_RESET);
     if (!oledDisplay->begin(SSD1306_SWITCHCAPVCC, OLED_32_ADDRESS))
@@ -755,7 +755,7 @@ void initializeDisplay()
     oledDisplay->display();
     Serial.println("[SYSTEM] OLED 128x32 initialized");
   }
-  else if (active_display_type == DISPLAY_OLED_64)
+  else if (activeDisplayType == DISPLAY_OLED_64)
   {
     oledDisplay = new Adafruit_SSD1306(OLED_WIDTH, OLED_64_HEIGHT, &Wire, OLED_RESET);
     if (!oledDisplay->begin(SSD1306_SWITCHCAPVCC, OLED_64_ADDRESS))
@@ -778,7 +778,7 @@ void initializeDisplay()
 // Prints four lines of text to the activeDisplayType
 void printDisplayText(const char *msg1, const char *msg2, const char *msg3, const char *msg4)
 {
-  if (active_display_type == DISPLAY_LCD && lcdDisplay != nullptr)
+  if (activeDisplayType == DISPLAY_LCD && lcdDisplay != nullptr)
   {
     lcdDisplay->clear();
     lcdDisplay->setCursor(0, 0);
@@ -790,7 +790,7 @@ void printDisplayText(const char *msg1, const char *msg2, const char *msg3, cons
     lcdDisplay->setCursor(0, 3);
     lcdDisplay->print(msg4);
   }
-  else if (active_display_type == DISPLAY_OLED_32 && oledDisplay != nullptr)
+  else if (activeDisplayType == DISPLAY_OLED_32 && oledDisplay != nullptr)
   {
     oledDisplay->clearDisplay();
     oledDisplay->setTextSize(1);
@@ -802,7 +802,7 @@ void printDisplayText(const char *msg1, const char *msg2, const char *msg3, cons
     oledDisplay->println(msg4);
     oledDisplay->display();
   }
-  else if (active_display_type == DISPLAY_OLED_64 && oledDisplay != nullptr)
+  else if (activeDisplayType == DISPLAY_OLED_64 && oledDisplay != nullptr)
   {
     oledDisplay->clearDisplay();
     oledDisplay->setTextSize(1);
@@ -818,7 +818,7 @@ void printDisplayText(const char *msg1, const char *msg2, const char *msg3, cons
 
 void printDisplayRawCard()
 {
-  if (active_display_type == DISPLAY_LCD && lcdDisplay != nullptr)
+  if (activeDisplayType == DISPLAY_LCD && lcdDisplay != nullptr)
   {
     lcdDisplay->clear();
     lcdDisplay->setCursor(0, 0);
@@ -839,7 +839,7 @@ void printDisplayRawCard()
     lcdDisplay->setCursor(0, 3);
     lcdDisplay->print(rawCardData);
   }
-  else if ((active_display_type == DISPLAY_OLED_32 || active_display_type == DISPLAY_OLED_64) && oledDisplay != nullptr)
+  else if ((activeDisplayType == DISPLAY_OLED_32 || activeDisplayType == DISPLAY_OLED_64) && oledDisplay != nullptr)
   {
     oledDisplay->clearDisplay();
     oledDisplay->setTextSize(1);
@@ -867,7 +867,7 @@ void printStandbyMessage()
     return;
   }
   
-  if (MODE == "access")
+  if (deviceMode == "access")
   {
     printDisplayText(centerText(customMessage, 20).c_str(), "", "    Present Card    ", ""); 
   }
@@ -905,7 +905,7 @@ void printCardDataSerial()
 
 void setupWifi()
 {
-  WiFi.softAP(ap_ssid, ap_passphrase, ap_channel, ssid_hidden);
+  WiFi.softAP(apSsid, apPwd, apChannel, ssidHidden);
 }
 
 void webServer()
@@ -951,14 +951,14 @@ void webServer()
   server.on("/getSettings", HTTP_GET, [](AsyncWebServerRequest *request)
             {      
       JsonDocument doc;
-      doc["mode"] = MODE;
-      doc["displayTimeout"] = displayTimeout;
-      doc["ap_ssid"] = ap_ssid;
-      doc["ap_pwd"] = ap_passphrase;
-      doc["ssid_hidden"] = ssid_hidden;
-      doc["ap_channel"] = ap_channel;
-      doc["customMessage"] = customMessage;
-      doc["ledValid"] = ledValid;
+      doc["device_mode"] = deviceMode;
+      doc["display_timeout"] = displayTimeout;
+      doc["ap_ssid"] = apSsid;
+      doc["ap_pwd"] = apPwd;
+      doc["ssid_hidden"] = ssidHidden;
+      doc["ap_channel"] = apChannel;
+      doc["custom_message"] = customMessage;
+      doc["led_valid"] = ledValid;
       String response;
       serializeJson(doc, response);
       request->send(200, "application/json", response); });
@@ -968,14 +968,14 @@ void webServer()
       JsonObject jsonObj = json.as<JsonObject>();
 
       // Parse the JSON and update settings
-      MODE = jsonObj["mode"] | "access";
-      displayTimeout = jsonObj["displayTimeout"] | 30000;
-      ap_ssid = jsonObj["ap_ssid"] | "doorsim";
-      ap_passphrase = jsonObj["ap_pwd"] | "";
-      ap_channel = jsonObj["ap_channel"] | 1;
-      ssid_hidden = jsonObj["ssid_hidden"] | 0;
-      customMessage = jsonObj["customMessage"] | "OPENDOORSIM";
-      ledValid = jsonObj["ledValid"] | 1;
+      deviceMode = jsonObj["device_mode"] | "access";
+      displayTimeout = jsonObj["display_timeout"] | 30000;
+      apSsid = jsonObj["ap_ssid"] | "doorsim";
+      apPwd = jsonObj["ap_pwd"] | "";
+      apChannel = jsonObj["ap_channel"] | 1;
+      ssidHidden = jsonObj["ssid_hidden"] | 0;
+      customMessage = jsonObj["custom_message"] | "OPENDOORSIM";
+      ledValid = jsonObj["led_valid"] | 1;
 
       saveSettingsToPreferences();
       //setupWifi(); TODO: implement a reboot button so that they can choose to apply the new wifi settings
@@ -1112,6 +1112,7 @@ void setup()
   } else {
     Serial.println("[SYSTEM] Tamper Detection is DISABLED");
   }
+  Serial.println("[SYSTEM] Mode is set to: " + deviceMode);
   // INITIALIZE DISPLAY 
   initializeDisplay();
 

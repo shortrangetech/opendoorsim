@@ -1,5 +1,5 @@
 {
-    "mode": "access",
+    "device_mode": "raw",
     "ap_mode": true,
     "ap_ssid": "OpenDoorSim",
     "ap_pwd": "",
@@ -7,9 +7,9 @@
     "ssid_hidden": 0,
     "max_bits": 100,
     "wiegand_wait_time": 30000,
-    "ledValid": 1,
-    "customMessage": "OPENDOORSIM",
-    "displayTimeout": 7000,
+    "led_valid": 1,
+    "custom_message": "OPENDOORSIM",
+    "display_timeout": 7000,
     "active_display_type": 1,
-    "enableTamperDetect": true
+    "enable_tamper_detect": true
 }

@@ -91,6 +91,9 @@ project-folder/
 └── README.md              # this file
 ```
 
+## Variables
+
+
 ## Acknowledgments
 This project is a refactored version of the [DoorSim](https://github.com/evildaemond/doorsim) project by evildaemond. Special thanks to the original developer for their work.
 
