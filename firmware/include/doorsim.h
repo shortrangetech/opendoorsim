@@ -4,19 +4,25 @@
 #include <Arduino.h>
 
 // Structs
+// Fixed-size buffer sizes to avoid heap fragmentation
+#define RAW_DATA_MAX 128
+#define HEX_DATA_MAX 64
+#define STATUS_MAX 64
+#define DETAILS_MAX 128
+
 struct CardData
 {
     unsigned int bitCount;
     unsigned long facilityCode;
     unsigned long cardNumber;
-    String rawCardData;
-    String hexData;
+    char rawCardData[RAW_DATA_MAX];
+    char hexData[HEX_DATA_MAX];
     int padCount;
-    String status;
-    String details;
+    char status[STATUS_MAX];
+    char details[DETAILS_MAX];
 };
 
-struct Credential
+struct User
 {
     unsigned long facilityCode;
     unsigned long cardNumber;
@@ -39,9 +45,9 @@ void ISR_INT1();
 void loadWiegandFormats();
 void saveSettingsToPreferences();
 void loadSettingsFromPreferences();
-void saveCredentialsToPreferences();
-void loadCredentialsFromPreferences();
-const Credential *checkCredential(uint16_t fc, uint16_t cn);
+void saveUsersToPreferences();
+void loadUsersFromPreferences();
+const User *checkUser(unsigned long fc, unsigned long cn);
 void ledOnValid();
 void speakerOnValid();
 void lcdInvalidCredentials();

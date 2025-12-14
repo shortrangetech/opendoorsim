@@ -1,6 +1,6 @@
 {
-    "validCount": 2,
-    "credentials": [
+    "userCount": 2,
+    "users": [
         {
             "facilityCode": 123,
             "cardNumber": 456789,
