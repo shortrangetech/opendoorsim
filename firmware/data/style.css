@@ -16,31 +16,75 @@ body {
     color: var(--text);
 }
 
+#header-banner {
+}
 header{
+    display:flex;
+    align-items:center;
+    /* remove solid background from main header so the banner can sit behind logo */
+    padding:6px 12px;
+    color:var(--text);
+}
+
+#logo{
+    width:160px;
+    height:160px;
+    z-index:10;
+    border-radius:0px;
+    object-fit:cover;
+    border: none;
+    margin-left: -35px;
+}
+.brand{font-weight:800;font-size:1.8rem;line-height:1}
+
+.header-banner{
+    flex:1;
     display:flex;
     align-items:center;
     justify-content:space-between;
     background:var(--header-bg);
-    padding:10px 16px;
-    color:var(--text);
+    z-index:1;
+    margin-left:-86px;
+    padding-left:76px;
+    border-radius:0 16px 16px 0;
+    padding-right:16px;
+    padding-top:12px;
+    padding-bottom:12px;
+}
+.header-center{flex:1;text-align:center}
+.header-center a{color:var(--accent);margin:0 14px;text-decoration:none;cursor:pointer;font-size:1.15rem;font-weight:700}
+.header-center a:hover{text-decoration:underline}
+.header-right{min-width:160px;text-align:right}
+#modeBox{background:var(--card-bg);padding:10px 12px;border-radius:12px;border:1px solid #2f2f2f;color:var(--text);font-weight:700;display:flex;align-items:center;justify-content:center;min-width:120px}
+
+/* Inputs and selects: light grey backgrounds with dark text */
+input[type="text"], input[type="number"], input[type="password"], textarea, select {
+    /* slightly darker medium-light gray */
+    background: #d0d0d0;
+    color: #111;
+    border: 1px solid #bfbfbf;
+    padding: 8px 10px;
+    border-radius: 10px;
+    box-sizing: border-box;
 }
 
-.header-left{display:flex;align-items:center;gap:10px}
-.header-left img#logo{width:36px;height:36px;border-radius:6px}
-.brand{font-weight:600;font-size:1.1rem}
-
-.header-center{flex:1;text-align:center}
-.header-center a{color:var(--accent);margin:0 12px;text-decoration:none;cursor:pointer}
-.header-center a:hover{text-decoration:underline}
-
-.header-right{min-width:160px;text-align:right}
-#modeBox{background:var(--card-bg);padding:8px;border-radius:6px;border:1px solid #2f2f2f;color:var(--text);font-weight:600}
+/* Make buttons and inputs take full width on small screens */
+@media (max-width:700px){
+    input[type="text"], input[type="number"], textarea, select { width:100%; }
+}
 
 .content{padding:20px}
 
 table{width:100%;border-collapse:collapse;margin-bottom:20px;background:transparent}
 th, td{padding:10px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.06)}
 th{background:var(--th-bg);color:var(--text);font-weight:700}
+
+/* round table corners and ensure overflow is handled */
+table{border-radius:10px;overflow:hidden}
+
+/* Buttons rounded */
+button{border-radius:10px;padding:8px 10px;border:1px solid #2f2f2f;background:#2b2b2b;color:var(--text);cursor:pointer}
+button:hover{opacity:0.95}
 
 .hidden{display:none}
 .collapsible{cursor:pointer}
@@ -55,8 +99,20 @@ th{background:var(--th-bg);color:var(--text);font-weight:700}
 /* links and accents */
 a{color:var(--accent)}
 
+
 /* small responsive tweaks */
-@media(max-width:700px){
-    .header-center{display:none}
-    #modeBox{font-size:0.9rem}
+@media(max-width:900px){
+    /* Stack logo on top of banner for small screens and remove overlap */
+    header{flex-direction:column;align-items:center}
+    .header-banner{margin-left:0;padding-left:16px;width:100%;border-radius:12px}
+    #logo{width:96px;height:96px;border: none;margin-bottom:8px}
+    .header-center{order:3;width:100%;display:flex;justify-content:center;flex-wrap:wrap}
+    .brand{font-size:1.4rem}
+    #modeBox{font-size:0.95rem}
+}
+
+@media(max-width:420px){
+    #logo{width:64px;height:64px}
+    .brand{font-size:1.1rem}
+    .header-center a{margin:0 8px;font-size:1rem}
 }

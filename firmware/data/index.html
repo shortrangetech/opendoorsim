@@ -10,17 +10,17 @@
 
 <body>
     <header>
-        <div class="header-left">
-            <img id="logo" src="logo512.png" alt="logo">
+        <img id="logo" src="logo512.png" alt="logo">
+        <div class="header-banner">
             <span class="brand">OpenDoorSim</span>
-        </div>
-        <nav class="header-center">
-            <a onclick="showSection('lastRead')">Last Read</a>
-            <a onclick="showSectionWithRefresh('ctfMode')">CTF Mode</a>
-            <a onclick="showSection('settings')">Settings</a>
-        </nav>
-        <div class="header-right">
-            <div id="modeBox">MODE: <span id="modeValue">RAW</span></div>
+            <nav class="header-center">
+                <a onclick="showSection('lastRead')">Last Read</a>
+                <a onclick="showSectionWithRefresh('ctfMode')">CTF Mode</a>
+                <a onclick="showSection('settings')">Settings</a>
+            </nav>
+            <div class="header-right">
+                <div id="modeBox">MODE: <span id="modeValue">RAW</span></div>
+            </div>
         </div>
     </header>
     <div class="content">
