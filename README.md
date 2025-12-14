@@ -64,14 +64,14 @@ Connect to the doorsim network using your smartphone or computer.
 
 Open a web browser and navigate to http://192.168.4.1 to access the web interface.
 
-Use the web interface to configure settings, add credentials, and view card data.
+Use the web interface to configure settings, add users, and view card data.
 
 ## Web Interface
 The web interface provides the following features:
 
 View Card Data: Displays a list of previously read cards.
 
-Manage Credentials: Add or remove valid credentials.
+Manage Users: Add or remove valid users.
 
 Configure Settings: Adjust system settings such as display timeout, WiFi settings, and custom messages.
 
@@ -79,7 +79,7 @@ Configure Settings: Adjust system settings such as display timeout, WiFi setting
 ```
 project-folder/
 ├── data/                  # HTML, CSS, and JavaScript files for the web interface
-|   ├── credentials.json
+|   ├── users.json
 |   ├── favicon.ico
 │   ├── index.html
 |   ├── settings.json

@@ -17,7 +17,7 @@
 AsyncWebServer server(80);
 
 const char *settingsFile = "/settings.json";
-const char *credentialsFile = "/credentials.json";
+const char *usersFile = "/users.json";
 const char *wiegandFormatsFile = "/wiegand_formats.json";
 
 // I2C Pins 
@@ -122,17 +122,17 @@ String customMessage = "OPENDOORSIM";
 unsigned long facilityCode = 0;
 unsigned long cardNumber = 0;
 
-// raw data string
-String rawCardData;
-String status;
-String details;
-String lastHexData = "";
+// raw data string (fixed buffers)
+char rawCardData[RAW_DATA_MAX];
+char status[STATUS_MAX];
+char details[DETAILS_MAX];
+char lastHexData[HEX_DATA_MAX];
 int lastPadCount = 0;
 
 
-const int MAX_CREDENTIALS = 100;
-Credential credentials[MAX_CREDENTIALS];
-int validCount = 0;
+const int MAX_USERS = 100;
+User users[MAX_USERS];
+int userCount = 0;
 
 // maximum number of stored cards
 const int MAX_CARDS = 100;
@@ -189,7 +189,7 @@ void saveSettingsToPreferences()
   doc["display_timeout"] = displayTimeout;
   doc["ap_mode"] = apMode;
   doc["ap_ssid"] = apSsid;
-  doc["ap_passphrase"] = apPwd;
+  doc["ap_pwd"] = apPwd;
   doc["ap_channel"] = apChannel;
   doc["ssid_hidden"] = ssidHidden;
   doc["led_valid"] = ledValid;
@@ -252,7 +252,7 @@ void loadSettingsFromPreferences()
   displayTimeout = doc["display_timeout"] | 30000;
   apMode = doc["ap_mode"] | true;
   apSsid = doc["ap_ssid"] | "doorsim";
-  apPwd = doc["ap_passphrase"] | "";
+  apPwd = doc["ap_pwd"] | "";
   apChannel = doc["ap_channel"] | 1;
   ssidHidden = doc["ssid_hidden"] | 0;
   ledValid = doc["led_valid"] | 1;
@@ -277,55 +277,55 @@ void loadSettingsFromPreferences()
   Serial.println("[SYSTEM] Settings loaded successfully:");
 }
 
-void saveCredentialsToPreferences()
+void saveUsersToPreferences()
 {
-  File file = LittleFS.open(credentialsFile, "w");
+  File file = LittleFS.open(usersFile, "w");
   if (!file)
   {
-    Serial.println("[SYSTEM] ERROR: Failed to open credentials file for writing.");
+    Serial.println("[SYSTEM] ERROR: Failed to open users file for writing.");
     return;
   }
 
-  // Write settings to JSON
+  // Write users to JSON
   JsonDocument doc;
-  doc["validCount"] = validCount;
+  doc["userCount"] = userCount;
 
-  JsonArray credentialsArray = doc["credentials"].to<JsonArray>();
+  JsonArray usersArray = doc["users"].to<JsonArray>();
 
-  for (int i = 0; i < validCount; i++)
+  for (int i = 0; i < userCount; i++)
   {
-    JsonObject credential = credentialsArray.add<JsonObject>();
-    credential["facilityCode"] = credentials[i].facilityCode;
-    credential["cardNumber"] = credentials[i].cardNumber;
-    credential["name"] = credentials[i].name;
-    credential["flag"] = credentials[i].flag;
+    JsonObject user = usersArray.add<JsonObject>();
+    user["facilityCode"] = users[i].facilityCode;
+    user["cardNumber"] = users[i].cardNumber;
+    user["name"] = users[i].name;
+    user["flag"] = users[i].flag;
   }
 
   if (serializeJson(doc, file) == 0)
   {
-    Serial.println("[SYSTEM] ERROR: Failed to write credentials to file.");
+    Serial.println("[SYSTEM] ERROR: Failed to write users to file.");
   }
   else
   {
-    Serial.println("[SYSTEM] Credentials saved successfully.");
+    Serial.println("[SYSTEM] Users saved successfully.");
   }
   file.close();
 
-  for (int i = 0; i < validCount; i++)
+  for (int i = 0; i < userCount; i++)
   {
-    Serial.print("Credential ");
+    Serial.print("User ");
     Serial.print(i);
     Serial.print(": FC=");
-    Serial.print(credentials[i].facilityCode);
+    Serial.print(users[i].facilityCode);
     Serial.print(", CN=");
-    Serial.print(credentials[i].cardNumber);
+    Serial.print(users[i].cardNumber);
     Serial.print(", Name=");
-    Serial.println(credentials[i].name);
+    Serial.println(users[i].name);
     Serial.print(", Flag=");
-    Serial.println(credentials[i].flag);
+    Serial.println(users[i].flag);
   }
-  Serial.print("Valid Count: ");
-  Serial.println(validCount);
+  Serial.print("User Count: ");
+  Serial.println(userCount);
 }
 
 void loadWiegandFormats()
@@ -382,21 +382,21 @@ void loadWiegandFormats()
   Serial.println(wiegandFormatCounter);
 }
 
-void loadCredentialsFromPreferences()
+void loadUsersFromPreferences()
 {
-  Serial.println("[SYSTEM] Loading credentials from Preferences...");
+  Serial.println("[SYSTEM] Loading users from Preferences...");
 
-  if (!LittleFS.exists(credentialsFile))
+  if (!LittleFS.exists(usersFile))
   {
-    Serial.println("[SYSTEM] ALERT: Credentials file does not exist. Creating with defaults...");
-    saveCredentialsToPreferences();
+    Serial.println("[SYSTEM] ALERT: Users file does not exist. Creating with defaults...");
+    saveUsersToPreferences();
     return;
   }
 
-  File file = LittleFS.open(credentialsFile, "r");
+  File file = LittleFS.open(usersFile, "r");
   if (!file)
   {
-    Serial.println("[SYSTEM] ERROR: Failed to open credentials file for reading.");
+    Serial.println("[SYSTEM] ERROR: Failed to open users file for reading.");
     return;
   }
 
@@ -414,64 +414,62 @@ void loadCredentialsFromPreferences()
 
   if (error)
   {
-    Serial.print("[SYSTEM] ERROR: Failed to parse settings file: ");
+    Serial.print("[SYSTEM] ERROR: Failed to parse users file: ");
     Serial.println(error.c_str());
     return;
   }
 
-  // Load settings
-  validCount = doc["validCount"] | 0;
-  if (validCount > 0)
+  // Load users
+  userCount = doc["userCount"] | 0;
+  if (userCount > 0)
   {
-    JsonArray credentialsArray = doc["credentials"].as<JsonArray>();
-    for (int i = 0; i < validCount; i++)
+    JsonArray usersArray = doc["users"].as<JsonArray>();
+    for (int i = 0; i < userCount; i++)
     {
-      Serial.println("Loading credential " + String(i));
-      JsonObject credential = credentialsArray[i].as<JsonObject>();
-      credentials[i].facilityCode = credential["facilityCode"] | 0;
-      credentials[i].cardNumber = credential["cardNumber"] | 0;
-      String name = credential["name"] | "";
-      strncpy(credentials[i].name, name.c_str(), sizeof(credentials[i].name) - 1);
-      credentials[i].name[sizeof(credentials[i].name) - 1] = '\0';
-      String flag = credential["flag"] | "";
-      strncpy(credentials[i].flag, flag.c_str(), sizeof(credentials[i].flag) - 1);
-      credentials[i].flag[sizeof(credentials[i].flag) - 1] = '\0';
+      Serial.println("Loading user " + String(i));
+      JsonObject user = usersArray[i].as<JsonObject>();
+      users[i].facilityCode = user["facilityCode"] | 0;
+      users[i].cardNumber = user["cardNumber"] | 0;
+      String name = user["name"] | "";
+      strncpy(users[i].name, name.c_str(), sizeof(users[i].name) - 1);
+      users[i].name[sizeof(users[i].name) - 1] = '\0';
+      String flag = user["flag"] | "";
+      strncpy(users[i].flag, flag.c_str(), sizeof(users[i].flag) - 1);
+      users[i].flag[sizeof(users[i].flag) - 1] = '\0';
     }
   }
   else
   {
-    Serial.println("[SYSTEM] ALERT: No valid credentials found.");
+    Serial.println("[SYSTEM] ALERT: No valid users found.");
   }
-  Serial.println("[SYSTEM] Credentials loaded from Preferences:");
-  for (int i = 0; i < validCount; i++)
+  Serial.println("[SYSTEM] Users loaded from Preferences:");
+  for (int i = 0; i < userCount; i++)
   {
-    Serial.print("Credential ");
+    Serial.print("User ");
     Serial.print(i);
     Serial.print(": FC=");
-    Serial.print(credentials[i].facilityCode);
+    Serial.print(users[i].facilityCode);
     Serial.print(", CN=");
-    Serial.print(credentials[i].cardNumber);
+    Serial.print(users[i].cardNumber);
     Serial.print(", Name=");
-    Serial.println(credentials[i].name);
+    Serial.println(users[i].name);
     Serial.print(", Flag=");
-    Serial.println(credentials[i].flag);
+    Serial.println(users[i].flag);
   }
-  Serial.print("Valid Count: ");
-  Serial.println(validCount);
+  Serial.print("User Count: ");
+  Serial.println(userCount);
 }
 
-// Check if credential is valid
-const Credential *checkCredential(uint16_t fc, uint16_t cn)
+// Check if user is valid
+const User *checkUser(unsigned long fc, unsigned long cn)
 {
-  for (unsigned int i = 0; i < validCount; i++)
+  for (unsigned int i = 0; i < (unsigned int)userCount; i++)
   {
-    if (credentials[i].facilityCode == fc && credentials[i].cardNumber == cn)
+    if (users[i].facilityCode == fc && users[i].cardNumber == cn)
     {
-      // Found a matching credential, return a pointer to it
-      return &credentials[i];
+      return &users[i];
     }
   }
-  // No matching credential found, return nullptr
   return nullptr;
 }
 
@@ -515,33 +513,36 @@ void printCardData()
 {
   if (deviceMode == "ctf")
   {
-    const Credential *result = checkCredential(facilityCode, cardNumber);
+    const User *result = checkUser(facilityCode, cardNumber);
     if (result != nullptr)
     {
-      // Valid credential found - serial console
-      Serial.println("Valid credential found:");
+      // Valid user found - serial console
+      Serial.println("Valid user found:");
       Serial.println("FC: " + String(result->facilityCode) + ", CN: " + String(result->cardNumber) + ", Name: " + result->name);
-     
+
       // LCD Printing
-      printDisplayText("   CTF GRANTED   ","",centerText("Welcome, " + String(result->name), 20).c_str(),result->flag);
+      printDisplayText("   ACCESS GRANTED   ","",centerText("Welcome, " + String(result->name), 20).c_str(),result->flag);
 
       ledOnValid();
 
-      // Update card data status and details
-      status = "Authorized";
-      details = result->name;
+      // Update card data status and details (use fixed buffers)
+      strncpy(status, "Authorized", STATUS_MAX - 1);
+      status[STATUS_MAX - 1] = '\0';
+      strncpy(details, result->name, DETAILS_MAX - 1);
+      details[DETAILS_MAX - 1] = '\0';
     }
     else
     {
-      // No valid credential found - serial console
-      Serial.println("Error: No valid credential found.");
+      // No valid user found - serial console
+      Serial.println("Error: No valid user found.");
 
       // LCD Printing 
       printDisplayText("   ACCESS DENIED    ", ""," THIS INCIDENT WILL ","    BE REPORTED!    ");
 
-      // Update card data status and details
-      status = "Unauthorized";
-      details = "FC: " + String(facilityCode) + ", CN: " + String(cardNumber);
+      // Update card data status and details (use fixed buffers)
+      strncpy(status, "Unauthorized", STATUS_MAX - 1);
+      status[STATUS_MAX - 1] = '\0';
+      snprintf(details, DETAILS_MAX, "FC: %lu, CN: %lu", facilityCode, cardNumber);
     }
   }
   else
@@ -562,9 +563,10 @@ void printCardData()
       // Use the hex and pad calculated in processCardData(); delegate to display helper
       printDisplayRawCard();
 
-      // Update card data status and details
-      status = "RawRead";
-      details = "Hex: " + lastHexData;
+      // Update card data status and details (use fixed buffers)
+      strncpy(status, "RawRead", STATUS_MAX - 1);
+      status[STATUS_MAX - 1] = '\0';
+      snprintf(details, DETAILS_MAX, "Hex: %s", lastHexData);
     }
   }
 
@@ -574,13 +576,17 @@ void printCardData()
     cardDataArray[cardDataIndex].bitCount = bitCount;
     cardDataArray[cardDataIndex].facilityCode = facilityCode;
     cardDataArray[cardDataIndex].cardNumber = cardNumber;
-    cardDataArray[cardDataIndex].rawCardData = rawCardData;
+    strncpy(cardDataArray[cardDataIndex].rawCardData, rawCardData, RAW_DATA_MAX - 1);
+    cardDataArray[cardDataIndex].rawCardData[RAW_DATA_MAX - 1] = '\0';
     // Store previously-calculated hex and padding from processCardData()
-    cardDataArray[cardDataIndex].hexData = lastHexData;
+    strncpy(cardDataArray[cardDataIndex].hexData, lastHexData, HEX_DATA_MAX - 1);
+    cardDataArray[cardDataIndex].hexData[HEX_DATA_MAX - 1] = '\0';
     cardDataArray[cardDataIndex].padCount = lastPadCount;
-    
-    cardDataArray[cardDataIndex].status = status;
-    cardDataArray[cardDataIndex].details = details;
+
+    strncpy(cardDataArray[cardDataIndex].status, status, STATUS_MAX - 1);
+    cardDataArray[cardDataIndex].status[STATUS_MAX - 1] = '\0';
+    strncpy(cardDataArray[cardDataIndex].details, details, DETAILS_MAX - 1);
+    cardDataArray[cardDataIndex].details[DETAILS_MAX - 1] = '\0';
     cardDataIndex++;
   }
 
@@ -654,6 +660,47 @@ String convertBinaryToHex(const String &binaryString, int &outPadCount)
   return hexString;
 }
 
+// C-style converter: accepts a null-terminated binary string of '0'/'1' characters
+// and writes an uppercase hex string into outHex (ensures null-termination).
+void convertBinaryToHexC(const char *binaryString, int &outPadCount, char *outHex, size_t outHexSize)
+{
+  size_t len = strlen(binaryString);
+  int remainder = len % 4;
+  outPadCount = (remainder == 0) ? 0 : (4 - remainder);
+
+  // padded length
+  size_t paddedLen = len + outPadCount;
+  // Ensure there is enough room in outHex: each 4 bits becomes 1 hex char
+  size_t neededHex = (paddedLen / 4) + 1; // +1 for null
+  if (outHexSize < neededHex) {
+    // not enough space; write empty string
+    if (outHexSize > 0) outHex[0] = '\0';
+    return;
+  }
+
+  // process nibbles from padded binary (pad with leading zeros)
+  size_t outPos = 0;
+  for (size_t i = 0; i < paddedLen; i += 4)
+  {
+    int nibble = 0;
+    for (int j = 0; j < 4; j++)
+    {
+      size_t idx = i + j;
+      char bitChar;
+      if (idx < (size_t)outPadCount) {
+        bitChar = '0';
+      } else {
+        size_t srcIdx = idx - outPadCount;
+        bitChar = (srcIdx < len) ? binaryString[srcIdx] : '0';
+      }
+      nibble = (nibble << 1) | (bitChar - '0');
+    }
+    if (nibble < 10) outHex[outPos++] = '0' + nibble;
+    else outHex[outPos++] = 'A' + (nibble - 10);
+  }
+  outHex[outPos] = '\0';
+}
+
 void processHIDCard()
 {
   // bits to be decoded differently depending on card format length
@@ -690,21 +737,21 @@ void processHIDCard()
 void processCardData()
 {
   Serial.println("[SYSTEM] Processing card data...");
-  // clear the databits array
-  rawCardData = "";
+  // Build C-style raw binary string into fixed buffer
+  if (bitCount >= RAW_DATA_MAX) bitCount = RAW_DATA_MAX - 1;
   for (unsigned int i = 0; i < bitCount; i++)
   {
-    rawCardData += String(databits[i]);
+    rawCardData[i] = databits[i] ? '1' : '0';
   }
+  rawCardData[bitCount] = '\0';
 
   Serial.print("[*] Raw: ");
   Serial.println(rawCardData);
   Serial.print("[*] bitCount: ");
   Serial.println(bitCount);
 
-  // Convert to HEX once here and store pad count for display/storage
-  // lastPadCount is an int reference set by convertBinaryToHex
-  lastHexData = convertBinaryToHex(rawCardData, lastPadCount);
+  // Convert to HEX once here and store pad count for display/storage using safe C routine
+  convertBinaryToHexC(rawCardData, lastPadCount, lastHexData, HEX_DATA_MAX);
   Serial.print("[*] Hex: ");
   Serial.println(lastHexData);
   Serial.print("[*] Pad: ");
@@ -729,13 +776,13 @@ void clearDatabits()
 // reset variables and prepare for the next card read
 void cleanupCardData()
 {
-  rawCardData = "";
+  rawCardData[0] = '\0';
   bitCount = 0;
   facilityCode = 0;
   cardNumber = 0;
-  status = "";
-  details = "";
-  lastHexData = "";
+  status[0] = '\0';
+  details[0] = '\0';
+  lastHexData[0] = '\0';
   lastPadCount = 0;
 }
 
@@ -887,9 +934,10 @@ void printDisplayRawCard()
     lcdDisplay->print(lastHexData);
     lcdDisplay->setCursor(0, 3);
     lcdDisplay->print("PAD: ");
-    String padDisplay = (lastPadCount == 0) ? "None" : String(lastPadCount);
+    char padBuf[8];
+    if (lastPadCount == 0) strncpy(padBuf, "None", sizeof(padBuf)); else snprintf(padBuf, sizeof(padBuf), "%d", lastPadCount);
     lcdDisplay->setCursor(5, 3);
-    lcdDisplay->print(padDisplay);
+    lcdDisplay->print(padBuf);
   }
   else if ((activeDisplayType == DISPLAY_OLED_32 || activeDisplayType == DISPLAY_OLED_64) && oledDisplay != nullptr)
   {
@@ -993,17 +1041,17 @@ void webServer()
       serializeJson(doc, response);
       request->send(200, "application/json", response); });
 
-  server.on("/getUsers", HTTP_GET, [](AsyncWebServerRequest *request)
-            {
-      JsonDocument doc;
-      JsonArray users = doc.to<JsonArray>();
-      for (int i = 0; i < validCount; i++) {          
-          JsonObject user = users.add<JsonObject>();
-          user["facilityCode"] = credentials[i].facilityCode;
-          user["cardNumber"] = credentials[i].cardNumber;
-          user["name"] = credentials[i].name;
-          user["flag"] = credentials[i].flag;
-      }
+    server.on("/getUsers", HTTP_GET, [](AsyncWebServerRequest *request)
+        {
+        JsonDocument doc;
+        JsonArray usersArray = doc.to<JsonArray>();
+        for (int i = 0; i < userCount; i++) {          
+          JsonObject user = usersArray.add<JsonObject>();
+          user["facilityCode"] = users[i].facilityCode;
+          user["cardNumber"] = users[i].cardNumber;
+          user["name"] = users[i].name;
+          user["flag"] = users[i].flag;
+        }
       String response;
       serializeJson(doc, response);
       request->send(200, "application/json", response); });
@@ -1015,6 +1063,11 @@ void webServer()
       doc["display_timeout"] = displayTimeout;
       doc["ap_ssid"] = apSsid;
       doc["ap_pwd"] = apPwd;
+      doc["ap_mode"] = apMode;
+      doc["active_display_type"] = activeDisplayType;
+      doc["enable_tamper_detect"] = enableTamperDetect;
+      doc["max_bits"] = maxBits;
+      doc["wiegand_wait_time"] = weigandWaitTime;
       doc["ssid_hidden"] = ssidHidden;
       doc["ap_channel"] = apChannel;
       doc["custom_message"] = customMessage;
@@ -1028,11 +1081,8 @@ void webServer()
       JsonObject jsonObj = json.as<JsonObject>();
 
       // Parse the JSON and update settings
-      if (jsonObj.containsKey("device_mode")) {
-        deviceMode = String((const char*)jsonObj["device_mode"]);
-      } else {
-        deviceMode = jsonObj["mode"] | "ctf";
-      }
+      // This replaces lines 1084-1088
+      deviceMode = jsonObj["device_mode"] | "ctf";
       displayTimeout = jsonObj["display_timeout"] | 30000;
       apSsid = jsonObj["ap_ssid"] | "doorsim";
       apPwd = jsonObj["ap_pwd"] | "";
@@ -1040,48 +1090,54 @@ void webServer()
       ssidHidden = jsonObj["ssid_hidden"] | 0;
       customMessage = jsonObj["custom_message"] | "OPENDOORSIM";
       ledValid = jsonObj["led_valid"] | 1;
+      // Optional/extended settings
+      apMode = jsonObj["ap_mode"] | apMode;
+      activeDisplayType = jsonObj["active_display_type"] | activeDisplayType;
+      enableTamperDetect = jsonObj["enable_tamper_detect"] | enableTamperDetect;
+      maxBits = jsonObj["max_bits"] | maxBits;
+      weigandWaitTime = jsonObj["wiegand_wait_time"] | weigandWaitTime;
 
       saveSettingsToPreferences();
       //setupWifi(); TODO: implement a reboot button so that they can choose to apply the new wifi settings
       request->send(200, "application/json", "{\"status\":\"success\"}"); });
   server.addHandler(handler);
 
-  server.on("/addCard", HTTP_GET, [](AsyncWebServerRequest *request)
+  server.on("/addUser", HTTP_GET, [](AsyncWebServerRequest *request)
             {
-    if (validCount < MAX_CREDENTIALS) {
+    if (userCount < MAX_USERS) {
       if (request->hasParam("facilityCode") && request->hasParam("cardNumber") && request->hasParam("name")) {
         String facilityCodeStr = request->getParam("facilityCode")->value();
         String cardNumberStr = request->getParam("cardNumber")->value();
         String name = request->getParam("name")->value();
         String flag = request->hasParam("flag") ? request->getParam("flag")->value() : "";
 
-        credentials[validCount].facilityCode = facilityCodeStr.toInt();
-        credentials[validCount].cardNumber = cardNumberStr.toInt();
-        strncpy(credentials[validCount].name, name.c_str(), sizeof(credentials[validCount].name) - 1);
-        credentials[validCount].name[sizeof(credentials[validCount].name) - 1] = '\0';
-        strncpy(credentials[validCount].flag, flag.c_str(), sizeof(credentials[validCount].flag) - 1);
-        credentials[validCount].flag[sizeof(credentials[validCount].flag) - 1] = '\0';
-        validCount++;
-        saveCredentialsToPreferences();
-        request->send(200, "text/plain", "Card added successfully");
+        users[userCount].facilityCode = facilityCodeStr.toInt();
+        users[userCount].cardNumber = cardNumberStr.toInt();
+        strncpy(users[userCount].name, name.c_str(), sizeof(users[userCount].name) - 1);
+        users[userCount].name[sizeof(users[userCount].name) - 1] = '\0';
+        strncpy(users[userCount].flag, flag.c_str(), sizeof(users[userCount].flag) - 1);
+        users[userCount].flag[sizeof(users[userCount].flag) - 1] = '\0';
+        userCount++;
+        saveUsersToPreferences();
+        request->send(200, "text/plain", "User added successfully");
       } else {
         request->send(400, "text/plain", "Missing parameters");
       }
     } else {
-      request->send(500, "text/plain", "Max number of credentials reached");
+      request->send(500, "text/plain", "Max number of users reached");
     } });
 
-  server.on("/deleteCard", HTTP_GET, [](AsyncWebServerRequest *request)
+  server.on("/deleteUser", HTTP_GET, [](AsyncWebServerRequest *request)
             {
     if (request->hasParam("index")) {
       int index = request->getParam("index")->value().toInt();
-      if (index >= 0 && index < validCount) {
-        for (int i = index; i < validCount - 1; i++) {
-          credentials[i] = credentials[i + 1];
+      if (index >= 0 && index < userCount) {
+        for (int i = index; i < userCount - 1; i++) {
+          users[i] = users[i + 1];
         }
-        validCount--;
-        saveCredentialsToPreferences();
-        request->send(200, "text/plain", "Card deleted successfully");
+        userCount--;
+        saveUsersToPreferences();
+        request->send(200, "text/plain", "User deleted successfully");
       } else {
         request->send(400, "text/plain", "Invalid index");
       }
@@ -1089,27 +1145,52 @@ void webServer()
       request->send(400, "text/plain", "Missing index parameter");
     } });
 
-  server.on("/exportData", HTTP_GET, [](AsyncWebServerRequest *request)
+  server.on("/updateUser", HTTP_GET, [](AsyncWebServerRequest *request)
             {
+    if (request->hasParam("index") && request->hasParam("facilityCode") && request->hasParam("cardNumber") && request->hasParam("name")) {
+      int index = request->getParam("index")->value().toInt();
+      if (index >= 0 && index < userCount) {
+        String facilityCodeStr = request->getParam("facilityCode")->value();
+        String cardNumberStr = request->getParam("cardNumber")->value();
+        String name = request->getParam("name")->value();
+        String flag = request->hasParam("flag") ? request->getParam("flag")->value() : "";
+
+        users[index].facilityCode = facilityCodeStr.toInt();
+        users[index].cardNumber = cardNumberStr.toInt();
+        strncpy(users[index].name, name.c_str(), sizeof(users[index].name) - 1);
+        users[index].name[sizeof(users[index].name) - 1] = '\0';
+        strncpy(users[index].flag, flag.c_str(), sizeof(users[index].flag) - 1);
+        users[index].flag[sizeof(users[index].flag) - 1] = '\0';
+        saveUsersToPreferences();
+        request->send(200, "text/plain", "User updated successfully");
+      } else {
+        request->send(400, "text/plain", "Invalid index");
+      }
+    } else {
+      request->send(400, "text/plain", "Missing parameters");
+    }
+  });
+
+    server.on("/exportData", HTTP_GET, [](AsyncWebServerRequest *request)
+        {
     JsonDocument doc;
-    JsonArray users = doc.to<JsonArray>();
-    JsonObject user = users.add<JsonObject>();
-    for (int i = 0; i < validCount; i++) {
-        JsonObject user = users.add<JsonObject>();
-        user["facilityCode"] = credentials[i].facilityCode;
-        user["cardNumber"] = credentials[i].cardNumber;
-        user["name"] = credentials[i].name;
-        user["flag"] = credentials[i].flag;
+    JsonArray usersArray = doc["users"].to<JsonArray>();
+    for (int i = 0; i < userCount; i++) {
+      JsonObject user = usersArray.add<JsonObject>();
+      user["facilityCode"] = users[i].facilityCode;
+      user["cardNumber"] = users[i].cardNumber;
+      user["name"] = users[i].name;
+      user["flag"] = users[i].flag;
     }
     JsonArray cards = doc["cards"].to<JsonArray>();    
     for (int i = 0; i < cardDataIndex; i++) {
-        JsonObject card = cards.add<JsonObject>();
-        card["bitCount"] = cardDataArray[i].bitCount;
-        card["facilityCode"] = cardDataArray[i].facilityCode;
-        card["cardNumber"] = cardDataArray[i].cardNumber;
-        card["rawCardData"] = cardDataArray[i].rawCardData;
-        card["hexData"] = cardDataArray[i].hexData;
-        card["padCount"] = cardDataArray[i].padCount;
+      JsonObject card = cards.add<JsonObject>();
+      card["bitCount"] = cardDataArray[i].bitCount;
+      card["facilityCode"] = cardDataArray[i].facilityCode;
+      card["cardNumber"] = cardDataArray[i].cardNumber;
+      card["rawCardData"] = cardDataArray[i].rawCardData;
+      card["hexData"] = cardDataArray[i].hexData;
+      card["padCount"] = cardDataArray[i].padCount;
     }
     String response;
     serializeJson(doc, response);
@@ -1171,7 +1252,7 @@ void setup()
   }
   loadWiegandFormats();
   loadSettingsFromPreferences();
-  loadCredentialsFromPreferences();
+  loadUsersFromPreferences();
 
   if (enableTamperDetect) {
     Serial.println("[SYSTEM] Tamper Detection is ENABLED");
