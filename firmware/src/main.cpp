@@ -66,7 +66,6 @@ int activeDisplayType = DISPLAY_LCD;
 // general device settings
 bool isCapturing = true;
 String deviceMode = "access"; // "access" or "raw"
-// TODO: actually test RAW mode
 
 // Tamper Relay Settings
 bool enableTamperDetect = false;
@@ -127,6 +126,8 @@ unsigned long cardNumber = 0;
 String rawCardData;
 String status;
 String details;
+String lastHexData = "";
+int lastPadCount = 0;
 
 
 const int MAX_CREDENTIALS = 100;
@@ -559,12 +560,12 @@ void printCardData()
       Serial.print("[*] Raw: ");
       Serial.println(rawCardData);
 
-      // LCD Printing
+      // Use the hex and pad calculated in processCardData(); delegate to display helper
       printDisplayRawCard();
 
       // Update card data status and details
       status = "Read";
-      details = "Raw: " + rawCardData;
+      details = "Hex: " + lastHexData;
     }
   }
 
@@ -575,6 +576,10 @@ void printCardData()
     cardDataArray[cardDataIndex].facilityCode = facilityCode;
     cardDataArray[cardDataIndex].cardNumber = cardNumber;
     cardDataArray[cardDataIndex].rawCardData = rawCardData;
+    // Store previously-calculated hex and padding from processCardData()
+    cardDataArray[cardDataIndex].hexData = lastHexData;
+    cardDataArray[cardDataIndex].padCount = lastPadCount;
+    
     cardDataArray[cardDataIndex].status = status;
     cardDataArray[cardDataIndex].details = details;
     cardDataIndex++;
@@ -616,6 +621,38 @@ String prefixPad(const String &in, const char c, const size_t len)
     out = c + out;
   }
   return out;
+}
+
+String convertBinaryToHex(const String &binaryString, int &outPadCount)
+{
+  // Calculate padding needed to reach nearest multiple of 4
+  int remainder = binaryString.length() % 4;
+  outPadCount = (remainder == 0) ? 0 : (4 - remainder);
+  
+  // Create padded binary string
+  String paddedBinary = "";
+  for (int i = 0; i < outPadCount; i++) {
+    paddedBinary += "0";
+  }
+  paddedBinary += binaryString;
+  
+  // Convert to hexadecimal
+  String hexString = "";
+  for (int i = 0; i < paddedBinary.length(); i += 4) {
+    // Extract 4-bit chunk
+    int nibble = 0;
+    for (int j = 0; j < 4; j++) {
+      nibble = (nibble << 1) | (paddedBinary[i + j] - '0');
+    }
+    // Convert to hex character (0-9, A-F) - uppercase
+    if (nibble < 10) {
+      hexString += (char)('0' + nibble);
+    } else {
+      hexString += (char)('A' + nibble - 10);
+    }
+  }
+  
+  return hexString;
 }
 
 void processHIDCard()
@@ -666,6 +703,14 @@ void processCardData()
   Serial.print("[*] bitCount: ");
   Serial.println(bitCount);
 
+  // Convert to HEX once here and store pad count for display/storage
+  // lastPadCount is an int reference set by convertBinaryToHex
+  lastHexData = convertBinaryToHex(rawCardData, lastPadCount);
+  Serial.print("[*] Hex: ");
+  Serial.println(lastHexData);
+  Serial.print("[*] Pad: ");
+  Serial.println(lastPadCount);
+
   if (bitCount >= 26 && bitCount <= 96)
   {
     processHIDCard();
@@ -691,6 +736,8 @@ void cleanupCardData()
   cardNumber = 0;
   status = "";
   details = "";
+  lastHexData = "";
+  lastPadCount = 0;
 }
 
 bool allBitsAreOnes()
@@ -834,10 +881,16 @@ void printDisplayRawCard()
     lcdDisplay->print(" CN: ");
     lcdDisplay->setCursor(14, 1);
     lcdDisplay->print(cardNumber);
+    // Show HEX and PAD instead of raw binary to save space
     lcdDisplay->setCursor(0, 2);
-    lcdDisplay->print("Raw: ");
+    lcdDisplay->print("HEX: ");
+    lcdDisplay->setCursor(5, 2);
+    lcdDisplay->print(lastHexData);
     lcdDisplay->setCursor(0, 3);
-    lcdDisplay->print(rawCardData);
+    lcdDisplay->print("PAD: ");
+    String padDisplay = (lastPadCount == 0) ? "None" : String(lastPadCount);
+    lcdDisplay->setCursor(5, 3);
+    lcdDisplay->print(padDisplay);
   }
   else if ((activeDisplayType == DISPLAY_OLED_32 || activeDisplayType == DISPLAY_OLED_64) && oledDisplay != nullptr)
   {
@@ -852,8 +905,10 @@ void printDisplayRawCard()
     oledDisplay->print(facilityCode);
     oledDisplay->print(" CN:");
     oledDisplay->println(cardNumber);
-    oledDisplay->println("Raw:");
-    oledDisplay->println(rawCardData);
+    oledDisplay->println("HEX:");
+    oledDisplay->println(lastHexData);
+    oledDisplay->print("PAD: ");
+    if (lastPadCount == 0) oledDisplay->println("None"); else oledDisplay->println(lastPadCount);
     oledDisplay->display();
   }
 }
@@ -899,7 +954,11 @@ void printCardDataSerial()
     Serial.print(", Card number: ");
     Serial.print(cardDataArray[i].cardNumber);
     Serial.print(", Raw: ");
-    Serial.println(cardDataArray[i].rawCardData);
+    Serial.print(cardDataArray[i].rawCardData);
+    Serial.print(", Hex: ");
+    Serial.print(cardDataArray[i].hexData);
+    Serial.print(", Pad: ");
+    Serial.println(cardDataArray[i].padCount);
   }
 }
 
@@ -926,6 +985,8 @@ void webServer()
           card["facilityCode"] = cardDataArray[i].facilityCode;
           card["cardNumber"] = cardDataArray[i].cardNumber;
           card["rawCardData"] = cardDataArray[i].rawCardData;
+          card["hexData"] = cardDataArray[i].hexData;
+          card["padCount"] = cardDataArray[i].padCount;
           card["status"] = cardDataArray[i].status;
           card["details"] = cardDataArray[i].details;
       }
@@ -1044,6 +1105,8 @@ void webServer()
         card["facilityCode"] = cardDataArray[i].facilityCode;
         card["cardNumber"] = cardDataArray[i].cardNumber;
         card["rawCardData"] = cardDataArray[i].rawCardData;
+        card["hexData"] = cardDataArray[i].hexData;
+        card["padCount"] = cardDataArray[i].padCount;
     }
     String response;
     serializeJson(doc, response);
