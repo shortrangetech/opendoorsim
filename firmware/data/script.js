@@ -79,7 +79,8 @@ function updateLastReadCardsTable() {
         .then(response => response.json())
         .then(data => {
             lastReadCardsTableBody.innerHTML = '';
-            const last10Cards = data.slice(-10);
+            // show newest card first: reverse the last 10 so newest is index 0
+            const last10Cards = data.slice(-10).reverse();
             last10Cards.forEach((card, index) => {
                 let row = lastReadCardsTableBody.insertRow();
                 if (card.status === "Authorized") {
@@ -178,11 +179,10 @@ function updateSettingsUI(settings) {
     const apMode = (settings.ap_mode !== undefined) ? settings.ap_mode : settings.apMode;
 
     if (document.getElementById('modeSelect')) document.getElementById('modeSelect').value = (mode || '').toString().toLowerCase();
-    // Display mode in header as Title Case
+    // Display mode in header as ALL CAPS
     const modeValueEl = document.getElementById('modeValue');
     if (modeValueEl) {
-        const title = (mode || '').toString();
-        modeValueEl.textContent = title.charAt(0).toUpperCase() + title.slice(1).toLowerCase();
+        modeValueEl.textContent = (mode || '').toString().toUpperCase();
     }
     if (document.getElementById('timeoutSelect')) document.getElementById('timeoutSelect').value = displayTimeout;
     if (document.getElementById('ap_ssid')) document.getElementById('ap_ssid').value = apSsid;
@@ -243,7 +243,7 @@ function saveSettings() {
     })
         .then(response => {
             if (response.ok) {
-                alert('Settings saved successfully');
+                alert('OpenDoorSim');
             } else {
                 alert('Failed to save settings');
             }
