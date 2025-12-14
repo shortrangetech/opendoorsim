@@ -65,7 +65,7 @@ int activeDisplayType = DISPLAY_LCD;
 
 // general device settings
 bool isCapturing = true;
-String deviceMode = "access"; // "access" or "raw"
+String deviceMode = "ctf"; // "ctf" or "raw"
 
 // Tamper Relay Settings
 bool enableTamperDetect = false;
@@ -194,7 +194,6 @@ void saveSettingsToPreferences()
   doc["ssid_hidden"] = ssidHidden;
   doc["led_valid"] = ledValid;
   doc["custom_message"] = customMessage;
-  // pins and timing (pin constants are compile-time; not stored in settings)
   doc["max_bits"] = maxBits;
   doc["wiegand_wait_time"] = weigandWaitTime;
   doc["active_display_type"] = activeDisplayType; // 1 for LCD, 2 for OLED 128x32, 3 for OLED 128x64
@@ -249,7 +248,7 @@ void loadSettingsFromPreferences()
   }
 
   // Load settings
-  deviceMode = doc["device_mode"] | "access";
+  deviceMode = doc["device_mode"] | "ctf";
   displayTimeout = doc["display_timeout"] | 30000;
   apMode = doc["ap_mode"] | true;
   apSsid = doc["ap_ssid"] | "doorsim";
@@ -514,7 +513,7 @@ void ledOnValid()
 
 void printCardData()
 {
-  if (deviceMode == "access")
+  if (deviceMode == "ctf")
   {
     const Credential *result = checkCredential(facilityCode, cardNumber);
     if (result != nullptr)
@@ -524,7 +523,7 @@ void printCardData()
       Serial.println("FC: " + String(result->facilityCode) + ", CN: " + String(result->cardNumber) + ", Name: " + result->name);
      
       // LCD Printing
-      printDisplayText("   ACCESS GRANTED   ","",centerText("Welcome, " + String(result->name), 20).c_str(),result->flag);
+      printDisplayText("   CTF GRANTED   ","",centerText("Welcome, " + String(result->name), 20).c_str(),result->flag);
 
       ledOnValid();
 
@@ -564,7 +563,7 @@ void printCardData()
       printDisplayRawCard();
 
       // Update card data status and details
-      status = "Read";
+      status = "RawRead";
       details = "Hex: " + lastHexData;
     }
   }
@@ -922,7 +921,7 @@ void printStandbyMessage()
     return;
   }
   
-  if (deviceMode == "access")
+  if (deviceMode == "ctf")
   {
     printDisplayText(centerText(customMessage, 20).c_str(), "", "    Present Card    ", ""); 
   }
@@ -1029,7 +1028,11 @@ void webServer()
       JsonObject jsonObj = json.as<JsonObject>();
 
       // Parse the JSON and update settings
-      deviceMode = jsonObj["device_mode"] | "access";
+      if (jsonObj.containsKey("device_mode")) {
+        deviceMode = String((const char*)jsonObj["device_mode"]);
+      } else {
+        deviceMode = jsonObj["mode"] | "ctf";
+      }
       displayTimeout = jsonObj["display_timeout"] | 30000;
       apSsid = jsonObj["ap_ssid"] | "doorsim";
       apPwd = jsonObj["ap_pwd"] | "";
