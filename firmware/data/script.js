@@ -148,26 +148,52 @@ function showSection(section) {
     document.getElementById(section).classList.remove('hidden');
 }
 
+// When switching to the CTF Mode tab, refresh settings so indicator is up-to-date
+function showSectionWithRefresh(section) {
+    showSection(section);
+    if (section === 'ctfMode') {
+        fetchSettings();
+    }
+}
+
 function toggleCollapsible() {
     const content = document.querySelector(".contentCollapsible");
     content.style.display = content.style.display === "block" ? "none" : "block";
 }
 
 function updateSettingsUI(settings) {
-    document.getElementById('modeSelect').value = settings.mode;
-    document.getElementById('timeoutSelect').value = settings.displayTimeout;
-    document.getElementById('ap_ssid').value = settings.apSsid;
-    document.getElementById('ap_passphrase').value = settings.apPassphrase;
-    document.getElementById('ssid_hidden').checked = settings.ssidHidden;
-    document.getElementById('ap_channel').value = settings.apChannel;
-    document.getElementById('customMessage').value = settings.customMessage;
-    document.getElementById('ledValid').value = settings.ledValid;
-    document.getElementById('spkOnValid').value = settings.spkOnValid;
-    document.getElementById('spkOnInvalid').value = settings.spkOnInvalid;
+    // Support both backend keys (device_mode, display_timeout, ap_ssid, etc.)
+    const mode = settings.device_mode || settings.mode || '';
+    const displayTimeout = settings.display_timeout || settings.displayTimeout || '';
+    const apSsid = settings.ap_ssid || settings.apSsid || '';
+    const apPass = settings.ap_passphrase || settings.apPassphrase || '';
+    const ssidHidden = (settings.ssid_hidden !== undefined) ? settings.ssid_hidden : settings.ssidHidden;
+    const apChannel = settings.ap_channel || settings.apChannel || '';
+    const customMessage = settings.custom_message || settings.customMessage || '';
+    const ledValid = settings.led_valid || settings.ledValid || 1;
+
+    if (document.getElementById('modeSelect')) document.getElementById('modeSelect').value = (mode || '').toString().toLowerCase();
+    if (document.getElementById('timeoutSelect')) document.getElementById('timeoutSelect').value = displayTimeout;
+    if (document.getElementById('ap_ssid')) document.getElementById('ap_ssid').value = apSsid;
+    if (document.getElementById('ap_passphrase')) document.getElementById('ap_passphrase').value = apPass;
+    if (document.getElementById('ssid_hidden') && typeof ssidHidden !== 'undefined') document.getElementById('ssid_hidden').checked = ssidHidden;
+    if (document.getElementById('ap_channel')) document.getElementById('ap_channel').value = apChannel;
+    if (document.getElementById('customMessage')) document.getElementById('customMessage').value = customMessage;
+    if (document.getElementById('ledValid')) document.getElementById('ledValid').value = ledValid;
+}
+
+function updateCTFIndicator(settings) {
+    const mode = (settings.device_mode || settings.mode || '').toString().toLowerCase();
+    // Require strict 'ctf' mode value from backend/frontend
+    const isCTFOn = (mode === 'ctf');
+    const statusEl = document.getElementById('ctfStatus');
+    const hintEl = document.getElementById('ctfHint');
+    if (statusEl) statusEl.textContent = isCTFOn ? 'ON' : 'OFF';
+    if (hintEl) hintEl.style.display = isCTFOn ? 'none' : 'block';
 }
 
 function saveSettings() {
-    const mode = document.getElementById('modeSelect').value;
+    const mode = document.getElementById('modeSelect').value.toString().toLowerCase();
     const timeout = document.getElementById('timeoutSelect').value;
     const apSsid = document.getElementById('ap_ssid').value;
     const apPassphrase = document.getElementById('ap_passphrase').value;
@@ -213,6 +239,7 @@ function fetchSettings() {
         .then(response => response.json())
         .then(data => {
             updateSettingsUI(data);
+            updateCTFIndicator(data);
         })
         .catch(error => console.error('Error fetching settings:', error));
 }

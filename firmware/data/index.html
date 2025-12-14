@@ -11,7 +11,7 @@
 <body>
     <header>
         <a onclick="showSection('lastRead')">Last Read</a>
-        <a onclick="showSection('ctfMode')">CTF Mode</a>
+        <a onclick="showSectionWithRefresh('ctfMode')">CTF Mode</a>
         <a onclick="showSection('settings')">Settings</a>
     </header>
     <div class="content">
@@ -35,6 +35,12 @@
         </div>
         <div id="ctfMode" class="hidden">
             <h1>CTF Mode</h1>
+            <div id="ctfIndicator" style="margin-bottom:8px;">
+                Status: <strong id="ctfStatus">OFF</strong>
+            </div>
+            <div id="ctfHint" style="color:gray; font-size:0.9em; display:none;">
+                CTF mode is off. To enable CTF mode, change mode in settings.
+            </div>
             <h2>Last Read Cards</h2>
             <table id="lastReadCardsTable">
                 <thead>
