@@ -117,6 +117,8 @@ int ledValid = 1;
 
 // Custom Display Message
 String customMessage = "OPENDOORSIM";
+// settings file version (read from settings.json)
+String firmwareVersion = "0.7";
 
 // decoded facility code and card code
 unsigned long facilityCode = 0;
@@ -1066,11 +1068,10 @@ void webServer()
       doc["ap_mode"] = apMode;
       doc["active_display_type"] = activeDisplayType;
       doc["enable_tamper_detect"] = enableTamperDetect;
-      doc["max_bits"] = maxBits;
-      doc["wiegand_wait_time"] = weigandWaitTime;
       doc["ssid_hidden"] = ssidHidden;
       doc["ap_channel"] = apChannel;
       doc["custom_message"] = customMessage;
+      doc["version"] = firmwareVersion;
       doc["led_valid"] = ledValid;
       String response;
       serializeJson(doc, response);
@@ -1094,8 +1095,6 @@ void webServer()
       apMode = jsonObj["ap_mode"] | apMode;
       activeDisplayType = jsonObj["active_display_type"] | activeDisplayType;
       enableTamperDetect = jsonObj["enable_tamper_detect"] | enableTamperDetect;
-      maxBits = jsonObj["max_bits"] | maxBits;
-      weigandWaitTime = jsonObj["wiegand_wait_time"] | weigandWaitTime;
 
       saveSettingsToPreferences();
       //setupWifi(); TODO: implement a reboot button so that they can choose to apply the new wifi settings

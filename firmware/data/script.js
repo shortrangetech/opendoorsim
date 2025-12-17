@@ -26,7 +26,7 @@ function updateTable() {
                 cellFacilityCode.innerHTML = card.facilityCode;
                 cellCardNumber.innerHTML = card.cardNumber;
                 cellRawData.innerHTML = `<a href="#" onclick="copyToClipboard('${card.rawCardData}')">${card.rawCardData}</a>`;
-                cellHexData.innerHTML = card.hexData || 'N/A';
+                cellHexData.innerHTML = card.hexData ? `<a href="#" onclick="copyToClipboard('${card.hexData}')">${card.hexData}</a>` : 'N/A';
                 cellPadCount.innerHTML = card.padCount === 0 ? 'None' : card.padCount;
             });
         })
@@ -93,8 +93,19 @@ function updateLastReadCardsTable() {
                 let cellDetails = row.insertCell(2);
 
                 cellIndex.innerHTML = index + 1;
+                // status cell
                 cellStatus.innerHTML = card.status;
-                cellDetails.innerHTML = card.details;
+
+                // If status is RawRead or Unauthorized, show FC/CN/HEX/PAD in details
+                if (card.status === 'RawRead' || card.status === 'Unauthorized') {
+                    const fc = (card.facilityCode !== undefined) ? card.facilityCode : '';
+                    const cn = (card.cardNumber !== undefined) ? card.cardNumber : '';
+                    const hex = card.hexData || 'N/A';
+                    const pad = (card.padCount === 0) ? 'None' : card.padCount;
+                    cellDetails.innerHTML = `FC: ${fc} &nbsp; CN: ${cn} &nbsp; HEX: ${hex} &nbsp; PAD: ${pad}`;
+                } else {
+                    cellDetails.innerHTML = card.details || '';
+                }
             });
 
             // Add empty rows if there are less than 10 entries
@@ -144,8 +155,8 @@ function deleteUser(index) {
 }
 
 function showSection(section) {
-    document.getElementById('lastRead').classList.add('hidden');
-    document.getElementById('ctfMode').classList.add('hidden');
+    document.getElementById('log').classList.add('hidden');
+    document.getElementById('monitor').classList.add('hidden');
     document.getElementById('settings').classList.add('hidden');
     document.getElementById(section).classList.remove('hidden');
 }
@@ -153,7 +164,7 @@ function showSection(section) {
 // When switching to the CTF Mode tab, refresh settings so indicator is up-to-date
 function showSectionWithRefresh(section) {
     showSection(section);
-    if (section === 'ctfMode') {
+    if (section === 'monitor') {
         fetchSettings();
     }
 }
@@ -174,9 +185,7 @@ function updateSettingsUI(settings) {
     const ledValid = settings.led_valid || settings.ledValid || 1;
     const activeDisplayType = settings.active_display_type || settings.activeDisplayType || '';
     const enableTamperDetect = (settings.enable_tamper_detect !== undefined) ? settings.enable_tamper_detect : settings.enableTamperDetect;
-    const maxBits = settings.max_bits || settings.maxBits || '';
-    const wiegandWait = settings.wiegand_wait_time || settings.wiegandWaitTime || '';
-    const apMode = (settings.ap_mode !== undefined) ? settings.ap_mode : settings.apMode;
+    const version = settings.version || settings.version || '';
 
     if (document.getElementById('modeSelect')) document.getElementById('modeSelect').value = (mode || '').toString().toLowerCase();
     // Display mode in header as ALL CAPS
@@ -193,8 +202,8 @@ function updateSettingsUI(settings) {
     if (document.getElementById('ledValid')) document.getElementById('ledValid').value = ledValid;
     if (document.getElementById('activeDisplayType')) document.getElementById('activeDisplayType').value = activeDisplayType;
     if (document.getElementById('enable_tamper_detect')) document.getElementById('enable_tamper_detect').checked = enableTamperDetect;
-    if (document.getElementById('max_bits')) document.getElementById('max_bits').value = maxBits;
-    if (document.getElementById('wiegand_wait_time')) document.getElementById('wiegand_wait_time').value = wiegandWait;
+    // show settings version if provided
+    if (document.getElementById('versionValue')) document.getElementById('versionValue').textContent = version;
 }
 
 function updateCTFIndicator(settings) {
@@ -203,7 +212,12 @@ function updateCTFIndicator(settings) {
     const isCTFOn = (mode === 'ctf');
     const statusEl = document.getElementById('ctfStatus');
     const hintEl = document.getElementById('ctfHint');
-    if (statusEl) statusEl.textContent = isCTFOn ? 'ON' : 'OFF';
+    if (statusEl) {
+        statusEl.textContent = isCTFOn ? 'ON' : 'OFF';
+        // toggle classes for background highlight
+        statusEl.classList.toggle('ctf-on', isCTFOn);
+        statusEl.classList.toggle('ctf-off', !isCTFOn);
+    }
     if (hintEl) hintEl.style.display = isCTFOn ? 'none' : 'block';
 }
 
@@ -217,8 +231,6 @@ function saveSettings() {
     const ledValid = document.getElementById('ledValid').value;
     const activeDisplayType = document.getElementById('activeDisplayType') ? parseInt(document.getElementById('activeDisplayType').value,10) : 1;
     const enableTamperDetect = document.getElementById('enable_tamper_detect') ? (document.getElementById('enable_tamper_detect').checked ? true : false) : false;
-    const maxBits = document.getElementById('max_bits') ? parseInt(document.getElementById('max_bits').value,10) : undefined;
-    const wiegandWait = document.getElementById('wiegand_wait_time') ? parseInt(document.getElementById('wiegand_wait_time').value,10) : undefined;
 
     let settings = {
         device_mode: mode,
@@ -230,8 +242,6 @@ function saveSettings() {
         led_valid: parseInt(ledValid, 10),
         active_display_type: activeDisplayType,
         enable_tamper_detect: enableTamperDetect,
-        max_bits: maxBits,
-        wiegand_wait_time: wiegandWait,
     };
 
     fetch('/saveSettings', {
@@ -243,7 +253,7 @@ function saveSettings() {
     })
         .then(response => {
             if (response.ok) {
-                alert('OpenDoorSim');
+                alert('Success! Settings saved.');
             } else {
                 alert('Failed to save settings');
             }

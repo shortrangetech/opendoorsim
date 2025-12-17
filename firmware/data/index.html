@@ -10,12 +10,12 @@
 
 <body>
     <header>
-        <img id="logo" src="logo512.png" alt="logo">
+        <img id="logo" src="logo512_big.png" alt="logo">
         <div class="header-banner">
             <span class="brand">OpenDoorSim</span>
             <nav class="header-center">
-                <a onclick="showSection('lastRead')">Last Read</a>
-                <a onclick="showSectionWithRefresh('ctfMode')">CTF Mode</a>
+                <a onclick="showSection('log')">Raw Mode</a>
+                <a onclick="showSectionWithRefresh('monitor')">CTF Mode</a>
                 <a onclick="showSection('settings')">Settings</a>
             </nav>
             <div class="header-right">
@@ -24,8 +24,8 @@
         </div>
     </header>
     <div class="content">
-        <div id="lastRead">
-            <h1>Card Data</h1>
+        <div id="log">
+            <h1>Raw Log</h1>
             <table id="cardTable">
                 <thead>
                     <tr>
@@ -33,8 +33,8 @@
                         <th>Bit Length</th>
                         <th>Facility Code</th>
                         <th>Card Number</th>
-                        <th>Raw Data (click to copy)</th>
-                        <th>Hex Data</th>
+                        <th>Raw Binary Data (click to copy)</th>
+                        <th>Hex Data (click to copy)</th>
                         <th>Padding</th>
                     </tr>
                 </thead>
@@ -42,15 +42,15 @@
                 </tbody>
             </table>
         </div>
-        <div id="ctfMode" class="hidden">
-            <h1>CTF Mode</h1>
+        <div id="monitor" class="hidden">
+            <h1>CTF Monitor</h1>
             <div id="ctfIndicator" style="margin-bottom:8px;">
-                Status: <strong id="ctfStatus">OFF</strong>
+                CTF Mode Status: <strong id="ctfStatus">OFF</strong>
             </div>
             <div id="ctfHint" style="color:gray; font-size:0.9em; display:none;">
                 CTF mode is off. To enable CTF mode, change mode in settings.
             </div>
-            <h2>Last Read Cards</h2>
+            <h2><br>Last Read Cards</h2>
             <table id="lastReadCardsTable">
                 <thead>
                     <tr>
@@ -62,7 +62,7 @@
                 <tbody>
                 </tbody>
             </table>
-            <h2 class="collapsible" onclick="toggleCollapsible()">Card Data (click to expand/collapse)</h2>
+            <h2 class="collapsible" onclick="toggleCollapsible()">User Management (click to expand/collapse)</h2>
             <div class="contentCollapsible">
                 <table id="userTable">
                     <thead>
@@ -86,7 +86,8 @@
         </div>
         <div id="settings" class="hidden">
             <h1>Settings</h1>
-            <h2>General</h2>
+
+            <h2><br>General</h2>
             <label for="modeSelect">Mode:</label>
             <select id="modeSelect">
                 <option value="ctf">CTF</option>
@@ -101,7 +102,7 @@
                 <option value="60000">1 minute</option>
             </select>
             <br><br>
-            <h3>Wifi</h3>
+            <h2>Wifi</h2>
             <div id="apSettings">
                 <label for="ap_ssid">SSID:</label>
                 <input type="text" id="ap_ssid">
@@ -111,8 +112,6 @@
                 <br><br>
                 <label for="ssid_hidden">Hidden:</label>
                 <input type="checkbox" id="ssid_hidden">
-                <br><br>
-
             </div>
             <br><br>
             <h2>CTF Mode</h2>
@@ -129,26 +128,23 @@
             <label for="enable_tamper_detect">Enable Tamper Detect:</label>
             <input type="checkbox" id="enable_tamper_detect">
             <br><br>
-            <label for="max_bits">Max Bits:</label>
-            <input type="number" id="max_bits" min="1">
-            <br><br>
-            <label for="wiegand_wait_time">Wiegand Wait Time (ms):</label>
-            <input type="number" id="wiegand_wait_time" min="0">
-            <br><br>
-            <div>
-                <label for="ledValid">On Valid Card - LED:</label>
-                <select id="ledValid">
-                    <option value="1">Flashing</option>
-                    <option value="2">Solid</option>
-                    <option value="0">Off</option>
-                </select>
+                <div>
+                    <label for="ledValid">On Valid Card - LED:</label>
+                    <select id="ledValid">
+                        <option value="1">Rapid Flash</option>
+                        <option value="2">Long Flash</option>
+                        <option value="0">None</option>
+                    </select>
+                </div>
+                <br>
+                <button onclick="saveSettings()">Save Settings</button>
                 <br><br>
-                <!-- Speaker settings removed: not supported by backend -->
-            </div>
-            <br><br>
-            <!-- Invalid card speaker setting removed: not supported by backend -->
-            <br><br>
-            <button onclick="saveSettings()">Save Settings</button>
+                <br>
+                <div id="versionInfo" style="margin-top:8px;color:var(--muted);font-size:0.85rem;">
+                    Version: <span id="versionValue"></span>
+                    <br>
+                    by shortrange.tech
+                </div>
         </div>
     </div>
 <script src="script.js"></script>
