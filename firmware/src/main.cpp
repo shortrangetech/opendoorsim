@@ -1018,6 +1018,17 @@ void printCardDataSerial()
   }
 }
 
+void showSettingsSaved()
+{
+  Serial.println("[DISPLAY] Showing Settings Saved message");
+  
+  printDisplayText("   CONFIGURATION    ", "","  Settings saved.   ", "");
+
+  // fake "card read" to trigger display timeout
+  lastCardTime = millis();
+  displayingCard = true; 
+}
+
 void setupWifi()
 {
   Serial.println("[SYSTEM] Configuring Access Point...");
@@ -1134,6 +1145,7 @@ void webServer()
       bool clientSaysReboot = jsonObj["should_reboot"] | false;
 
       saveSettingsToPreferences();
+      showSettingsSaved();
 
       // --- Send Response ---
       request->send(200, "application/json", "{\"status\":\"success\"}");
