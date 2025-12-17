@@ -73,6 +73,9 @@ bool tamperState = false;
 unsigned long lastTamperCheck = 0;
 const int TAMPER_CHECK_INTERVAL = 500; // milliseconds
 
+// Reboot management
+bool rebootRequested = false;
+unsigned long rebootTimer = 0;
 
 // Reader config and variables
 
@@ -230,17 +233,29 @@ void loadSettingsFromPreferences()
     return;
   }
 
-  // Parse JSON from file
-  JsonDocument doc;
-  DeserializationError error = deserializeJson(doc, file);
+  // --- DEBUG: Print File Content ---
+  // This reads the file to the end
   Serial.println("File Content:");
-  file.seek(0);
   while (file.available())
   {
     Serial.write(file.read());
   }
-  file.close();
   Serial.println();
+
+  // --- FIX STARTS HERE ---
+  
+  // 1. DO NOT close the file yet.
+  // 2. Rewind the file position to the beginning so JSON can read it.
+  file.seek(0);
+
+  // 3. Parse JSON from the open file
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, file);
+
+  // 4. NOW it is safe to close the file
+  file.close(); 
+
+  // --- FIX ENDS HERE ---
 
   if (error)
   {
@@ -263,20 +278,12 @@ void loadSettingsFromPreferences()
   enableTamperDetect = doc["enable_tamper_detect"] | false;
 
   unsigned int loadedMaxBits = doc["max_bits"] | (unsigned int)MAX_BITS_CONST;
-  if (loadedMaxBits == 0)
-  {
-    loadedMaxBits = MAX_BITS_CONST;
-  }
-  if (loadedMaxBits > MAX_BITS_CONST)
-  {
-    maxBits = MAX_BITS_CONST;
-  }
-  else
-  {
-    maxBits = loadedMaxBits;
-  }
+  if (loadedMaxBits == 0) loadedMaxBits = MAX_BITS_CONST;
+  if (loadedMaxBits > MAX_BITS_CONST) maxBits = MAX_BITS_CONST;
+  else maxBits = loadedMaxBits;
+
   weigandWaitTime = doc["wiegand_wait_time"] | weigandWaitTime;
-  Serial.println("[SYSTEM] Settings loaded successfully:");
+  Serial.println("[SYSTEM] Settings loaded successfully.");
 }
 
 void saveUsersToPreferences()
@@ -1013,7 +1020,32 @@ void printCardDataSerial()
 
 void setupWifi()
 {
-  WiFi.softAP(apSsid, apPwd, apChannel, ssidHidden);
+  Serial.println("[SYSTEM] Configuring Access Point...");
+  
+  const char* ssid = apSsid.c_str();
+  const char* pwd = nullptr; // Default to NULL (Open Network)
+
+  // WPA2 Requirement: Password must be at least 8 characters
+  if (apPwd.length() >= 8) {
+      pwd = apPwd.c_str();
+      Serial.println("[SYSTEM] Security: WPA2-PSK (Password set)");
+  } else if (apPwd.length() > 0) {
+      // fallback to open to avoid crash
+      Serial.println("[SYSTEM] WARNING: Password '" + apPwd + "' is too short (min 8 chars).");
+      Serial.println("[SYSTEM] FALLBACK: Starting as OPEN network to prevent crash.");
+      pwd = nullptr; 
+  } else {
+      Serial.println("[SYSTEM] Security: OPEN (No password set)");
+  }
+
+  // Start AP
+  if (WiFi.softAP(ssid, pwd, apChannel, ssidHidden)) {
+      Serial.println("[SYSTEM] SoftAP started successfully.");
+      Serial.print("[SYSTEM] IP Address: ");
+      Serial.println(WiFi.softAPIP());
+  } else {
+      Serial.println("[SYSTEM] CRITICAL ERROR: Failed to start SoftAP!");
+  }
 }
 
 void webServer()
@@ -1079,27 +1111,40 @@ void webServer()
       request->send(200, "application/json", response); });
 
   AsyncCallbackJsonWebHandler *handler = new AsyncCallbackJsonWebHandler("/saveSettings", [](AsyncWebServerRequest *request, JsonVariant &json)
-                                                                         {
+  {
       JsonObject jsonObj = json.as<JsonObject>();
 
-      // Parse the JSON and update settings
-      // This replaces lines 1084-1088
+      // --- Update Settings ---
       deviceMode = jsonObj["device_mode"] | "ctf";
       displayTimeout = jsonObj["display_timeout"] | 30000;
       apSsid = jsonObj["ap_ssid"] | "doorsim";
-      apPwd = jsonObj["ap_pwd"] | "";
-      apChannel = jsonObj["ap_channel"] | 1;
+      
+      String newPwd = jsonObj["ap_pwd"] | "";
+      if (newPwd.length() > 0) {
+          apPwd = newPwd;
+      }
+
       ssidHidden = jsonObj["ssid_hidden"] | 0;
       customMessage = jsonObj["custom_message"] | "OPENDOORSIM";
       ledValid = jsonObj["led_valid"] | 1;
-      // Optional/extended settings
-      apMode = jsonObj["ap_mode"] | apMode;
       activeDisplayType = jsonObj["active_display_type"] | activeDisplayType;
       enableTamperDetect = jsonObj["enable_tamper_detect"] | enableTamperDetect;
 
+      // --- Check Reboot Flag from Client ---
+      bool clientSaysReboot = jsonObj["should_reboot"] | false;
+
       saveSettingsToPreferences();
-      //setupWifi(); TODO: implement a reboot button so that they can choose to apply the new wifi settings
-      request->send(200, "application/json", "{\"status\":\"success\"}"); });
+
+      // --- Send Response ---
+      request->send(200, "application/json", "{\"status\":\"success\"}");
+
+      // --- Trigger Reboot Sequence if needed ---
+      if (clientSaysReboot) {
+          Serial.println("[SYSTEM] Configuration changed. Reboot requested.");
+          rebootRequested = true;
+          rebootTimer = millis(); // Start the countdown clock
+      } 
+  });
   server.addHandler(handler);
 
   server.on("/addUser", HTTP_GET, [](AsyncWebServerRequest *request)
@@ -1289,6 +1334,15 @@ void setup()
 }
 
 void loop() {
+
+  if (rebootRequested) {
+      // Wait 1000ms so the HTTP 200 OK response has returned to client
+      if (millis() - rebootTimer > 1000) {
+          Serial.println("[SYSTEM] Rebooting now...");
+          ESP.restart();
+      }
+      return; 
+  }
 
   if (enableTamperDetect) {
     // Check tamper state
