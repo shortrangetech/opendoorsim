@@ -1,9 +1,9 @@
 :root{
     --bg:#141413;
-    --text:#f5f5f4; /* off-white */
+    --text:#f5f5f4; 
     --muted:#9a9a9a;
     --accent:#fcbd00;
-    --header-bg:#2a2a2a; /* lighter gray than background */
+    --header-bg:#2a2a2a; 
     --card-bg:#1b1b1b;
     --th-bg:#222;
     --authorized:#236b2b;
@@ -27,7 +27,6 @@ h1 {
 header{
     display:flex;
     align-items:center;
-    /* remove solid background from main header so the banner can sit behind logo */
     padding:6px 12px;
     color:var(--text);
 }
@@ -70,9 +69,8 @@ header{
 .header-right{min-width:160px;text-align:right}
 #modeBox{background:var(--card-bg);padding:10px 12px;border-radius:12px;border:1px solid #2f2f2f;color:var(--text);font-weight:700;display:flex;align-items:center;justify-content:center;min-width:120px}
 
-/* Inputs and selects: light grey backgrounds with dark text */
+/* Inputs and selects:  */
 input[type="text"], input[type="number"], input[type="password"], textarea, select {
-    /* slightly darker medium-light gray */
     background: #d0d0d0;
     color: #111;
     border: 1px solid #bfbfbf;
@@ -96,7 +94,15 @@ th{background:var(--th-bg);color:var(--text);font-weight:700}
 table{border-radius:10px;overflow:hidden}
 
 /* Buttons rounded */
-button{border-radius:10px;padding:8px 10px;border:1px solid #2f2f2f;background:#2b2b2b;color:var(--text);cursor:pointer}
+button{
+    border-radius:10px;
+    padding:8px 10px;
+    border:1px solid #2f2f2f;
+    background:#2b2b2b;
+    color:var(--text);
+    cursor:pointer;
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
 button:hover{
     opacity:0.95;
     background: var(--accent);
@@ -112,10 +118,46 @@ button:hover{
 .unauthorized{background:linear-gradient(90deg,var(--unauthorized),#ff6b6b33)}
 
 /* CTF status indicator styles */
-#ctfStatus{display:inline-block;padding:4px 8px;border-radius:8px;color:var(--text);font-weight:900}
-.ctf-on{background:var(--authorized);color:#e8f8ee}
-.ctf-off{background:var(--unauthorized);color:#fff0f0}
+#ctfStatus{
+    display:inline-block;
+    padding:4px 8px;
+    border-radius:8px;
+    color:var(--text);
+    font-weight:900;
+}
 
+#ctfStatus.ctf-on{
+    background:var(--authorized);
+    color:#e8f8ee;
+}
+
+#ctfStatus.ctf-off{
+    background:var(--unauthorized);
+    color:#fff0f0;
+}
+
+#tamperStatus {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 8px;
+    font-weight: 900;
+    color: var(--text);
+}
+
+#tamperStatus.status-green {
+    background: var(--authorized);
+    color: #e8f8ee; 
+}
+
+#tamperStatus.status-red {
+    background: var(--unauthorized);
+    color: #fff0f0; 
+}
+
+#tamperStatus.status-yellow {
+    background: var(--accent);
+    color: var(--bg);        
+}
 .inputRow td{padding:6px}
 .inputRow input{width:100%;box-sizing:border-box}
 

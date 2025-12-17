@@ -79,7 +79,7 @@ function updateLastReadCardsTable() {
         .then(response => response.json())
         .then(data => {
             lastReadCardsTableBody.innerHTML = '';
-            // show newest card first: reverse the last 10 so newest is index 0
+            // show newest card first: reverse makes newest index zero
             const last10Cards = data.slice(-10).reverse();
             last10Cards.forEach((card, index) => {
                 let row = lastReadCardsTableBody.insertRow();
@@ -161,7 +161,7 @@ function showSection(section) {
     document.getElementById(section).classList.remove('hidden');
 }
 
-// When switching to the CTF Mode tab, refresh settings so indicator is up-to-date
+// When switching to the CTF Mode tab, refresh settings to get latest mode
 function showSectionWithRefresh(section) {
     showSection(section);
     if (section === 'monitor') {
@@ -175,7 +175,6 @@ function toggleCollapsible() {
 }
 
 function updateSettingsUI(settings) {
-    // Support both backend keys (device_mode, display_timeout, ap_ssid, etc.)
     const mode = settings.device_mode || settings.mode || '';
     const displayTimeout = settings.display_timeout || settings.displayTimeout || '';
     const apSsid = settings.ap_ssid || settings.apSsid || '';
@@ -188,7 +187,6 @@ function updateSettingsUI(settings) {
     const version = settings.version || settings.version || '';
 
     if (document.getElementById('modeSelect')) document.getElementById('modeSelect').value = (mode || '').toString().toLowerCase();
-    // Display mode in header as ALL CAPS
     const modeValueEl = document.getElementById('modeValue');
     if (modeValueEl) {
         modeValueEl.textContent = (mode || '').toString().toUpperCase();
@@ -197,12 +195,10 @@ function updateSettingsUI(settings) {
     if (document.getElementById('ap_ssid')) document.getElementById('ap_ssid').value = apSsid;
     if (document.getElementById('ap_pwd')) document.getElementById('ap_pwd').value = apPass;
     if (document.getElementById('ssid_hidden') && typeof ssidHidden !== 'undefined') document.getElementById('ssid_hidden').checked = ssidHidden;
-    // AP channel control removed from UI
     if (document.getElementById('customMessage')) document.getElementById('customMessage').value = customMessage;
     if (document.getElementById('ledValid')) document.getElementById('ledValid').value = ledValid;
     if (document.getElementById('activeDisplayType')) document.getElementById('activeDisplayType').value = activeDisplayType;
     if (document.getElementById('enable_tamper_detect')) document.getElementById('enable_tamper_detect').checked = enableTamperDetect;
-    // show settings version if provided
     if (document.getElementById('versionValue')) document.getElementById('versionValue').textContent = version;
 }
 
@@ -219,6 +215,36 @@ function updateCTFIndicator(settings) {
         statusEl.classList.toggle('ctf-off', !isCTFOn);
     }
     if (hintEl) hintEl.style.display = isCTFOn ? 'none' : 'block';
+}
+
+function updateTamperIndicator(settings) {
+    const container = document.getElementById('tamperIndicator');
+    const statusEl = document.getElementById('tamperStatus');
+    
+    if (!container || !statusEl) return;
+
+    const isEnabled = settings.enable_tamper_detect ? true : false;
+    const isTripped = settings.tamper_tripped ? true : false;
+
+
+    statusEl.classList.remove('status-green', 'status-red', 'status-yellow');
+
+    if (!isEnabled) {
+        container.style.display = 'none';
+
+    } else {
+        container.style.display = 'block';
+
+        if (isTripped) {
+            // ALARM STATE
+            statusEl.textContent = 'TAMPERING DETECTED!';
+            statusEl.classList.add('status-yellow');
+        } else {
+            // SAFE STATE
+            statusEl.textContent = 'ENABLED';
+            statusEl.classList.add('status-green');
+        }
+    }
 }
 
 function saveSettings() {
@@ -267,6 +293,7 @@ function fetchSettings() {
         .then(data => {
             updateSettingsUI(data);
             updateCTFIndicator(data);
+            updateTamperIndicator(data);
         })
         .catch(error => console.error('Error fetching settings:', error));
 }
@@ -327,6 +354,8 @@ function copyToClipboard(text) {
 
 setInterval(updateTable, 5000);
 setInterval(updateLastReadCardsTable, 5000);
+setInterval(fetchSettings, 5000);
+
 updateTable();
 updateUserTable();
 updateLastReadCardsTable();
