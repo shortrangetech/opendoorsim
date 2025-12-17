@@ -1068,6 +1068,7 @@ void webServer()
       doc["ap_mode"] = apMode;
       doc["active_display_type"] = activeDisplayType;
       doc["enable_tamper_detect"] = enableTamperDetect;
+      doc["tamper_tripped"] = tamperState;
       doc["ssid_hidden"] = ssidHidden;
       doc["ap_channel"] = apChannel;
       doc["custom_message"] = customMessage;
