@@ -24,7 +24,7 @@
         </div>
     </header>
     <div class="content">
-        <div id="log">
+        <div id="log" class="hidden">
             <h1>Raw Log</h1>
             <table id="cardTable">
                 <thead>
@@ -42,7 +42,7 @@
                 </tbody>
             </table>
         </div>
-        <div id="monitor" class="hidden">
+        <div id="monitor">
             <h1>CTF Monitor</h1>
             <div id="ctfIndicator" style="margin-bottom:8px;">
                 CTF Mode Status: <strong id="ctfStatus">OFF</strong>
@@ -114,6 +114,10 @@
                 <br><br>
                 <label for="ap_pwd">Password:</label>
                 <input type="text" id="ap_pwd">
+                <div id="pwdHint" class="hidden" style="color:var(--accent); font-size: 0.85rem; margin-top: 4px; font-weight:bold;">
+                <br>
+                Password must be a minimum of 8 chars (or empty for open network).
+                </div>
                 <br><br>
                 <label for="ssid_hidden">Hidden:</label>
                 <input type="checkbox" id="ssid_hidden">
@@ -142,6 +146,7 @@
                     </select>
                 </div>
                 <br>
+                <div id="rebootWarning" class="hidden"></div>
                 <button onclick="saveSettings()">Save Settings</button>
                 <br><br>
                 <br>

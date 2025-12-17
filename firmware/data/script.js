@@ -4,6 +4,10 @@ const userTableBody = document.getElementById('userTable').getElementsByTagName(
 const lastReadCardsTableBody = document.getElementById('lastReadCardsTable').getElementsByTagName('tbody')[0];
 const importExportArea = document.getElementById('importExportArea');
 
+let originalSsid = "";
+let originalHidden = false;
+let originalPwd = "";
+
 function updateTable() {
     fetch('/getCards')
         .then(response => response.json())
@@ -200,7 +204,21 @@ function updateSettingsUI(settings) {
     if (document.getElementById('activeDisplayType')) document.getElementById('activeDisplayType').value = activeDisplayType;
     if (document.getElementById('enable_tamper_detect')) document.getElementById('enable_tamper_detect').checked = enableTamperDetect;
     if (document.getElementById('versionValue')) document.getElementById('versionValue').textContent = version;
+
+    // Capture original Wi-Fi states for comparison later
+    originalSsid = settings.ap_ssid || settings.apSsid || '';
+    let rawHidden = (settings.ssid_hidden !== undefined) ? settings.ssid_hidden : settings.ssidHidden;
+    originalHidden = (rawHidden == 1 || rawHidden === true);
+    originalPwd = settings.ap_pwd || settings.apPassphrase || '';
+
+    // Add event listeners to detect changes immediately
+    document.getElementById('ap_ssid').addEventListener('input', checkWifiChanges);
+    document.getElementById('ap_pwd').addEventListener('input', checkWifiChanges);
+    document.getElementById('ssid_hidden').addEventListener('change', checkWifiChanges);
+
+    checkWifiChanges();
 }
+
 
 function updateCTFIndicator(settings) {
     const mode = (settings.device_mode || settings.mode || '').toString().toLowerCase();
@@ -248,52 +266,105 @@ function updateTamperIndicator(settings) {
 }
 
 function saveSettings() {
+    // 1. Get Values
+    const pwdInput = document.getElementById('ap_pwd').value;
+    const ssidInput = document.getElementById('ap_ssid').value;
+    const hiddenInput = document.getElementById('ssid_hidden').checked;
+
+    // --- VALIDATION START ---
+    // If password is NOT blank AND is less than 8 chars, stop.
+    if (pwdInput.length > 0 && pwdInput.length < 8) {
+        alert("Cannot Save: Password must be empty (Open Network) or at least 8 characters.");
+        // Highlight the input to help the user see the error
+        document.getElementById('ap_pwd').focus();
+        return; 
+    }
+    // --- VALIDATION END ---
+    
+    // 2. Detect Changes
+    const pwdChanged = (pwdInput !== originalPwd);
+    const ssidChanged = (ssidInput !== originalSsid);
+    const hiddenChanged = (hiddenInput !== originalHidden);
+    const wifiChanged = (pwdChanged || ssidChanged || hiddenChanged);
+
+    // 3. Confirmation Logic
+    if (wifiChanged) {
+        if (pwdChanged) {
+            const userConfirmed = prompt("Wifi password has been changed. Please re-type the new password to confirm:");
+            if (userConfirmed === null) return; 
+            if (userConfirmed !== pwdInput) {
+                alert("Passwords do not match. Settings NOT saved.");
+                return;
+            }
+        } 
+        else if (!confirm("WiFi settings have changed. The device will reboot. Continue?")) {
+            return;
+        }
+    }
+
+    // 4. Gather other settings
     const mode = document.getElementById('modeSelect').value.toString().toLowerCase();
     const timeout = document.getElementById('timeoutSelect').value;
-    const apSsid = document.getElementById('ap_ssid').value;
-    const apPassphrase = document.getElementById('ap_pwd').value;
-    const ssidHidden = document.getElementById('ssid_hidden').checked ? 1 : 0;
     const customMessage = document.getElementById('customMessage').value;
     const ledValid = document.getElementById('ledValid').value;
-    const activeDisplayType = document.getElementById('activeDisplayType') ? parseInt(document.getElementById('activeDisplayType').value,10) : 1;
-    const enableTamperDetect = document.getElementById('enable_tamper_detect') ? (document.getElementById('enable_tamper_detect').checked ? true : false) : false;
+    const activeDisplayType = document.getElementById('activeDisplayType').value;
+    const enableTamperDetect = document.getElementById('enable_tamper_detect').checked;
 
+    // 5. Build payload
     let settings = {
         device_mode: mode,
         display_timeout: parseInt(timeout, 10),
-        ap_ssid: apSsid,
-        ap_pwd: apPassphrase,
-        ssid_hidden: ssidHidden,
+        ap_ssid: ssidInput,
+        ap_pwd: pwdInput,
+        ssid_hidden: hiddenInput ? 1 : 0,
         custom_message: customMessage,
         led_valid: parseInt(ledValid, 10),
-        active_display_type: activeDisplayType,
+        active_display_type: parseInt(activeDisplayType, 10),
         enable_tamper_detect: enableTamperDetect,
+        should_reboot: wifiChanged 
     };
 
+    // 6. Send
     fetch('/saveSettings', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings)
     })
-        .then(response => {
-            if (response.ok) {
-                alert('Success! Settings saved.');
+    .then(response => {
+        if (response.ok) {
+            if (wifiChanged) {
+                alert('Settings saved! Device is REBOOTING now. Please reconnect.');
             } else {
-                alert('Failed to save settings');
+                alert('Settings saved successfully.');
+                fetchSettings(true); 
             }
-        })
-        .catch(error => console.error('Error saving settings:', error));
+            document.getElementById('rebootWarning').style.display = 'none';
+        } else {
+            alert('Failed to save settings');
+        }
+    })
+    .catch(error => console.error('Error saving settings:', error));
 }
 
-function fetchSettings() {
+
+function fetchSettings(forceUpdateUI = false) {
     fetch('/getSettings')
         .then(response => response.json())
         .then(data => {
-            updateSettingsUI(data);
+            // 1. ALWAYS update the status badges (CTF / Tamper)
+            // We want these live even while you are editing settings
             updateCTFIndicator(data);
             updateTamperIndicator(data);
+
+            // 2. CONDITIONALLY update the form inputs
+            const settingsTab = document.getElementById('settings');
+            
+            // Update the form ONLY if:
+            // A. The settings tab is HIDDEN (you aren't looking at it), OR
+            // B. Explicitly forced (e.g., right after hitting Save)
+            if (settingsTab.classList.contains('hidden') || forceUpdateUI === true) {
+                updateSettingsUI(data);
+            }
         })
         .catch(error => console.error('Error fetching settings:', error));
 }
@@ -359,6 +430,36 @@ setInterval(fetchSettings, 5000);
 updateTable();
 updateUserTable();
 updateLastReadCardsTable();
+
+function checkWifiChanges() {
+    const warningEl = document.getElementById('rebootWarning');
+    const pwdHintEl = document.getElementById('pwdHint'); // Get the hint element
+    
+    // Get current values
+    const currentPwd = document.getElementById('ap_pwd').value;
+    const currentSsid = document.getElementById('ap_ssid').value;
+    const currentHidden = document.getElementById('ssid_hidden').checked;
+
+    // --- 1. Password Length Validation ---
+    // Show hint ONLY if password has text (>0) AND is too short (<8)
+    if (currentPwd.length > 0 && currentPwd.length < 8) {
+        pwdHintEl.classList.remove('hidden');
+    } else {
+        pwdHintEl.classList.add('hidden');
+    }
+
+    // --- 2. Change Detection (Reboot Warning) ---
+    const pwdChanged = (currentPwd !== originalPwd);
+    const ssidChanged = (currentSsid !== originalSsid);
+    const hiddenChanged = (currentHidden !== originalHidden);
+
+    if (pwdChanged || ssidChanged || hiddenChanged) {
+        warningEl.textContent = "WiFi settings changed. Device will reboot upon saving.";
+        warningEl.style.display = 'block';
+    } else {
+        warningEl.style.display = 'none';
+    }
+}
 
 function editUser(index) {
     fetch('/getUsers')
