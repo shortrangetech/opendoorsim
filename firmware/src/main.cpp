@@ -1061,106 +1061,103 @@ void setupWifi()
 
 void webServer()
 {
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
+    // request->send(200, "text/html", FPSTR(index_html)); 
+    request->send(LittleFS, "/index.html", String());
+  });
 
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
-            { 
-              //request->send(200, "text/html", FPSTR(index_html)); 
-              request->send(LittleFS, "/index.html", String()); });
+  server.on("/getCards", HTTP_GET, [](AsyncWebServerRequest *request) {
+    JsonDocument doc;
+    JsonArray cards = doc.to<JsonArray>();
+    for (int i = 0; i < cardDataIndex; i++) {
+      JsonObject card = cards.add<JsonObject>();
+      card["bitCount"] = cardDataArray[i].bitCount;
+      card["facilityCode"] = cardDataArray[i].facilityCode;
+      card["cardNumber"] = cardDataArray[i].cardNumber;
+      card["rawCardData"] = cardDataArray[i].rawCardData;
+      card["hexData"] = cardDataArray[i].hexData;
+      card["padCount"] = cardDataArray[i].padCount;
+      card["status"] = cardDataArray[i].status;
+      card["details"] = cardDataArray[i].details;
+    }
+    String response;
+    serializeJson(doc, response);
+    request->send(200, "application/json", response);
+  });
 
-  server.on("/getCards", HTTP_GET, [](AsyncWebServerRequest *request)
-            {      
-      JsonDocument doc;
-      JsonArray cards = doc.to<JsonArray>();
-      for (int i = 0; i < cardDataIndex; i++) {          
-          JsonObject card = cards.add<JsonObject>();
-          card["bitCount"] = cardDataArray[i].bitCount;
-          card["facilityCode"] = cardDataArray[i].facilityCode;
-          card["cardNumber"] = cardDataArray[i].cardNumber;
-          card["rawCardData"] = cardDataArray[i].rawCardData;
-          card["hexData"] = cardDataArray[i].hexData;
-          card["padCount"] = cardDataArray[i].padCount;
-          card["status"] = cardDataArray[i].status;
-          card["details"] = cardDataArray[i].details;
-      }
-      String response;
-      serializeJson(doc, response);
-      request->send(200, "application/json", response); });
+  server.on("/getUsers", HTTP_GET, [](AsyncWebServerRequest *request) {
+    JsonDocument doc;
+    JsonArray usersArray = doc.to<JsonArray>();
+    for (int i = 0; i < userCount; i++) {
+      JsonObject user = usersArray.add<JsonObject>();
+      user["facilityCode"] = users[i].facilityCode;
+      user["cardNumber"] = users[i].cardNumber;
+      user["name"] = users[i].name;
+      user["flag"] = users[i].flag;
+    }
+    String response;
+    serializeJson(doc, response);
+    request->send(200, "application/json", response);
+  });
 
-    server.on("/getUsers", HTTP_GET, [](AsyncWebServerRequest *request)
-        {
-        JsonDocument doc;
-        JsonArray usersArray = doc.to<JsonArray>();
-        for (int i = 0; i < userCount; i++) {          
-          JsonObject user = usersArray.add<JsonObject>();
-          user["facilityCode"] = users[i].facilityCode;
-          user["cardNumber"] = users[i].cardNumber;
-          user["name"] = users[i].name;
-          user["flag"] = users[i].flag;
-        }
-      String response;
-      serializeJson(doc, response);
-      request->send(200, "application/json", response); });
+  server.on("/getSettings", HTTP_GET, [](AsyncWebServerRequest *request) {
+    JsonDocument doc;
+    doc["device_mode"] = deviceMode;
+    doc["display_timeout"] = displayTimeout;
+    doc["ap_ssid"] = apSsid;
+    doc["ap_pwd"] = apPwd;
+    doc["ap_mode"] = apMode;
+    doc["active_display_type"] = activeDisplayType;
+    doc["enable_tamper_detect"] = enableTamperDetect;
+    doc["tamper_tripped"] = tamperState;
+    doc["ssid_hidden"] = ssidHidden;
+    doc["ap_channel"] = apChannel;
+    doc["custom_message"] = customMessage;
+    doc["version"] = firmwareVersion;
+    doc["led_valid"] = ledValid;
+    String response;
+    serializeJson(doc, response);
+    request->send(200, "application/json", response);
+  });
 
-  server.on("/getSettings", HTTP_GET, [](AsyncWebServerRequest *request)
-            {      
-      JsonDocument doc;
-      doc["device_mode"] = deviceMode;
-      doc["display_timeout"] = displayTimeout;
-      doc["ap_ssid"] = apSsid;
-      doc["ap_pwd"] = apPwd;
-      doc["ap_mode"] = apMode;
-      doc["active_display_type"] = activeDisplayType;
-      doc["enable_tamper_detect"] = enableTamperDetect;
-      doc["tamper_tripped"] = tamperState;
-      doc["ssid_hidden"] = ssidHidden;
-      doc["ap_channel"] = apChannel;
-      doc["custom_message"] = customMessage;
-      doc["version"] = firmwareVersion;
-      doc["led_valid"] = ledValid;
-      String response;
-      serializeJson(doc, response);
-      request->send(200, "application/json", response); });
+  AsyncCallbackJsonWebHandler *handler = new AsyncCallbackJsonWebHandler("/saveSettings", [](AsyncWebServerRequest *request, JsonVariant &json) {
+    JsonObject jsonObj = json.as<JsonObject>();
 
-  AsyncCallbackJsonWebHandler *handler = new AsyncCallbackJsonWebHandler("/saveSettings", [](AsyncWebServerRequest *request, JsonVariant &json)
-  {
-      JsonObject jsonObj = json.as<JsonObject>();
+    // --- Update Settings ---
+    deviceMode = jsonObj["device_mode"] | "ctf";
+    displayTimeout = jsonObj["display_timeout"] | 30000;
+    apSsid = jsonObj["ap_ssid"] | "doorsim";
 
-      // --- Update Settings ---
-      deviceMode = jsonObj["device_mode"] | "ctf";
-      displayTimeout = jsonObj["display_timeout"] | 30000;
-      apSsid = jsonObj["ap_ssid"] | "doorsim";
-      
-      String newPwd = jsonObj["ap_pwd"] | "";
-      if (newPwd.length() > 0) {
-          apPwd = newPwd;
-      }
+    String newPwd = jsonObj["ap_pwd"] | "";
+    if (newPwd.length() > 0) {
+      apPwd = newPwd;
+    }
 
-      ssidHidden = jsonObj["ssid_hidden"] | 0;
-      customMessage = jsonObj["custom_message"] | "OPENDOORSIM";
-      ledValid = jsonObj["led_valid"] | 1;
-      activeDisplayType = jsonObj["active_display_type"] | activeDisplayType;
-      enableTamperDetect = jsonObj["enable_tamper_detect"] | enableTamperDetect;
+    ssidHidden = jsonObj["ssid_hidden"] | 0;
+    customMessage = jsonObj["custom_message"] | "OPENDOORSIM";
+    ledValid = jsonObj["led_valid"] | 1;
+    activeDisplayType = jsonObj["active_display_type"] | activeDisplayType;
+    enableTamperDetect = jsonObj["enable_tamper_detect"] | enableTamperDetect;
 
-      // --- Check Reboot Flag from Client ---
-      bool clientSaysReboot = jsonObj["should_reboot"] | false;
+    // --- Check Reboot Flag from Client ---
+    bool clientSaysReboot = jsonObj["should_reboot"] | false;
 
-      saveSettingsToPreferences();
-      showSettingsSaved();
+    saveSettingsToPreferences();
+    showSettingsSaved();
 
-      // --- Send Response ---
-      request->send(200, "application/json", "{\"status\":\"success\"}");
+    // --- Send Response ---
+    request->send(200, "application/json", "{\"status\":\"success\"}");
 
-      // --- Trigger Reboot Sequence if needed ---
-      if (clientSaysReboot) {
-          Serial.println("[SYSTEM] Configuration changed. Reboot requested.");
-          rebootRequested = true;
-          rebootTimer = millis(); // Start the countdown clock
-      } 
+    // --- Trigger Reboot Sequence if needed ---
+    if (clientSaysReboot) {
+      Serial.println("[SYSTEM] Configuration changed. Reboot requested.");
+      rebootRequested = true;
+      rebootTimer = millis(); // Start the countdown clock
+    }
   });
   server.addHandler(handler);
 
-  server.on("/addUser", HTTP_GET, [](AsyncWebServerRequest *request)
-            {
+  server.on("/addUser", HTTP_GET, [](AsyncWebServerRequest *request) {
     if (userCount < MAX_USERS) {
       if (request->hasParam("facilityCode") && request->hasParam("cardNumber") && request->hasParam("name")) {
         String facilityCodeStr = request->getParam("facilityCode")->value();
@@ -1182,10 +1179,10 @@ void webServer()
       }
     } else {
       request->send(500, "text/plain", "Max number of users reached");
-    } });
+    }
+  });
 
-  server.on("/deleteUser", HTTP_GET, [](AsyncWebServerRequest *request)
-            {
+  server.on("/deleteUser", HTTP_GET, [](AsyncWebServerRequest *request) {
     if (request->hasParam("index")) {
       int index = request->getParam("index")->value().toInt();
       if (index >= 0 && index < userCount) {
@@ -1200,10 +1197,10 @@ void webServer()
       }
     } else {
       request->send(400, "text/plain", "Missing index parameter");
-    } });
+    }
+  });
 
-  server.on("/updateUser", HTTP_GET, [](AsyncWebServerRequest *request)
-            {
+  server.on("/updateUser", HTTP_GET, [](AsyncWebServerRequest *request) {
     if (request->hasParam("index") && request->hasParam("facilityCode") && request->hasParam("cardNumber") && request->hasParam("name")) {
       int index = request->getParam("index")->value().toInt();
       if (index >= 0 && index < userCount) {
@@ -1228,8 +1225,7 @@ void webServer()
     }
   });
 
-    server.on("/exportData", HTTP_GET, [](AsyncWebServerRequest *request)
-        {
+  server.on("/exportData", HTTP_GET, [](AsyncWebServerRequest *request) {
     JsonDocument doc;
     JsonArray usersArray = doc["users"].to<JsonArray>();
     for (int i = 0; i < userCount; i++) {
@@ -1239,7 +1235,7 @@ void webServer()
       user["name"] = users[i].name;
       user["flag"] = users[i].flag;
     }
-    JsonArray cards = doc["cards"].to<JsonArray>();    
+    JsonArray cards = doc["cards"].to<JsonArray>();
     for (int i = 0; i < cardDataIndex; i++) {
       JsonObject card = cards.add<JsonObject>();
       card["bitCount"] = cardDataArray[i].bitCount;
@@ -1251,7 +1247,8 @@ void webServer()
     }
     String response;
     serializeJson(doc, response);
-    request->send(200, "application/json", response); });
+    request->send(200, "application/json", response);
+  });
 
   // Route to load style.css file, and script.js file
   server.serveStatic("/", LittleFS, "/");
