@@ -16,6 +16,10 @@
 
 AsyncWebServer server(80);
 
+IPAddress local_IP(192, 168, 8, 8);
+IPAddress gateway(192, 168, 8, 8);
+IPAddress subnet(255, 255, 255, 0);
+
 const char *settingsFile = "/settings.json";
 const char *usersFile = "/users.json";
 const char *wiegandFormatsFile = "/wiegand_formats.json";
@@ -76,6 +80,7 @@ const int TAMPER_CHECK_INTERVAL = 500; // milliseconds
 // Reboot management
 bool rebootRequested = false;
 unsigned long rebootTimer = 0;
+bool isSystemPaused = false; // Tracks if the scanner is paused
 
 // Reader config and variables
 
@@ -1031,6 +1036,10 @@ void showSettingsSaved()
 
 void setupWifi()
 {
+  if (!WiFi.softAPConfig(local_IP, gateway, subnet)) {
+    Serial.println("[ERROR] AP Custom Config Failed");
+  }
+
   Serial.println("[SYSTEM] Configuring Access Point...");
   
   const char* ssid = apSsid.c_str();
@@ -1057,6 +1066,7 @@ void setupWifi()
   } else {
       Serial.println("[SYSTEM] CRITICAL ERROR: Failed to start SoftAP!");
   }
+
 }
 
 void webServer()
@@ -1390,6 +1400,14 @@ void webServer()
         Serial.printf("[BATCH] Upload Complete (Temp): %u B\n", index + len);
       }
     }
+  });
+
+  // Remote Reboot Endpoint
+  server.on("/rebootDevice", HTTP_POST, [](AsyncWebServerRequest *request) {
+      request->send(200, "text/plain", "Rebooting...");
+      Serial.println("[SYSTEM] Remote reboot requested.");
+      rebootRequested = true;
+      rebootTimer = millis();
   });
 
   // Route to load style.css file, and script.js file

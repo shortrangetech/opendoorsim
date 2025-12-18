@@ -128,6 +128,33 @@ button:hover{
     border-color: var(--accent) !important; 
 }
 
+.button-danger {
+    background-color: #8b1f1f; 
+    color: #fff;
+    border-color: #8b1f1f;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+}
+
+.button-danger:hover {
+    background-color: #5a1414 !important;
+    border-color: #5a1414 !important;
+    color: #fff !important;              
+}
+
+.button-purple {
+    background-color: #52009f; 
+    color: #fff;
+    border-color: #52009f;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+}
+.button-purple:hover {
+    background-color: #37006f !important;
+    border-color: #37006f !important;
+    color: #fff !important;              
+}
+
 .badge {
     display: inline-block;
     padding: 4px 8px;
@@ -144,6 +171,8 @@ button:hover{
     background:#52009f;
     color:#dfcdf0;   
 }
+
+
 
 .hidden{display:none}
 .collapsible{cursor:pointer}
