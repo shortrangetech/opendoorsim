@@ -7,6 +7,7 @@ const importExportArea = document.getElementById('importExportArea');
 let originalSsid = "";
 let originalHidden = false;
 let originalPwd = "";
+let currentUserCount = 0;
 
 function updateTable() {
     fetch('/getCards')
@@ -41,6 +42,9 @@ function updateUserTable() {
     fetch('/getUsers')
         .then(response => response.json())
         .then(data => {
+
+            currentUserCount = data.length;
+
             userTableBody.innerHTML = '';
             data.forEach((user, index) => {
                 let row = userTableBody.insertRow();
@@ -390,6 +394,24 @@ function exportData() {
         .catch(error => console.error('Error exporting data:', error));
 }
 
+function confirmExport() {
+    // Check if the user wants to proceed
+    if (confirm(`Download the current users.json configuration with ${currentUserCount} users?`)) {
+        // If yes, trigger the download
+        window.location.href = '/downloadUsers';
+    }
+}
+
+function confirmSampleDownload() {
+    // The \n creates a new line in the popup box
+    const message = "Download sample file?\n\nMake sure to remove .sample extension and before re-uploading!";
+    
+    if (confirm(message)) {
+        window.location.href = '/downloadSample';
+    }
+}
+
+
 function importData() {
     const dataString = importExportArea.value;
     try {
@@ -430,37 +452,72 @@ function uploadUserFile() {
     }
 
     const file = fileInput.files[0];
-    const formData = new FormData();
-    formData.append("file", file);
+    const reader = new FileReader();
 
-    btn.disabled = true;
-    btn.textContent = "Uploading...";
-    statusDiv.textContent = "";
+    // 1. Read the file locally to get the count
+    reader.onload = function(e) {
+        try {
+            const json = JSON.parse(e.target.result);
+            
+            // Safety check: ensure 'users' array exists
+            let count = 0;
+            if (json.users && Array.isArray(json.users)) {
+                count = json.users.length;
+            } else {
+                alert("Invalid file format: 'users' array is missing.");
+                return;
+            }
 
-    fetch('/uploadUsers', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => {
-        if (response.ok) {
-            statusDiv.style.color = "#236b2b"; 
-            statusDiv.textContent = "Success!";
-            alert("Batch import successful.");
-            fileInput.value = ""; 
-            updateUserTable(); 
-        } else {
-            throw new Error("Upload failed");
+            // 2. ASK FOR CONFIRMATION
+            const message = `Import ${count} users?\n\nWARNING: This will overwrite all current users!`;
+            if (!confirm(message)) {
+                // User clicked Cancel
+                return; 
+            }
+
+            // 3. PROCEED WITH UPLOAD (User said Yes)
+            const formData = new FormData();
+            formData.append("file", file);
+
+            btn.disabled = true;
+            btn.textContent = "Verifying...";
+            statusDiv.textContent = "";
+
+            fetch('/uploadUsers', {
+                method: 'POST',
+                body: formData
+            })
+            .then(async response => {
+                const text = await response.text(); 
+                if (response.ok) {
+                    statusDiv.style.color = "#236b2b"; // Green
+                    statusDiv.textContent = "Success!";
+                    alert(text); 
+                    
+                    fileInput.value = ""; 
+                    updateUserTable(); 
+                } else {
+                    throw new Error(text);
+                }
+            })
+            .catch(error => {
+                console.error('Upload Error:', error);
+                statusDiv.style.color = "#8b1f1f"; // Red
+                statusDiv.textContent = "Failed";
+                alert("Import Failed:\n" + error.message);
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.textContent = "Import";
+            });
+
+        } catch (err) {
+            alert("Failed to parse JSON file for verification.\nCheck file format.");
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        statusDiv.style.color = "#8b1f1f"; 
-        statusDiv.textContent = "Error!";
-    })
-    .finally(() => {
-        btn.disabled = false;
-        btn.textContent = "Import Data";
-    });
+    };
+
+    // Trigger the read
+    reader.readAsText(file);
 }
 
 function validateUserInput(fc, cn, name, flag) {
@@ -564,7 +621,7 @@ function saveEditedUser(index) {
     const flag = document.getElementById('newFlag').value;
 
     if (!validateUserInput(facilityCode, cardNumber, name, flag)) return;
-    
+
     fetch(`/updateUser?index=${index}&facilityCode=${facilityCode}&cardNumber=${cardNumber}&name=${encodeURIComponent(name)}&flag=${encodeURIComponent(flag)}`)
         .then(response => {
             if (response.ok) {

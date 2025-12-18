@@ -121,7 +121,7 @@ int ledValid = 1;
 // Custom Display Message
 String customMessage = "OPENDOORSIM";
 // settings file version (read from settings.json)
-String firmwareVersion = "0.7";
+String firmwareVersion = "0.8";
 
 // decoded facility code and card code
 unsigned long facilityCode = 0;
@@ -1279,32 +1279,115 @@ void webServer()
     }
   });
 
+  // 2. Download Sample (File-based with Fallback)
   server.on("/downloadSample", HTTP_GET, [](AsyncWebServerRequest *request) {
-    // We generate the sample on the fly to ensure it matches current requirements
-    AsyncResponseStream *response = request->beginResponseStream("application/json");
-    response->addHeader("Content-Disposition", "attachment; filename=\"users_sample.json\"");
-    response->print("{\n  \"userCount\": 1,\n  \"users\": [\n    {\n      \"facilityCode\": 100,\n      \"cardNumber\": 12345,\n      \"name\": \"Test User\",\n      \"flag\": \"{flag_here}\"\n    }\n  ]\n}");
-    request->send(response);
+    if (LittleFS.exists("/users.json.sample")) {
+        // Option A: Serve the file directly from storage
+        // This will download as "users.json.sample"
+        request->send(LittleFS, "/users.json.sample", "application/json", true);
+    } else {
+        // Option B: Fallback if the file is missing (Safety net)
+        AsyncResponseStream *response = request->beginResponseStream("application/json");
+        response->addHeader("Content-Disposition", "attachment; filename=\"users_sample.json\"");
+        response->print("{\n  \"userCount\": 1,\n  \"users\": [\n    {\n      \"facilityCode\": 100,\n      \"cardNumber\": 12345,\n      \"name\": \"Test User\",\n      \"flag\": \"{flag_here}\"\n    }\n  ]\n}");
+        request->send(response);
+    }
   });
 
-  // 3. Import 
   server.on("/uploadUsers", HTTP_POST, [](AsyncWebServerRequest *request) {
-    request->send(200, "text/plain", "Batch Import Successful"); 
+    // handler runs after upload is complete. 
+
+    // temp file validation
+    File file = LittleFS.open("/users.json.tmp", "r");
+    if (!file) {
+      return request->send(500, "text/plain", "Upload failed: Temp file missing");
+    }
+
+    // Allocate a temporary JsonDocument for validation
+    // Adjust size if needed, but 16KB is usually plenty for 100 users
+    JsonDocument doc; 
+    DeserializationError error = deserializeJson(doc, file);
+    file.close();
+
+    if (error) {
+      LittleFS.remove("/users.json.tmp");
+      Serial.print("[BATCH] JSON Error: ");
+      Serial.println(error.c_str());
+      return request->send(400, "text/plain", "Invalid JSON format");
+    }
+
+    // VALIDATION LOGIC
+    int declaredCount = doc["userCount"] | -1;
+    JsonArray usersArr = doc["users"].as<JsonArray>();
+
+    // Check 1: userCount exists and matches array size
+    if (declaredCount == -1 || declaredCount != usersArr.size()) {
+      LittleFS.remove("/users.json.tmp");
+      return request->send(400, "text/plain", "Error: userCount does not match users array size");
+    }
+
+    // Check 2: Max Users Cap
+    if (usersArr.size() > MAX_USERS) {
+      LittleFS.remove("/users.json.tmp");
+      return request->send(400, "text/plain", "Error: Too many users (Max " + String(MAX_USERS) + ")");
+    }
+
+    // Check 3: Data Integrity for each user
+    int row = 1;
+    for (JsonObject user : usersArr) {
+      if (user["facilityCode"].isNull() || user["cardNumber"].isNull()) {
+         LittleFS.remove("/users.json.tmp");
+         return request->send(400, "text/plain", "Error Row " + String(row) + ": Missing FC or CN");
+      }
+      
+      // Strict Sanitization match frontend rules
+      String fc = user["facilityCode"].as<String>();
+      String cn = user["cardNumber"].as<String>();
+      String name = user["name"] | "";
+      String flag = user["flag"] | "";
+
+      if (fc.length() < 1 || fc.length() > 12) {
+        LittleFS.remove("/users.json.tmp");
+        return request->send(400, "text/plain", "Error Row " + String(row) + ": FC length invalid");
+      }
+      if (cn.length() < 1 || cn.length() > 12) {
+        LittleFS.remove("/users.json.tmp");
+        return request->send(400, "text/plain", "Error Row " + String(row) + ": CN length invalid");
+      }
+      if (name.length() > 20) {
+        LittleFS.remove("/users.json.tmp");
+        return request->send(400, "text/plain", "Error Row " + String(row) + ": Name too long");
+      }
+      row++;
+    }
+    // All validation passed
+    Serial.println("[BATCH] Validation Passed. Swapping files.");
+    LittleFS.remove(usersFile);
+    LittleFS.rename("/users.json.tmp", usersFile);
+    
+    // Reload memory
+    loadUsersFromPreferences(); 
+    request->send(200, "text/plain", "Import Successful: " + String(declaredCount) + " users loaded.");
+
   }, 
   [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
+    // This part handles the incoming data stream
     static File uploadFile;
+
     if (!index) {
       Serial.printf("[BATCH] Upload Start: %s\n", filename.c_str());
-      uploadFile = LittleFS.open(usersFile, "w");
+      // Write to TEMP file first
+      uploadFile = LittleFS.open("/users.json.tmp", "w");
     }
+
     if (uploadFile) {
       uploadFile.write(data, len);
     }
+
     if (final) {
       if (uploadFile) {
         uploadFile.close();
-        Serial.printf("[BATCH] Upload End: %s\n", filename.c_str());
-        loadUsersFromPreferences(); // Reload immediately
+        Serial.printf("[BATCH] Upload Complete (Temp): %u B\n", index + len);
       }
     }
   });
