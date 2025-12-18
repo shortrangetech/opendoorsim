@@ -577,7 +577,7 @@ updateLastReadCardsTable();
 
 function checkWifiChanges() {
     const warningEl = document.getElementById('rebootWarning');
-    const pwdHintEl = document.getElementById('pwdHint'); // Get the hint element
+    const pwdHintEl = document.getElementById('pwdHint'); 
     
     // Get current values
     const currentPwd = document.getElementById('ap_pwd').value;
@@ -585,7 +585,6 @@ function checkWifiChanges() {
     const currentHidden = document.getElementById('ssid_hidden').checked;
 
     // --- 1. Password Length Validation ---
-    // Show hint ONLY if password has text (>0) AND is too short (<8)
     if (currentPwd.length > 0 && currentPwd.length < 8) {
         pwdHintEl.classList.remove('hidden');
     } else {
@@ -598,10 +597,17 @@ function checkWifiChanges() {
     const hiddenChanged = (currentHidden !== originalHidden);
 
     if (pwdChanged || ssidChanged || hiddenChanged) {
-        warningEl.textContent = "WiFi settings changed. Device will reboot upon saving.";
-        warningEl.style.display = 'block';
+        warningEl.textContent = "WiFi settings changed. Device will reboot upon saving. ";
+        
+        // FIX: Remove the class so the CSS expands and shows the badge
+        warningEl.classList.remove('hidden');
+        
+        // Clear any old manual styles just in case
+        warningEl.style.display = ''; 
     } else {
-        warningEl.style.display = 'none';
+        // FIX: Add the class so the CSS shrinks and fades it out
+        warningEl.classList.add('hidden');
+        warningEl.style.display = '';
     }
 }
 
