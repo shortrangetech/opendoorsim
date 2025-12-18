@@ -83,10 +83,23 @@
                     <tbody>
                     </tbody>
                 </table>
-                <textarea id="importExportArea" rows="4" cols="50"></textarea>
-                <br>
-                <button onclick="importData()">Import</button>
-                <button onclick="exportData()">Export</button>
+                <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;">
+                    <h3>Batch Tool</h3>
+                    
+                    <div style="display:flex; flex-wrap:wrap; gap: 15px; align-items: flex-end;">
+                        <div style="background: #1b1b1b; padding: 15px; border-radius: 8px;">
+                            <label style="display:block; margin-bottom:5px; font-size:0.85rem; color:#9a9a9a;">Restore/Import JSON:</label>
+                            <input type="file" id="usersUpload" accept=".json" style="max-width:200px;">
+                            <button id="btnImport" onclick="uploadUserFile()">Import Data</button>
+                            <span id="uploadStatus" style="font-weight:bold; margin-left:10px;"></span>
+                        </div>
+
+                        <div style="display:flex; gap:10px;">
+                            <button onclick="window.location.href='/downloadUsers'">Export Data</button>
+                            <button onclick="window.location.href='/downloadSample'" style="background:#444;">Download Sample</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         <div id="settings" class="hidden">
