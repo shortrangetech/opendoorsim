@@ -1158,28 +1158,37 @@ void webServer()
   server.addHandler(handler);
 
   server.on("/addUser", HTTP_GET, [](AsyncWebServerRequest *request) {
-    if (userCount < MAX_USERS) {
-      if (request->hasParam("facilityCode") && request->hasParam("cardNumber") && request->hasParam("name")) {
-        String facilityCodeStr = request->getParam("facilityCode")->value();
-        String cardNumberStr = request->getParam("cardNumber")->value();
+    if (userCount >= MAX_USERS) return request->send(500, "text/plain", "Max users reached");
+    
+    if (request->hasParam("facilityCode") && request->hasParam("cardNumber") && request->hasParam("name")) {
+        String fcStr = request->getParam("facilityCode")->value();
+        String cnStr = request->getParam("cardNumber")->value();
         String name = request->getParam("name")->value();
         String flag = request->hasParam("flag") ? request->getParam("flag")->value() : "";
 
-        users[userCount].facilityCode = facilityCodeStr.toInt();
-        users[userCount].cardNumber = cardNumberStr.toInt();
+        // SANITIZATION CHECKS
+        if (fcStr.length() < 1 || fcStr.length() > 12 || !std::all_of(fcStr.begin(), fcStr.end(), ::isdigit)) 
+            return request->send(400, "text/plain", "Invalid FC: Must be 1-12 digits");
+        
+        if (cnStr.length() < 1 || cnStr.length() > 12 || !std::all_of(cnStr.begin(), cnStr.end(), ::isdigit)) 
+            return request->send(400, "text/plain", "Invalid CN: Must be 1-12 digits");
+
+        if (name.length() > 20) return request->send(400, "text/plain", "Name too long (max 20)");
+        if (flag.length() > 20) return request->send(400, "text/plain", "Flag too long (max 20)");
+
+        // Save
+        users[userCount].facilityCode = fcStr.toInt();
+        users[userCount].cardNumber = cnStr.toInt();
         strncpy(users[userCount].name, name.c_str(), sizeof(users[userCount].name) - 1);
         users[userCount].name[sizeof(users[userCount].name) - 1] = '\0';
         strncpy(users[userCount].flag, flag.c_str(), sizeof(users[userCount].flag) - 1);
         users[userCount].flag[sizeof(users[userCount].flag) - 1] = '\0';
         userCount++;
         saveUsersToPreferences();
-        request->send(200, "text/plain", "User added successfully");
-      } else {
-        request->send(400, "text/plain", "Missing parameters");
-      }
+        request->send(200, "text/plain", "User added");
     } else {
-      request->send(500, "text/plain", "Max number of users reached");
-    }
+        request->send(400, "text/plain", "Missing parameters");
+    } 
   });
 
   server.on("/deleteUser", HTTP_GET, [](AsyncWebServerRequest *request) {
@@ -1201,22 +1210,33 @@ void webServer()
   });
 
   server.on("/updateUser", HTTP_GET, [](AsyncWebServerRequest *request) {
-    if (request->hasParam("index") && request->hasParam("facilityCode") && request->hasParam("cardNumber") && request->hasParam("name")) {
+    if (request->hasParam("index")) {
       int index = request->getParam("index")->value().toInt();
       if (index >= 0 && index < userCount) {
-        String facilityCodeStr = request->getParam("facilityCode")->value();
-        String cardNumberStr = request->getParam("cardNumber")->value();
+        String fcStr = request->getParam("facilityCode")->value();
+        String cnStr = request->getParam("cardNumber")->value();
         String name = request->getParam("name")->value();
         String flag = request->hasParam("flag") ? request->getParam("flag")->value() : "";
 
-        users[index].facilityCode = facilityCodeStr.toInt();
-        users[index].cardNumber = cardNumberStr.toInt();
+        // SANITIZATION CHECKS
+        if (fcStr.length() < 1 || fcStr.length() > 12 || !std::all_of(fcStr.begin(), fcStr.end(), ::isdigit)) 
+            return request->send(400, "text/plain", "Invalid FC");
+        
+        if (cnStr.length() < 1 || cnStr.length() > 12 || !std::all_of(cnStr.begin(), cnStr.end(), ::isdigit)) 
+            return request->send(400, "text/plain", "Invalid CN");
+
+        if (name.length() > 20) return request->send(400, "text/plain", "Name too long");
+        if (flag.length() > 20) return request->send(400, "text/plain", "Flag too long");
+
+        // Update
+        users[index].facilityCode = fcStr.toInt();
+        users[index].cardNumber = cnStr.toInt();
         strncpy(users[index].name, name.c_str(), sizeof(users[index].name) - 1);
         users[index].name[sizeof(users[index].name) - 1] = '\0';
         strncpy(users[index].flag, flag.c_str(), sizeof(users[index].flag) - 1);
         users[index].flag[sizeof(users[index].flag) - 1] = '\0';
         saveUsersToPreferences();
-        request->send(200, "text/plain", "User updated successfully");
+        request->send(200, "text/plain", "User updated");
       } else {
         request->send(400, "text/plain", "Invalid index");
       }
@@ -1248,6 +1268,45 @@ void webServer()
     String response;
     serializeJson(doc, response);
     request->send(200, "application/json", response);
+  });
+
+  // batch toolbar routes
+  server.on("/downloadUsers", HTTP_GET, [](AsyncWebServerRequest *request) {
+    if (LittleFS.exists(usersFile)) {
+      request->send(LittleFS, usersFile, "application/json", true);
+    } else {
+      request->send(404, "text/plain", "User DB not found");
+    }
+  });
+
+  server.on("/downloadSample", HTTP_GET, [](AsyncWebServerRequest *request) {
+    // We generate the sample on the fly to ensure it matches current requirements
+    AsyncResponseStream *response = request->beginResponseStream("application/json");
+    response->addHeader("Content-Disposition", "attachment; filename=\"users_sample.json\"");
+    response->print("{\n  \"userCount\": 1,\n  \"users\": [\n    {\n      \"facilityCode\": 100,\n      \"cardNumber\": 12345,\n      \"name\": \"Test User\",\n      \"flag\": \"{flag_here}\"\n    }\n  ]\n}");
+    request->send(response);
+  });
+
+  // 3. Import 
+  server.on("/uploadUsers", HTTP_POST, [](AsyncWebServerRequest *request) {
+    request->send(200, "text/plain", "Batch Import Successful"); 
+  }, 
+  [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
+    static File uploadFile;
+    if (!index) {
+      Serial.printf("[BATCH] Upload Start: %s\n", filename.c_str());
+      uploadFile = LittleFS.open(usersFile, "w");
+    }
+    if (uploadFile) {
+      uploadFile.write(data, len);
+    }
+    if (final) {
+      if (uploadFile) {
+        uploadFile.close();
+        Serial.printf("[BATCH] Upload End: %s\n", filename.c_str());
+        loadUsersFromPreferences(); // Reload immediately
+      }
+    }
   });
 
   // Route to load style.css file, and script.js file

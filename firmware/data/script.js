@@ -133,13 +133,20 @@ function addUser() {
     const name = document.getElementById('newName').value;
     const flag = document.getElementById('newFlag').value;
 
-    fetch(`/addUser?facilityCode=${facilityCode}&cardNumber=${cardNumber}&name=${name}&flag=${encodeURIComponent(flag)}`)
+    // validation check
+    if (!validateUserInput(facilityCode, cardNumber, name, flag)) return;
+
+    fetch(`/addUser?facilityCode=${facilityCode}&cardNumber=${cardNumber}&name=${encodeURIComponent(name)}&flag=${encodeURIComponent(flag)}`)
         .then(response => {
             if (response.ok) {
                 updateUserTable();
-                alert('User added successfully');
+                // Optional: Clear inputs on success
+                document.getElementById('newFacilityCode').value = '';
+                document.getElementById('newCardNumber').value = '';
+                document.getElementById('newName').value = '';
+                document.getElementById('newFlag').value = '';
             } else {
-                alert('Failed to add user');
+                response.text().then(text => alert('Failed: ' + text));
             }
         })
         .catch(error => console.error('Error adding card:', error));
@@ -412,6 +419,74 @@ function importData() {
     }
 }
 
+function uploadUserFile() {
+    const fileInput = document.getElementById('usersUpload');
+    const statusDiv = document.getElementById('uploadStatus');
+    const btn = document.getElementById('btnImport');
+
+    if (fileInput.files.length === 0) {
+        alert("Please select a users.json file first.");
+        return;
+    }
+
+    const file = fileInput.files[0];
+    const formData = new FormData();
+    formData.append("file", file);
+
+    btn.disabled = true;
+    btn.textContent = "Uploading...";
+    statusDiv.textContent = "";
+
+    fetch('/uploadUsers', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (response.ok) {
+            statusDiv.style.color = "#236b2b"; 
+            statusDiv.textContent = "Success!";
+            alert("Batch import successful.");
+            fileInput.value = ""; 
+            updateUserTable(); 
+        } else {
+            throw new Error("Upload failed");
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        statusDiv.style.color = "#8b1f1f"; 
+        statusDiv.textContent = "Error!";
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.textContent = "Import Data";
+    });
+}
+
+function validateUserInput(fc, cn, name, flag) {
+    // FC: Number, 1-12 digits
+    if (!/^\d{1,12}$/.test(fc)) {
+        alert("Error: Facility Code must be a number (1-12 digits).");
+        return false;
+    }
+    // CN: Number, 1-12 digits
+    if (!/^\d{1,12}$/.test(cn)) {
+        alert("Error: Card Number must be a number (1-12 digits).");
+        return false;
+    }
+    // Name: Max 20 chars
+    if (name.length > 20) {
+        alert("Error: Name cannot exceed 20 characters.");
+        return false;
+    }
+    // Flag: Max 20 chars
+    if (flag.length > 20) {
+        alert("Error: Flag cannot exceed 20 characters.");
+        return false;
+    }
+    return true;
+}
+
 function copyToClipboard(text) {
     const tempInput = document.createElement('input');
     tempInput.style.position = 'absolute';
@@ -487,6 +562,9 @@ function saveEditedUser(index) {
     const cardNumber = document.getElementById('newCardNumber').value;
     const name = document.getElementById('newName').value;
     const flag = document.getElementById('newFlag').value;
+
+    if (!validateUserInput(facilityCode, cardNumber, name, flag)) return;
+    
     fetch(`/updateUser?index=${index}&facilityCode=${facilityCode}&cardNumber=${cardNumber}&name=${encodeURIComponent(name)}&flag=${encodeURIComponent(flag)}`)
         .then(response => {
             if (response.ok) {
