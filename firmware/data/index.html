@@ -133,13 +133,14 @@
                 <label for="ap_ssid">SSID:</label>
                 <input type="text" id="ap_ssid">
                 <br><br>
-                <label for="ap_pwd">Password:</label>
-                <input type="text" id="ap_pwd">
-                <div id="pwdHint" class="hidden" style="color:var(--accent); font-size: 0.85rem; margin-top: 4px; font-weight:bold;">
-                <br>
-                Password must be a minimum of 8 chars (or empty for open network).
+
+                <div class="input-group">
+                    <label for="ap_pwd">Password:</label>
+                    <input type="text" id="ap_pwd">
+                    <div id="pwdHint" class="hidden">
+                        Password must be 8+ chars (or empty for open network)
+                    </div>
                 </div>
-                <br><br>
                 <label for="ssid_hidden">Hidden:</label>
                 <input type="checkbox" id="ssid_hidden">
             </div>
@@ -167,8 +168,10 @@
                     </select>
                 </div>
                 <br>
-                <div id="rebootWarning" class="hidden"></div>
-                <button onclick="saveSettings()">Save Settings</button>
+                <div class="settings-actions">
+                    <button onclick="saveSettings()">Save Settings</button>
+                    <div id="rebootWarning" class="hidden"></div>
+                </div>
                 
                 <div style="height:1px; background:#333; margin: 25px 0 15px 0;"></div>
 

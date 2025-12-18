@@ -126,7 +126,7 @@ int ledValid = 1;
 // Custom Display Message
 String customMessage = "OPENDOORSIM";
 // settings file version (read from settings.json)
-String firmwareVersion = "0.8";
+String firmwareVersion = "0.8.5";
 
 // decoded facility code and card code
 unsigned long facilityCode = 0;

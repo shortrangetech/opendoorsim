@@ -18,12 +18,9 @@ body {
     color: var(--text);
 }
 
-h1 {
-  margin-top: 0;
-}
+h1 { margin-top: 0; }
 
-#header-banner {
-}
+/* --- Header & Layout --- */
 header{
     display:flex;
     align-items:center;
@@ -44,9 +41,8 @@ header{
     position: relative
 }
 
-#logo:hover {
-    filter: grayscale(100%) brightness(22%);
-}
+#logo:hover { filter: grayscale(100%) brightness(22%); }
+
 .brand{
     font-weight:800;
     font-size:1.5rem;
@@ -69,13 +65,26 @@ header{
     padding-top:10px;
     padding-bottom:10px;
 }
+
 .header-center{flex:1;text-align:center}
 .header-center a{color:var(--accent);margin:0 14px;text-decoration:none;cursor:pointer;font-size:1.15rem;font-weight:700}
 .header-center a:hover{text-decoration:underline}
 .header-right{min-width:160px;text-align:right}
-#modeBox{background:var(--card-bg);padding:10px 12px;border-radius:12px;border:1px solid #2f2f2f;color:var(--text);font-weight:700;display:flex;align-items:center;justify-content:center;min-width:120px}
 
-/* Inputs and selects:  */
+#modeBox{
+    background:var(--card-bg);
+    padding:10px 12px;
+    border-radius:12px;
+    border:1px solid #2f2f2f;
+    color:var(--text);
+    font-weight:700;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-width:120px
+}
+
+/* --- Inputs & Buttons --- */
 input[type="text"], input[type="number"], input[type="password"], textarea, select {
     background: #d0d0d0;
     color: #111;
@@ -85,21 +94,18 @@ input[type="text"], input[type="number"], input[type="password"], textarea, sele
     box-sizing: border-box;
 }
 
-/* Make buttons and inputs take full width on small screens */
 @media (max-width:700px){
     input[type="text"], input[type="number"], textarea, select { width:100%; }
 }
 
 .content{padding:20px}
 
-table{width:100%;border-collapse:collapse;margin-bottom:20px;background:transparent}
+table{width:100%;border-collapse:collapse;margin-bottom:20px;background:transparent;border-radius:10px;overflow:hidden}
 th, td{padding:10px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.06)}
 th{background:var(--th-bg);color:var(--text);font-weight:700}
+.inputRow td{padding:6px}
+.inputRow input{width:100%;box-sizing:border-box}
 
-/* round table corners and ensure overflow is handled */
-table{border-radius:10px;overflow:hidden}
-
-/* Buttons rounded */
 button{
     border-radius:10px;
     padding:8px 10px;
@@ -116,143 +122,115 @@ button:hover{
     border-color: var(--accent);
 }
 
+.button-secondary { background-color: #2b2b2b; color: var(--text); }
+.button-secondary:hover { background-color: #444 !important; color: var(--text) !important; border-color: var(--accent) !important; }
 
-.button-secondary {
-    background-color: #2b2b2b;
-    color: var(--text);
-}
+.button-danger { background-color: #8b1f1f; color: #fff; border-color: #8b1f1f; font-size: 0.85rem; }
+.button-danger:hover { background-color: #5a1414 !important; border-color: #5a1414 !important; color: #fff !important; }
 
-.button-secondary:hover {
-    background-color: #444 !important;     
-    color: var(--text) !important;         
-    border-color: var(--accent) !important; 
-}
+.button-purple { background-color: #52009f; color: #fff; border-color: #52009f; font-size: 0.85rem; }
+.button-purple:hover { background-color: #37006f !important; border-color: #37006f !important; color: #fff !important; }
 
-.button-danger {
-    background-color: #8b1f1f; 
-    color: #fff;
-    border-color: #8b1f1f;
-    padding: 6px 12px;
-    font-size: 0.85rem;
-}
+/* --- BADGE SYSTEM (Consolidated) --- */
 
-.button-danger:hover {
-    background-color: #5a1414 !important;
-    border-color: #5a1414 !important;
-    color: #fff !important;              
-}
-
-.button-purple {
-    background-color: #52009f; 
-    color: #fff;
-    border-color: #52009f;
-    padding: 6px 12px;
-    font-size: 0.85rem;
-}
-.button-purple:hover {
-    background-color: #37006f !important;
-    border-color: #37006f !important;
-    color: #fff !important;              
-}
-
-.badge {
+/* 1. Base Badge Style (Shape & Text) */
+.badge, #ctfStatus, #tamperStatus, #rebootWarning, #pwdHint {
     display: inline-block;
     padding: 4px 8px;
     border-radius: 8px;
     font-weight: 900;
-    font-size: 0.7em;       
-    vertical-align: middle; 
-    margin-left: 12px;
+    font-size: 0.85rem;
     text-transform: uppercase;
-    letter-spacing: -0.5px;
+    line-height: normal;
+    white-space: nowrap;
 }
 
-.badge-purple {
-    background:#52009f;
-    color:#dfcdf0;   
-}
+/* 2. Color Variants (Matches JS class toggles) */
 
-
-
-.hidden{display:none}
-.collapsible{cursor:pointer}
-.contentCollapsible{display:none;overflow:hidden}
-
-.authorized{background:linear-gradient(90deg,var(--authorized),#2ea24a33)}
-.unauthorized{background:linear-gradient(90deg,var(--unauthorized),#ff6b6b33)}
-
-/* CTF status indicator styles */
-#ctfStatus{
-    display:inline-block;
-    padding:4px 8px;
-    border-radius:8px;
-    color:var(--text);
-    font-weight:900;
-}
-
-#ctfStatus.ctf-on{
-    background:var(--authorized);
-    color:#e8f8ee;
-}
-
-#ctfStatus.ctf-off{
-    background:var(--unauthorized);
-    color:#fff0f0;
-}
-
-#tamperStatus {
-    display: inline-block;
-    padding: 4px 8px;
-    border-radius: 8px;
-    font-weight: 900;
-    color: var(--text);
-}
-
-#tamperStatus.status-green {
+/* Green / Authorized */
+.badge-green, .ctf-on, .status-green {
     background: var(--authorized);
-    color: #e8f8ee; 
+    color: #e8f8ee;
 }
 
-#tamperStatus.status-red {
+/* Red / Unauthorized / Warning */
+.badge-red, .ctf-off, .status-red, #rebootWarning {
     background: var(--unauthorized);
-    color: #fff0f0; 
+    color: #fff0f0;
 }
 
-#tamperStatus.status-yellow {
+/* Purple / Hints */
+.badge-purple, #pwdHint {
+    background: #52009f;
+    color: #dfcdf0;
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+/* Yellow / Caution */
+.badge-yellow, .status-yellow {
     background: var(--accent);
-    color: var(--bg);        
+    color: var(--bg);
 }
-.inputRow td{padding:6px}
-.inputRow input{width:100%;box-sizing:border-box}
 
+/* 3. Pop-Up Animation Logic (Reboot Warning & Password Hint) */
+#rebootWarning, #pwdHint {
+    margin-left: 10px;
+    transition: all 0.5s ease-in-out;
+    overflow: hidden;
+    max-width: 800px; /* Fully open state */
+    opacity: 1;
+    flex-shrink: 0;
+}
+
+/* Override the default hidden behavior to allow animation */
+#rebootWarning.hidden, #pwdHint.hidden {
+    display: inline-block !important; 
+    max-width: 0;
+    padding: 0;
+    margin: 0;
+    opacity: 0;
+    pointer-events: none;
+    animation: none; /* Stop pulsing when hidden */
+}
+
+/* 4. Pulse Animation */
+@keyframes fadePulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; } 
+    100% { opacity: 1; }
+}
+
+/* Only the reboot warning pulses */
 #rebootWarning {
-    color: var(--accent); /* Gold */
-    font-weight: bold;
-    margin-bottom: 12px;
-    font-size: 0.95rem;
-    line-height: 1.4;
-    text-transform: uppercase;
-    border: 1px dashed var(--accent); /* Optional: nice box effect */
-    padding: 10px;
-    border-radius: 8px;
+    animation: fadePulse 2s infinite ease-in-out;
 }
 
-/* links and accents */
-a{color:var(--accent)}
+/* --- Utilities & Containers --- */
+.settings-actions, .input-group {
+    display: flex;
+    align-items: center;
+    gap: 0; /* Gap is handled by the badge margin for animation purposes */
+    flex-wrap: wrap;
+}
+.input-group { margin-bottom: 20px; }
 
+.hidden { display: none; }
+.collapsible { cursor: pointer; }
+.contentCollapsible { display: none; overflow: hidden; }
 
-/* small responsive tweaks */
+/* Table Row Highlights */
+.authorized { background: linear-gradient(90deg,var(--authorized),#2ea24a33); }
+.unauthorized { background: linear-gradient(90deg,var(--unauthorized),#ff6b6b33); }
+
+/* Links */
+a { color: var(--accent); }
+
+/* --- Responsive --- */
 @media(max-width:900px){
-    /* Stack logo on top of banner for small screens and remove overlap */
     header{flex-direction:column;align-items:center}
     .header-banner{margin-left:0;padding-left:16px;width:100%;border-radius:12px}
-    #logo{
-        width:96px;
-        height:96px;
-        border: none;
-        margin-bottom:8px;
-        margin-left:0;
-    }
+    #logo{width:96px;height:96px;border:none;margin-bottom:8px;margin-left:0;}
     .header-center{order:3;width:100%;display:flex;justify-content:center;flex-wrap:wrap}
     .brand{font-size:1.4rem}
     #modeBox{font-size:0.95rem}
