@@ -169,12 +169,16 @@
                 <br>
                 <div id="rebootWarning" class="hidden"></div>
                 <button onclick="saveSettings()">Save Settings</button>
-                <br><br>
-                <br>
-                <div id="versionInfo" style="margin-top:8px;color:var(--muted);font-size:0.85rem;">
-                    Version: <span id="versionValue"></span>
-                    <br>
-                    by shortrange.tech
+                
+                <div style="height:1px; background:#333; margin: 25px 0 15px 0;"></div>
+
+                <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                    <div id="versionInfo" style="color:var(--muted);font-size:0.85rem;">
+                        Version: <span id="versionValue"></span><br>
+                        by shortrange.tech
+                    </div>
+                    
+                    <button class="button-danger" onclick="rebootDevice()">Remote Reboot</button>
                 </div>
         </div>
     </div>

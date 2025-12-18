@@ -555,6 +555,18 @@ function copyToClipboard(text) {
     document.body.removeChild(tempInput);
 }
 
+function rebootDevice() {
+    if (confirm("Are you sure you want to reboot the device?")) {
+        fetch('/rebootDevice', { method: 'POST' })
+        .then(() => {
+            alert("Device is rebooting. Please reconnect in ~10 seconds.");
+            // Optional: Reload page to force a reconnect attempt (will fail until device is back)
+            setTimeout(() => window.location.reload(), 5000);
+        })
+        .catch(err => alert("Error sending reboot command."));
+    }
+}
+
 setInterval(updateTable, 5000);
 setInterval(updateLastReadCardsTable, 5000);
 setInterval(fetchSettings, 5000);
