@@ -40,7 +40,7 @@ header{
     border: none;
     margin-left: 25px;
     margin-top: 10px;
-    transition: filter 2s ease;
+    transition: filter 1.5s ease;
     position: relative
 }
 
@@ -49,9 +49,9 @@ header{
 }
 .brand{
     font-weight:800;
-    font-size:1.7rem;
+    font-size:1.5rem;
     line-height:1;
-    margin-left:5px;
+    margin-left:10px;
 }
 
 .header-banner{
@@ -126,6 +126,23 @@ button:hover{
     background-color: #444 !important;     
     color: var(--text) !important;         
     border-color: var(--accent) !important; 
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 8px;
+    font-weight: 900;
+    font-size: 0.7em;       
+    vertical-align: middle; 
+    margin-left: 12px;
+    text-transform: uppercase;
+    letter-spacing: -0.5px;
+}
+
+.badge-purple {
+    background:#52009f;
+    color:#dfcdf0;   
 }
 
 .hidden{display:none}
