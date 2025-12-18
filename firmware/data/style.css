@@ -38,13 +38,14 @@ header{
     border-radius: 0px;
     object-fit: cover;
     border: none;
-    margin-left: 0px;
+    margin-left: 25px;
     margin-top: 10px;
     transition: filter 2s ease;
+    position: relative
 }
 
 #logo:hover {
-    filter: grayscale(100%) brightness(10.5%);
+    filter: grayscale(100%) brightness(22%);
 }
 .brand{
     font-weight:800;
@@ -60,10 +61,10 @@ header{
     justify-content:space-between;
     background:var(--header-bg);
     z-index:1;
-    margin-left:-65px;
+    margin-left:-130px;
     margin-top:10px;
-    padding-left:76px;
-    border-radius:0 16px 16px 0;
+    padding-left:140px;
+    border-radius:16px;
     padding-right:16px;
     padding-top:10px;
     padding-bottom:10px;
@@ -199,7 +200,13 @@ a{color:var(--accent)}
     /* Stack logo on top of banner for small screens and remove overlap */
     header{flex-direction:column;align-items:center}
     .header-banner{margin-left:0;padding-left:16px;width:100%;border-radius:12px}
-    #logo{width:96px;height:96px;border: none;margin-bottom:8px}
+    #logo{
+        width:96px;
+        height:96px;
+        border: none;
+        margin-bottom:8px;
+        margin-left:0;
+    }
     .header-center{order:3;width:100%;display:flex;justify-content:center;flex-wrap:wrap}
     .brand{font-size:1.4rem}
     #modeBox{font-size:0.95rem}
