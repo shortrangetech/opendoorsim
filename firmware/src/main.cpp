@@ -236,36 +236,17 @@ void loadSettingsFromPreferences()
   {
     Serial.println("[SYSTEM] ERROR: Failed to open settings file for reading.");
     return;
-  }
+ } 
 
-  // --- DEBUG: Print File Content ---
-  // This reads the file to the end
-  Serial.println("File Content:");
-  while (file.available())
-  {
-    Serial.write(file.read());
-  }
-  Serial.println();
-
-  // --- FIX STARTS HERE ---
-  
-  // 1. DO NOT close the file yet.
-  // 2. Rewind the file position to the beginning so JSON can read it.
-  file.seek(0);
-
-  // 3. Parse JSON from the open file
   JsonDocument doc;
   DeserializationError error = deserializeJson(doc, file);
-
-  // 4. NOW it is safe to close the file
-  file.close(); 
-
-  // --- FIX ENDS HERE ---
+  file.close();
 
   if (error)
   {
     Serial.print("[SYSTEM] ERROR: Failed to parse settings file: ");
     Serial.println(error.c_str());
+    // If parsing fails, we keep the global defaults (e.g. "doorsim")
     return;
   }
 
@@ -273,7 +254,14 @@ void loadSettingsFromPreferences()
   deviceMode = doc["device_mode"] | "ctf";
   displayTimeout = doc["display_timeout"] | 30000;
   apMode = doc["ap_mode"] | true;
+  
+  // FIX: Load SSID, then check if it's empty
   apSsid = doc["ap_ssid"] | "doorsim";
+  if (apSsid.length() == 0) {
+      Serial.println("[SYSTEM] WARNING: Loaded empty SSID. Resetting to default.");
+      apSsid = "doorsim";
+  }
+
   apPwd = doc["ap_pwd"] | "";
   apChannel = doc["ap_channel"] | 1;
   ssidHidden = doc["ssid_hidden"] | 0;
