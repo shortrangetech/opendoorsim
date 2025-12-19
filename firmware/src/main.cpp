@@ -1121,16 +1121,29 @@ void webServer()
   AsyncCallbackJsonWebHandler *handler = new AsyncCallbackJsonWebHandler("/saveSettings", [](AsyncWebServerRequest *request, JsonVariant &json) {
     JsonObject jsonObj = json.as<JsonObject>();
 
-    // --- Update Settings ---
-    deviceMode = jsonObj["device_mode"] | "ctf";
-    displayTimeout = jsonObj["display_timeout"] | 30000;
-    apSsid = jsonObj["ap_ssid"] | "doorsim";
+    // validation
+    String reqSsid = jsonObj["ap_ssid"] | "";
+    String reqPwd = jsonObj["ap_pwd"] | "";
 
-    String newPwd = jsonObj["ap_pwd"] | "";
-    if (newPwd.length() > 0) {
-      apPwd = newPwd;
+    // non empty ssid check
+    if (reqSsid.length() == 0) {
+        request->send(400, "application/json", "{\"status\":\"error\", \"message\":\"SSID cannot be empty\"}");
+        return;
     }
 
+    // no spaces in password
+    if (reqPwd.indexOf(' ') >= 0) {
+        request->send(400, "application/json", "{\"status\":\"error\", \"message\":\"Password cannot contain spaces\"}");
+        return;
+    }
+
+    // update settings
+    apSsid = reqSsid;
+    apPwd = reqPwd;
+
+    deviceMode = jsonObj["device_mode"] | "ctf";
+    displayTimeout = jsonObj["display_timeout"] | 30000;
+    
     ssidHidden = jsonObj["ssid_hidden"] | 0;
     customMessage = jsonObj["custom_message"] | "OPENDOORSIM";
     ledValid = jsonObj["led_valid"] | 1;
