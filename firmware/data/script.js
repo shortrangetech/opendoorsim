@@ -265,11 +265,11 @@ function updateTamperIndicator(settings) {
         container.style.display = 'block';
 
         if (isTripped) {
-            // ALARM STATE
+            // alarm state
             statusEl.textContent = 'TAMPERING DETECTED!';
             statusEl.classList.add('status-yellow');
         } else {
-            // SAFE STATE
+            // safe state
             statusEl.textContent = 'ENABLED';
             statusEl.classList.add('status-green');
         }
@@ -277,28 +277,36 @@ function updateTamperIndicator(settings) {
 }
 
 function saveSettings() {
-    // 1. Get Values
     const pwdInput = document.getElementById('ap_pwd').value;
     const ssidInput = document.getElementById('ap_ssid').value;
     const hiddenInput = document.getElementById('ssid_hidden').checked;
 
-    // --- VALIDATION START ---
-    // If password is NOT blank AND is less than 8 chars, stop.
+    // validations
+    if (!ssidInput || ssidInput.trim().length === 0) {
+        alert("Cannot Save: SSID cannot be empty.");
+        document.getElementById('ap_ssid').focus();
+        return;
+    }
+
+    if (pwdInput.includes(" ")) {
+        alert("Cannot Save: Password cannot contain spaces.");
+        document.getElementById('ap_pwd').focus();
+        return;
+    }
+
     if (pwdInput.length > 0 && pwdInput.length < 8) {
         alert("Cannot Save: Password must be empty (Open Network) or at least 8 characters.");
-        // Highlight the input to help the user see the error
         document.getElementById('ap_pwd').focus();
         return; 
     }
-    // --- VALIDATION END ---
     
-    // 2. Detect Changes
+    // detect changes
     const pwdChanged = (pwdInput !== originalPwd);
     const ssidChanged = (ssidInput !== originalSsid);
     const hiddenChanged = (hiddenInput !== originalHidden);
     const wifiChanged = (pwdChanged || ssidChanged || hiddenChanged);
 
-    // 3. Confirmation Logic
+    // confirmation
     if (wifiChanged) {
         if (pwdChanged) {
             const userConfirmed = prompt("Wifi password has been changed. Please re-type the new password to confirm:");
@@ -313,7 +321,7 @@ function saveSettings() {
         }
     }
 
-    // 4. Gather other settings
+    // gather settings
     const mode = document.getElementById('modeSelect').value.toString().toLowerCase();
     const timeout = document.getElementById('timeoutSelect').value;
     const customMessage = document.getElementById('customMessage').value;
@@ -321,7 +329,7 @@ function saveSettings() {
     const activeDisplayType = document.getElementById('activeDisplayType').value;
     const enableTamperDetect = document.getElementById('enable_tamper_detect').checked;
 
-    // 5. Build payload
+    // build payload
     let settings = {
         device_mode: mode,
         display_timeout: parseInt(timeout, 10),
@@ -335,7 +343,7 @@ function saveSettings() {
         should_reboot: wifiChanged 
     };
 
-    // 6. Send
+    // send
     fetch('/saveSettings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
