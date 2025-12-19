@@ -44,15 +44,18 @@
         </div>
         <div id="monitor">
             <h1>CTF Monitor</h1>
-            <div id="ctfIndicator" style="margin-bottom:8px;">
-                CTF Mode Status: <strong id="ctfStatus">OFF</strong>
-            </div>
-            <div id="ctfHint" style="color:gray; font-size:0.9em; display:none;">
-                CTF mode is off. To enable CTF mode, change mode in settings.
-            </div>
-            <div id="tamperIndicator" style="margin-bottom:8px;">
-                <br>
-                Tamper Status: <strong id="tamperStatus">CHECKING...</strong>
+
+            <div class="indent-section">
+                <div id="ctfIndicator" style="margin-bottom:8px;">
+                    CTF Mode Status: <strong id="ctfStatus">OFF</strong>
+                </div>
+                <div id="ctfHint" style="color:gray; font-size:0.9em; display:none;">
+                    CTF mode is off. To enable CTF mode, change mode in settings.
+                </div>
+                <div id="tamperIndicator" style="margin-bottom:8px;">
+                    <br>
+                    Tamper Status: <strong id="tamperStatus">CHECKING...</strong>
+                </div>
             </div>
             
             <h2><br>Last Read Cards</h2>
@@ -114,22 +117,23 @@
             <h1>Settings</h1>
 
             <h2><br>General</h2>
-            <label for="modeSelect">Mode:</label>
-            <select id="modeSelect">
-                <option value="ctf">CTF</option>
-                <option value="raw">Raw</option>
-            </select>
-            <br><br>
-            <label for="timeoutSelect">Display Timeout:</label>
-            <select id="timeoutSelect">
-                <option value="7000">7 seconds</option>
-                <option value="20000">20 seconds</option>
-                <option value="30000">30 seconds</option>
-                <option value="60000">1 minute</option>
-            </select>
-            <br><br>
-            <h2>Wifi</h2>
-            <div id="apSettings">
+            <div class="indent-section">
+                <label for="modeSelect">Mode:</label>
+                <select id="modeSelect">
+                    <option value="ctf">CTF</option>
+                    <option value="raw">Raw</option>
+                </select>
+                <br><br>
+                <label for="timeoutSelect">Display Timeout:</label>
+                <select id="timeoutSelect">
+                    <option value="7000">7 seconds</option>
+                    <option value="20000">20 seconds</option>
+                    <option value="30000">30 seconds</option>
+                    <option value="60000">1 minute</option>
+                </select>
+            </div>
+            <h2><br>Wifi</h2>
+            <div id="apSettings" class="indent-section">
                 <label for="ap_ssid">SSID:</label>
                 <input type="text" id="ap_ssid">
                 <br><br>
@@ -144,21 +148,22 @@
                 <label for="ssid_hidden">Hidden:</label>
                 <input type="checkbox" id="ssid_hidden">
             </div>
-            <br><br>
-            <h2>CTF Mode</h2>
-            <label for="customMessage">Welcome Message:</label>
-            <input type="text" id="customMessage" maxlength="20">
-            <br><br>
-            <label for="activeDisplayType">Display Type:</label>
-            <select id="activeDisplayType">
-                <option value="1">LCD 20x4</option>
-                <option value="2">OLED 128x32</option>
-                <option value="3">OLED 128x64</option>
-            </select>
-            <br><br>
-            <label for="enable_tamper_detect">Enable Tamper Detect:</label>
-            <input type="checkbox" id="enable_tamper_detect">
-            <br><br>
+
+            <h2><br>CTF Mode</h2>
+            <div class="indent-section">
+                <label for="customMessage">Welcome Message:</label>
+                <input type="text" id="customMessage" maxlength="20">
+                <br><br>
+                <label for="activeDisplayType">Display Type:</label>
+                <select id="activeDisplayType">
+                    <option value="1">LCD 20x4</option>
+                    <option value="2">OLED 128x32</option>
+                    <option value="3">OLED 128x64</option>
+                </select>
+                <br><br>
+                <label for="enable_tamper_detect">Enable Tamper Detect:</label>
+                <input type="checkbox" id="enable_tamper_detect">
+                <br><br>
                 <div>
                     <label for="ledValid">On Valid Card - LED:</label>
                     <select id="ledValid">
@@ -167,22 +172,23 @@
                         <option value="0">None</option>
                     </select>
                 </div>
-                <br>
-                <div class="settings-actions">
-                    <button onclick="saveSettings()">Save Settings</button>
-                    <div id="rebootWarning" class="hidden"></div>
+            </div>
+            <br>
+            <div class="settings-actions">
+                <button onclick="saveSettings()">Save Settings</button>
+                <div id="rebootWarning" class="hidden"></div>
+            </div>
+            
+            <div style="height:1px; background:#333; margin: 25px 0 15px 0;"></div>
+
+            <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                <div id="versionInfo" style="color:var(--muted);font-size:0.85rem;">
+                    Version: <span id="versionValue"></span><br>
+                    by shortrange.tech
                 </div>
                 
-                <div style="height:1px; background:#333; margin: 25px 0 15px 0;"></div>
-
-                <div style="display:flex; justify-content:space-between; align-items:flex-end;">
-                    <div id="versionInfo" style="color:var(--muted);font-size:0.85rem;">
-                        Version: <span id="versionValue"></span><br>
-                        by shortrange.tech
-                    </div>
-                    
-                    <button class="button-danger" onclick="rebootDevice()">Remote Reboot</button>
-                </div>
+                <button class="button-danger" onclick="rebootDevice()">Remote Reboot</button>
+            </div>
         </div>
     </div>
 <script src="script.js"></script>
