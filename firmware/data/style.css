@@ -143,6 +143,7 @@ button:hover{
     text-transform: uppercase;
     line-height: normal;
     white-space: nowrap;
+    vertical-align: middle;
 }
 
 /* 2. Color Variants (Matches JS class toggles) */
@@ -171,6 +172,13 @@ button:hover{
 .badge-yellow, .status-yellow {
     background: var(--accent);
     color: var(--bg);
+}
+
+/* Centers the text and the badge for the status lines */
+#ctfIndicator, #tamperIndicator {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Optional: adds nice spacing between label and badge */
 }
 
 /* 3. Pop-Up Animation Logic (Reboot Warning & Password Hint) */
@@ -213,10 +221,26 @@ button:hover{
     gap: 0; /* Gap is handled by the badge margin for animation purposes */
     flex-wrap: wrap;
 }
+
+/* Indents the content under headers */
+.indent-section {
+    margin-left: 20px;
+    margin-bottom: 20px;
+}
+
 .input-group { margin-bottom: 20px; }
 
+.input-group label {
+    margin-right: 10px;
+}
+
 .hidden { display: none; }
-.collapsible { cursor: pointer; }
+.collapsible { 
+    cursor: pointer; 
+    display: flex;          /* aligns items side-by-side */
+    align-items: center;    /* forces vertical centering */
+    gap: 10px;              /* adds clean spacing between text and badge */
+}
 .contentCollapsible { display: none; overflow: hidden; }
 
 /* Table Row Highlights */
