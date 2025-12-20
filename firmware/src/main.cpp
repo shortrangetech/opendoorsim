@@ -25,8 +25,8 @@ const char *usersFile = "/users.json";
 const char *wiegandFormatsFile = "/wiegand_formats.json";
 
 // I2C Pins 
-#define I2C_SCL 18
-#define I2C_SDA 19
+#define I2C_SCL 33
+#define I2C_SDA 32
 
 // Rotary Encoder Pins 
 #define ROTARY_CLK 25
@@ -34,8 +34,8 @@ const char *wiegandFormatsFile = "/wiegand_formats.json";
 #define ROTARY_SW 27
 
 // Reader input pins 
-#define DATA0_PIN 21
-#define DATA1_PIN 22
+#define DATA0_PIN 18
+#define DATA1_PIN 19
   // optional, tamper detection relay
 #define RELAY1_PIN 4
 
@@ -65,7 +65,8 @@ Adafruit_SSD1306 *oledDisplay = nullptr;
 
 // Active display variable
 // 1 for LCD, 2 for OLED 128x32, 3 for OLED 128x64
-int activeDisplayType = DISPLAY_LCD; 
+int activeDisplayType = DISPLAY_LCD;
+bool flipOledDisplay = false;
 
 // general device settings
 bool isCapturing = true;
@@ -207,6 +208,7 @@ void saveSettingsToPreferences()
   doc["max_bits"] = maxBits;
   doc["wiegand_wait_time"] = weigandWaitTime;
   doc["active_display_type"] = activeDisplayType; // 1 for LCD, 2 for OLED 128x32, 3 for OLED 128x64
+  doc["flip_oled_display"] = flipOledDisplay;
   doc["enable_tamper_detect"] = enableTamperDetect;
 
   if (serializeJson(doc, file) == 0)
@@ -268,6 +270,7 @@ void loadSettingsFromPreferences()
   ledValid = doc["led_valid"] | 1;
   customMessage = doc["custom_message"] | "OPENDOORSIM";
   activeDisplayType = doc["active_display_type"] | activeDisplayType;
+  flipOledDisplay = doc["flip_oled_display"] | flipOledDisplay;
   enableTamperDetect = doc["enable_tamper_detect"] | false;
 
   unsigned int loadedMaxBits = doc["max_bits"] | (unsigned int)MAX_BITS_CONST;
@@ -846,6 +849,13 @@ void initializeDisplay()
     oledDisplay->setTextSize(1);
     oledDisplay->setTextColor(SSD1306_WHITE);
     oledDisplay->setCursor(0, 0);
+
+    if (flipOledDisplay) {
+        oledDisplay->setRotation(2);
+    } else {
+        oledDisplay->setRotation(0);
+    }
+
     oledDisplay->println("Initializing...");
     oledDisplay->display();
     Serial.println("[SYSTEM] OLED 128x32 initialized");
@@ -864,6 +874,13 @@ void initializeDisplay()
     oledDisplay->setTextSize(1);
     oledDisplay->setTextColor(SSD1306_WHITE);
     oledDisplay->setCursor(0, 0);
+
+    if (flipOledDisplay) {
+        oledDisplay->setRotation(2);
+    } else {
+        oledDisplay->setRotation(0);
+    }
+
     oledDisplay->println("Initializing...");
     oledDisplay->display();
     Serial.println("[SYSTEM] OLED 128x64 initialized");
@@ -983,7 +1000,8 @@ void printStandbyMessage()
 
 void updateDisplay()
 {
-  if (displayingCard && (millis() - lastCardTime >= displayTimeout))
+  // check for display timeout
+  if (displayTimeout > 0 && displayingCard && (millis() - lastCardTime >= displayTimeout))
   {
     printStandbyMessage();
     displayingCard = false;
@@ -1106,6 +1124,7 @@ void webServer()
     doc["ap_pwd"] = apPwd;
     doc["ap_mode"] = apMode;
     doc["active_display_type"] = activeDisplayType;
+    doc["flip_oled_display"] = flipOledDisplay;
     doc["enable_tamper_detect"] = enableTamperDetect;
     doc["tamper_tripped"] = tamperState;
     doc["ssid_hidden"] = ssidHidden;
@@ -1148,6 +1167,7 @@ void webServer()
     customMessage = jsonObj["custom_message"] | "OPENDOORSIM";
     ledValid = jsonObj["led_valid"] | 1;
     activeDisplayType = jsonObj["active_display_type"] | activeDisplayType;
+    flipOledDisplay = jsonObj["flip_oled_display"] | flipOledDisplay;
     enableTamperDetect = jsonObj["enable_tamper_detect"] | enableTamperDetect;
 
     // --- Check Reboot Flag from Client ---

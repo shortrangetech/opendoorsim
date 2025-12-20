@@ -243,6 +243,40 @@ button:hover{
 }
 .contentCollapsible { display: none; overflow: hidden; }
 
+.password-wrapper {
+    position: relative;
+    display: inline-block; 
+    width: auto;
+}
+
+.password-wrapper input {
+    width: 100%; 
+}
+
+#togglePwdBtn {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%); /* Centers icon vertically perfectly */
+    cursor: pointer;
+    color: #555;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+#togglePwdBtn:hover {
+    opacity: 1;
+    color: #000;
+}
+
+#togglePwdBtn svg {
+    width: 20px;
+    height: 20px;
+}
+
 /* Table Row Highlights */
 .authorized { background: linear-gradient(90deg,var(--authorized),#2ea24a33); }
 .unauthorized { background: linear-gradient(90deg,var(--unauthorized),#ff6b6b33); }
@@ -264,4 +298,14 @@ a { color: var(--accent); }
     #logo{width:64px;height:64px}
     .brand{font-size:1.1rem}
     .header-center a{margin:0 8px;font-size:1rem}
+}
+
+@media (max-width:700px){
+    .password-wrapper {
+        width: 100%;
+        display: block;
+    }
+    .password-wrapper input {
+        width: 100%;
+    }
 }
