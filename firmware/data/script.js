@@ -7,6 +7,9 @@ const importExportArea = document.getElementById('importExportArea');
 let originalSsid = "";
 let originalHidden = false;
 let originalPwd = "";
+
+let originalDisplayType = 1;
+let originalFlipOled = false;
 let currentUserCount = 0;
 
 function updateTable() {
@@ -189,45 +192,57 @@ function toggleCollapsible() {
     content.style.display = content.style.display === "block" ? "none" : "block";
 }
 
-function updateSettingsUI(settings) {
-    const mode = settings.device_mode || settings.mode || '';
-    const displayTimeout = settings.display_timeout || settings.displayTimeout || '';
-    const apSsid = settings.ap_ssid || settings.apSsid || '';
-    const apPass = settings.ap_pwd || settings.apPassphrase || '';
-    const ssidHidden = (settings.ssid_hidden !== undefined) ? settings.ssid_hidden : settings.ssidHidden;
-    const customMessage = settings.custom_message || settings.customMessage || '';
-    const ledValid = settings.led_valid || settings.ledValid || 1;
-    const activeDisplayType = settings.active_display_type || settings.activeDisplayType || '';
-    const enableTamperDetect = (settings.enable_tamper_detect !== undefined) ? settings.enable_tamper_detect : settings.enableTamperDetect;
-    const version = settings.version || settings.version || '';
-
-    if (document.getElementById('modeSelect')) document.getElementById('modeSelect').value = (mode || '').toString().toLowerCase();
-    const modeValueEl = document.getElementById('modeValue');
-    if (modeValueEl) {
-        modeValueEl.textContent = (mode || '').toString().toUpperCase();
+function toggleFlipOption() {
+    const displayType = document.getElementById('activeDisplayType').value;
+    const container = document.getElementById('flipOledContainer');
+    
+    // 1 represents the LCD, hide flip
+    // 2 and 3 are OLEDs, show flip
+    if (displayType === "1") {
+        container.style.display = 'none';
+    } else {
+        container.style.display = 'inline-block';
     }
-    if (document.getElementById('timeoutSelect')) document.getElementById('timeoutSelect').value = displayTimeout;
-    if (document.getElementById('ap_ssid')) document.getElementById('ap_ssid').value = apSsid;
-    if (document.getElementById('ap_pwd')) document.getElementById('ap_pwd').value = apPass;
-    if (document.getElementById('ssid_hidden') && typeof ssidHidden !== 'undefined') document.getElementById('ssid_hidden').checked = ssidHidden;
-    if (document.getElementById('customMessage')) document.getElementById('customMessage').value = customMessage;
-    if (document.getElementById('ledValid')) document.getElementById('ledValid').value = ledValid;
-    if (document.getElementById('activeDisplayType')) document.getElementById('activeDisplayType').value = activeDisplayType;
-    if (document.getElementById('enable_tamper_detect')) document.getElementById('enable_tamper_detect').checked = enableTamperDetect;
-    if (document.getElementById('versionValue')) document.getElementById('versionValue').textContent = version;
+}
 
-    // Capture original Wi-Fi states for comparison later
-    originalSsid = settings.ap_ssid || settings.apSsid || '';
-    let rawHidden = (settings.ssid_hidden !== undefined) ? settings.ssid_hidden : settings.ssidHidden;
-    originalHidden = (rawHidden == 1 || rawHidden === true);
-    originalPwd = settings.ap_pwd || settings.apPassphrase || '';
+function checkChanges() {
+    const warningEl = document.getElementById('rebootWarning');
+    const pwdHintEl = document.getElementById('pwdHint'); 
+    
+    // 1. Get current values for REBOOT triggers
+    const currentPwd = document.getElementById('ap_pwd').value;
+    const currentSsid = document.getElementById('ap_ssid').value;
+    const currentHidden = document.getElementById('ssid_hidden').checked;
+    
+    // Safe checks for elements that might not exist yet
+    const displayEl = document.getElementById('activeDisplayType');
+    const flipEl = document.getElementById('flipOled');
+    
+    // Parse integers for comparison
+    const currentDisplay = displayEl ? parseInt(displayEl.value, 10) : originalDisplayType;
+    const currentFlip = flipEl ? flipEl.checked : originalFlipOled;
 
-    // Add event listeners to detect changes immediately
-    document.getElementById('ap_ssid').addEventListener('input', checkWifiChanges);
-    document.getElementById('ap_pwd').addEventListener('input', checkWifiChanges);
-    document.getElementById('ssid_hidden').addEventListener('change', checkWifiChanges);
+    // 2. Password Length Hint Logic
+    if (currentPwd.length > 0 && currentPwd.length < 8) {
+        pwdHintEl.classList.remove('hidden');
+    } else {
+        pwdHintEl.classList.add('hidden');
+    }
 
-    checkWifiChanges();
+    // 3. Change Detection (Strictly for Reboot items)
+    const wifiChanged = (currentPwd !== originalPwd) || (currentSsid !== originalSsid) || (currentHidden !== originalHidden);
+    const displayChanged = (currentDisplay !== originalDisplayType) || (currentFlip !== originalFlipOled);
+    
+    // 4. Update Warning Text
+    if (wifiChanged || displayChanged) {
+        warningEl.textContent = "Important settings have been changed! Device will reboot after saving.";
+        warningEl.classList.remove('hidden');
+        warningEl.style.display = ''; 
+    } else {
+        // If only non-reboot items (Mode, LED, etc) changed, hide the warning
+        warningEl.classList.add('hidden');
+        warningEl.style.display = 'none';
+    }
 }
 
 
@@ -306,6 +321,12 @@ function saveSettings() {
     const hiddenChanged = (hiddenInput !== originalHidden);
     const wifiChanged = (pwdChanged || ssidChanged || hiddenChanged);
 
+    const currentDisplay = parseInt(document.getElementById('activeDisplayType').value, 10);
+    const currentFlip = document.getElementById('flipOled').checked;
+    
+    const displayChanged = (currentDisplay !== originalDisplayType) || (currentFlip !== originalFlipOled);
+    const rebootRequired = wifiChanged || displayChanged;
+
     // confirmation
     if (wifiChanged) {
         if (pwdChanged) {
@@ -339,8 +360,9 @@ function saveSettings() {
         custom_message: customMessage,
         led_valid: parseInt(ledValid, 10),
         active_display_type: parseInt(activeDisplayType, 10),
+        flip_oled_display: currentFlip,
         enable_tamper_detect: enableTamperDetect,
-        should_reboot: wifiChanged 
+        should_reboot: rebootRequired
     };
 
     // send
@@ -351,7 +373,7 @@ function saveSettings() {
     })
     .then(response => {
         if (response.ok) {
-            if (wifiChanged) {
+            if (rebootRequired) {
                 alert('Settings saved! Device is REBOOTING now. Please reconnect.');
             } else {
                 alert('Settings saved successfully.');
@@ -583,37 +605,42 @@ updateTable();
 updateUserTable();
 updateLastReadCardsTable();
 
-function checkWifiChanges() {
+function checkChanges() {
     const warningEl = document.getElementById('rebootWarning');
     const pwdHintEl = document.getElementById('pwdHint'); 
     
-    // Get current values
+    // 1. Get current values
     const currentPwd = document.getElementById('ap_pwd').value;
     const currentSsid = document.getElementById('ap_ssid').value;
     const currentHidden = document.getElementById('ssid_hidden').checked;
+    
+    // Safe checks for elements that might not exist yet if partial load
+    const displayEl = document.getElementById('activeDisplayType');
+    const flipEl = document.getElementById('flipOled');
+    
+    // Parse integers for comparison
+    const currentDisplay = displayEl ? parseInt(displayEl.value, 10) : originalDisplayType;
+    const currentFlip = flipEl ? flipEl.checked : originalFlipOled; // Fixed variable name
 
-    // --- 1. Password Length Validation ---
+    // 2. Password Length Hint Logic
     if (currentPwd.length > 0 && currentPwd.length < 8) {
         pwdHintEl.classList.remove('hidden');
     } else {
         pwdHintEl.classList.add('hidden');
     }
 
-    // --- 2. Change Detection (Reboot Warning) ---
-    const pwdChanged = (currentPwd !== originalPwd);
-    const ssidChanged = (currentSsid !== originalSsid);
-    const hiddenChanged = (currentHidden !== originalHidden);
-
-    if (pwdChanged || ssidChanged || hiddenChanged) {
-        warningEl.textContent = "WiFi settings changed. Device will reboot upon saving. ";
+    // 3. Change Detection
+    const wifiChanged = (currentPwd !== originalPwd) || (currentSsid !== originalSsid) || (currentHidden !== originalHidden);
+    const displayChanged = (currentDisplay !== originalDisplayType) || (currentFlip !== originalFlipOled);
+    
+    // 4. Update Warning Text
+    if (wifiChanged || displayChanged) {
+        // --- TEXT UPDATE HERE ---
+        warningEl.textContent = "Important settings have been changed! Device will reboot after saving.";
         
-        // FIX: Remove the class so the CSS expands and shows the badge
         warningEl.classList.remove('hidden');
-        
-        // Clear any old manual styles just in case
         warningEl.style.display = ''; 
     } else {
-        // FIX: Add the class so the CSS shrinks and fades it out
         warningEl.classList.add('hidden');
         warningEl.style.display = '';
     }
@@ -675,4 +702,27 @@ function cancelEdit() {
     document.getElementById('newCardNumber').value = '';
     document.getElementById('newName').value = '';
     document.getElementById('newFlag').value = '';
+}
+
+function togglePasswordVisibility() {
+    const pwdInput = document.getElementById('ap_pwd');
+    const btn = document.getElementById('togglePwdBtn');
+    
+    if (pwdInput.type === 'password') {
+        // show password (open eye)
+        pwdInput.type = 'text';
+        btn.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                <circle cx="12" cy="12" r="3"></circle>
+            </svg>`;
+    } else {
+        // hidden (crossed eye)
+        pwdInput.type = 'password';
+        btn.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M1 1l22 22"></path>
+                <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path>
+            </svg>`;
+    }
 }

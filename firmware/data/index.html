@@ -124,13 +124,33 @@
                     <option value="raw">Raw</option>
                 </select>
                 <br><br>
+                <label for="activeDisplayType">Display Type:</label>
+                <select id="activeDisplayType">
+                    <option value="1">LCD 20x4</option>
+                    <option value="2">OLED 128x32</option>
+                    <option value="3">OLED 128x64</option>
+                </select>
+
+                <span id="flipOledContainer" style="margin-left:20px; display:none; vertical-align: middle;">
+                    <label for="flipOled">Flip OLED Screen:</label>
+                    <input type="checkbox" id="flipOled" style="vertical-align: middle;">
+                </span>
+                
+                <br><br>
                 <label for="timeoutSelect">Display Timeout:</label>
                 <select id="timeoutSelect">
+                    <option value="5000">5 seconds</option>
                     <option value="7000">7 seconds</option>
+                    <option value="15000">15 seconds</option>
                     <option value="20000">20 seconds</option>
                     <option value="30000">30 seconds</option>
                     <option value="60000">1 minute</option>
+                    <option value="0">None</option>
                 </select>
+                <div style="margin-top: 20px;">
+                    <label for="enable_tamper_detect">Enable Tamper Detect:</label>
+                    <input type="checkbox" id="enable_tamper_detect">
+                </div>
             </div>
             <h2><br>Wifi</h2>
             <div id="apSettings" class="indent-section">
@@ -140,11 +160,20 @@
 
                 <div class="input-group">
                     <label for="ap_pwd">Password:</label>
-                    <input type="text" id="ap_pwd">
+                    <div class="password-wrapper">
+                        <input type="password" id="ap_pwd" style="padding-right: 35px;">
+                        <span id="togglePwdBtn" onclick="togglePasswordVisibility()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M1 1l22 22"></path>
+                                <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path>
+                            </svg>
+                        </span>
+                    </div>
                     <div id="pwdHint" class="hidden">
                         Password must be 8+ chars (or empty for open network)
                     </div>
                 </div>
+
                 <label for="ssid_hidden">Hidden:</label>
                 <input type="checkbox" id="ssid_hidden">
             </div>
@@ -154,18 +183,9 @@
                 <label for="customMessage">Welcome Message:</label>
                 <input type="text" id="customMessage" maxlength="20">
                 <br><br>
-                <label for="activeDisplayType">Display Type:</label>
-                <select id="activeDisplayType">
-                    <option value="1">LCD 20x4</option>
-                    <option value="2">OLED 128x32</option>
-                    <option value="3">OLED 128x64</option>
-                </select>
-                <br><br>
-                <label for="enable_tamper_detect">Enable Tamper Detect:</label>
-                <input type="checkbox" id="enable_tamper_detect">
-                <br><br>
+
                 <div>
-                    <label for="ledValid">On Valid Card - LED:</label>
+                    <label for="ledValid">LED On Valid Card:</label>
                     <select id="ledValid">
                         <option value="1">Rapid Flash</option>
                         <option value="2">Long Flash</option>
