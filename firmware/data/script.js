@@ -392,22 +392,73 @@ function fetchSettings(forceUpdateUI = false) {
     fetch('/getSettings')
         .then(response => response.json())
         .then(data => {
-            // 1. ALWAYS update the status badges (CTF / Tamper)
-            // We want these live even while you are editing settings
+
             updateCTFIndicator(data);
             updateTamperIndicator(data);
 
-            // 2. CONDITIONALLY update the form inputs
+
             const settingsTab = document.getElementById('settings');
             
-            // Update the form ONLY if:
-            // A. The settings tab is HIDDEN (you aren't looking at it), OR
-            // B. Explicitly forced (e.g., right after hitting Save)
+
             if (settingsTab.classList.contains('hidden') || forceUpdateUI === true) {
                 updateSettingsUI(data);
             }
         })
         .catch(error => console.error('Error fetching settings:', error));
+}
+
+function updateSettingsUI(settings) {
+    const mode = settings.device_mode || settings.mode || '';
+    const displayTimeout = settings.display_timeout || settings.displayTimeout || '';
+    const apSsid = settings.ap_ssid || settings.apSsid || '';
+    const apPass = settings.ap_pwd || settings.apPassphrase || '';
+    const ssidHidden = (settings.ssid_hidden !== undefined) ? settings.ssid_hidden : settings.ssidHidden;
+    const customMessage = settings.custom_message || settings.customMessage || '';
+    const ledValid = settings.led_valid || settings.ledValid || 1;
+    const activeDisplayType = settings.active_display_type || settings.activeDisplayType || '';
+    const enableTamperDetect = (settings.enable_tamper_detect !== undefined) ? settings.enable_tamper_detect : settings.enableTamperDetect;
+    const version = settings.version || settings.version || '';
+
+    if (document.getElementById('modeSelect')) document.getElementById('modeSelect').value = (mode || '').toString().toLowerCase();
+    const modeValueEl = document.getElementById('modeValue');
+    if (modeValueEl) {
+        modeValueEl.textContent = (mode || '').toString().toUpperCase();
+    }
+    if (document.getElementById('timeoutSelect')) document.getElementById('timeoutSelect').value = displayTimeout;
+    if (document.getElementById('ap_ssid')) document.getElementById('ap_ssid').value = apSsid;
+    if (document.getElementById('ap_pwd')) document.getElementById('ap_pwd').value = apPass;
+    if (document.getElementById('ssid_hidden') && typeof ssidHidden !== 'undefined') document.getElementById('ssid_hidden').checked = ssidHidden;
+    if (document.getElementById('customMessage')) document.getElementById('customMessage').value = customMessage;
+    if (document.getElementById('ledValid')) document.getElementById('ledValid').value = ledValid;
+    if (document.getElementById('activeDisplayType')) document.getElementById('activeDisplayType').value = activeDisplayType;
+    if (document.getElementById('enable_tamper_detect')) document.getElementById('enable_tamper_detect').checked = enableTamperDetect;
+    if (document.getElementById('versionValue')) document.getElementById('versionValue').textContent = version;
+    if (document.getElementById('flipOled')) document.getElementById('flipOled').checked = settings.flip_oled_display; // Fixed variable name here too
+    
+
+    const displaySelect = document.getElementById('activeDisplayType');
+    if (displaySelect) {
+        displaySelect.addEventListener('change', toggleFlipOption);
+    }
+
+
+    originalSsid = settings.ap_ssid || settings.apSsid || '';
+    let rawHidden = (settings.ssid_hidden !== undefined) ? settings.ssid_hidden : settings.ssidHidden;
+    originalHidden = (rawHidden == 1 || rawHidden === true);
+    originalPwd = settings.ap_pwd || settings.apPassphrase || '';
+    originalDisplayType = settings.active_display_type || settings.activeDisplayType || 1;
+    originalFlipOled = (settings.flip_oled_display !== undefined) ? settings.flip_oled_display : false;
+
+
+    document.getElementById('ap_ssid').addEventListener('input', checkChanges);
+    document.getElementById('ap_pwd').addEventListener('input', checkChanges);
+    document.getElementById('ssid_hidden').addEventListener('change', checkChanges);
+    document.getElementById('activeDisplayType').addEventListener('change', checkChanges);
+    document.getElementById('flipOled').addEventListener('change', checkChanges);
+
+
+    toggleFlipOption();
+    checkChanges(); 
 }
 
 window.onload = fetchSettings;
