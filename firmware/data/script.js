@@ -10,7 +10,9 @@ let originalPwd = "";
 
 let originalDisplayType = 1;
 let originalFlipOled = false;
+
 let currentUserCount = 0;
+let sortNewestFirst = true; // Default to newest first
 
 function updateTable() {
     fetch('/getCards')
@@ -18,6 +20,11 @@ function updateTable() {
         .then(data => {
             tableBody.innerHTML = '';
             cardData = [];
+
+            if (sortNewestFirst) {
+                data.reverse();
+            }
+
             data.forEach((card, index) => {
                 cardData.push(card);
                 let row = tableBody.insertRow();
@@ -28,8 +35,8 @@ function updateTable() {
                 let cellRawData = row.insertCell(4);
                 let cellHexData = row.insertCell(5);
                 let cellPadCount = row.insertCell(6);
-
                 cellIndex.innerHTML = index + 1;
+                
                 cellBitLength.innerHTML = card.bitCount;
                 cellFacilityCode.innerHTML = card.facilityCode;
                 cellCardNumber.innerHTML = card.cardNumber;
@@ -39,6 +46,26 @@ function updateTable() {
             });
         })
         .catch(error => console.error('Error fetching card data:', error));
+}
+
+function setSort(order) {
+    // 1. Update State
+    sortNewestFirst = (order === 'new');
+
+    // 2. Update UI (Badge Colors)
+    const badgeNew = document.getElementById('badgeSortNew');
+    const badgeOld = document.getElementById('badgeSortOld');
+
+    if (sortNewestFirst) {
+        badgeNew.className = "badge badge-purple badge-clickable";
+        badgeOld.className = "badge badge-gray badge-clickable";
+    } else {
+        badgeNew.className = "badge badge-gray badge-clickable";
+        badgeOld.className = "badge badge-purple badge-clickable";
+    }
+
+    // 3. Refresh Table
+    updateTable();
 }
 
 function updateUserTable() {

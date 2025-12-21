@@ -25,7 +25,13 @@
     </header>
     <div class="content">
         <div id="log" class="hidden">
-            <h1>Raw Log</h1>
+            <h1>
+                Raw Log
+                <span style="font-size: 0.5em; vertical-align: middle; margin-left: 15px;">
+                    <span id="badgeSortNew" class="badge badge-purple badge-clickable" onclick="setSort('new')">Newest Cards First</span>
+                    <span id="badgeSortOld" class="badge badge-gray badge-clickable" onclick="setSort('old')">Oldest Cards First</span>
+                </span>
+            </h1>
             <table id="cardTable">
                 <thead>
                     <tr>
@@ -72,7 +78,7 @@
             </table>
             <h2 class="collapsible" onclick="toggleCollapsible()">
                 User Management 
-                <span class="badge badge-purple"> click to expand / collapse</span>
+                <span class="badge badge-purple badge-clickable"> click to expand / collapse</span>
             </h2>
             <div class="contentCollapsible">
                 <table id="userTable">

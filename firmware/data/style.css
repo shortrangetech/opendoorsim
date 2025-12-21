@@ -168,6 +168,26 @@ button:hover{
     padding-right: 8px;
 }
 
+.badge-gray {
+    background-color: #2b2b2b; 
+    color: var(--text);
+    border: 1px solid #2f2f2f;
+}
+
+/* Interaction styles */
+.badge-clickable {
+    cursor: pointer;
+    margin-left: 6px;
+    opacity: 0.8;
+    transition: all 0.2s ease;
+    user-select: none; /* Prevents text selection on hover */
+}
+
+.badge-clickable:hover {
+    opacity: 1;
+    transform: scale(1.05);
+}
+
 /* Yellow / Caution */
 .badge-yellow, .status-yellow {
     background: var(--accent);
