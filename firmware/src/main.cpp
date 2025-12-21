@@ -29,9 +29,9 @@ const char *wiegandFormatsFile = "/wiegand_formats.json";
 #define I2C_SDA 32
 
 // Rotary Encoder Pins 
-#define ROTARY_CLK 25
+#define ROTARY_CLK 27
 #define ROTARY_DT 26
-#define ROTARY_SW 27
+#define ROTARY_SW 25
 
 // Reader input pins 
 #define DATA0_PIN 18
