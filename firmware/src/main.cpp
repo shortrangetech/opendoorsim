@@ -54,7 +54,7 @@ const char *wiegandFormatsFile = "/wiegand_formats.json";
 
 #define OLED_RESET -1
 #define OLED_32_ADDRESS 0x3C
-#define OLED_64_ADDRESS 0x3D
+#define OLED_64_ADDRESS 0x3C
 #define OLED_WIDTH 128
 #define OLED_32_HEIGHT 32
 #define OLED_64_HEIGHT 64
@@ -127,7 +127,7 @@ int ledValid = 1;
 // Custom Display Message
 String customMessage = "OPENDOORSIM";
 // settings file version (read from settings.json)
-String firmwareVersion = "0.8.5";
+String firmwareVersion = "0.8.6";
 
 // decoded facility code and card code
 unsigned long facilityCode = 0;
