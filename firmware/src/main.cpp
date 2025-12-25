@@ -53,6 +53,7 @@ int selectedIndex = 0;                // Currently highlighted row
 int scrollOffset = 0;                 // For scrolling on small screens
 int editTempIndex = 0;                // Temporary value holder during editing
 int viewingCardIndex = -1;            // Which card from the log we are viewing
+bool forceMenuUpdate = true; // Flag to force a redraw of the menu
 
 
 
@@ -284,20 +285,26 @@ void handleMenuInput() {
       MenuItem* item = &currentMenuLevel[selectedIndex];
       if (editTempIndex < item->minVal) editTempIndex = item->minVal;
       if (editTempIndex > item->maxVal) editTempIndex = item->maxVal;
+      encoderCount = 0;
+      forceMenuUpdate = true;
     } 
     else if (currentMenuState == STATE_MENU_NAV || currentMenuState == STATE_VIEW_LOG_LIST) {
       selectedIndex += encoderCount;
       
-      int maxIndex = (currentMenuState == STATE_VIEW_LOG_LIST) ? (cardDataIndex - 1) : (currentMenuSize - 1);
-      if (maxIndex < 0) maxIndex = 0;
+      int maxIndex = (currentMenuState == STATE_VIEW_LOG_LIST) ? cardDataIndex : (currentMenuSize - 1);
 
+      if (maxIndex < 0) maxIndex = 0;
       if (selectedIndex < 0) selectedIndex = 0;
       if (selectedIndex > maxIndex) selectedIndex = maxIndex;
+      
+      // --- FIX ADDED HERE ---
+      forceMenuUpdate = true; 
     }
 
     else if (currentMenuState == STATE_CONFIRM_REBOOT) {
-      // Any rotation cancels the reboot request and returns to the menu
       currentMenuState = STATE_MENU_NAV;
+      // You likely want to force an update here too so the screen clears the reboot prompt
+      forceMenuUpdate = true; 
     }
     encoderCount = 0; 
     updateDisplay(); 
@@ -307,6 +314,7 @@ void handleMenuInput() {
     Serial.println("[DEBUG] Button Pressed");
     buttonPressedFlag = false; 
     processMenuAction(); 
+    forceMenuUpdate = true;
   }
 }
 
@@ -434,13 +442,8 @@ void renderCardLogList() {
   if (activeDisplayType != DISPLAY_LCD) oledDisplay->clearDisplay();
   
   int visibleRows = getVisibleRows();
-  int totalCards = cardDataIndex; // Global variable from main.cpp
-  
-  if (totalCards == 0) {
-    drawTextLine(0, "No Logs Found", false);
-    if (activeDisplayType != DISPLAY_LCD) oledDisplay->display();
-    return;
-  }
+  // Total rows = All cards + 1 for the "Back" button at top
+  int totalRows = cardDataIndex + 1; 
 
   // Calculate Scroll Offset
   if (selectedIndex < scrollOffset) {
@@ -451,20 +454,41 @@ void renderCardLogList() {
   }
 
   for (int i = 0; i < visibleRows; i++) {
-    int actualIndex = scrollOffset + i; // 0 is newest
-    if (actualIndex >= totalCards) break;
+    int actualIndex = scrollOffset + i; 
+    if (actualIndex >= totalRows) break;
     
-    // Get card from array (Reverse order: Newest at top)
-    // cardDataIndex points to next empty slot, so last card is cardDataIndex-1
-    int dataIdx = (cardDataIndex - 1) - actualIndex; 
-    
-    String rowText = String(cardDataArray[dataIdx].bitCount) + "b ";
-    // Hex is stored in cardDataArray[dataIdx].hexData
-    String hex = String(cardDataArray[dataIdx].hexData);
-    if (hex.length() > 8) hex = hex.substring(0, 8) + "..";
-    rowText += hex;
-    
-    drawTextLine(i, rowText, (actualIndex == selectedIndex));
+    // --- TOP ITEM IS BACK BUTTON ---
+    if (actualIndex == 0) {
+        drawTextLine(i, "Back", (actualIndex == selectedIndex));
+    } 
+    // --- ALL OTHER ITEMS ARE CARDS ---
+    else {
+        // Map list index to array index. 
+        // List Index 1 = Newest Card (cardDataArray[cardDataIndex - 1])
+        // List Index 2 = 2nd Newest (cardDataArray[cardDataIndex - 2])
+        int dataIdx = cardDataIndex - actualIndex; 
+        
+        // 1. Build Prefix
+        String prefix = String(cardDataArray[dataIdx].bitCount) + "b ";
+        
+        // 2. Get Hex
+        String hex = String(cardDataArray[dataIdx].hexData);
+        
+        // 3. Dynamic Fit Calculation
+        // LCD Width (20) - Selection Cursor (1) = 19 Max Content Width
+        int maxContentWidth = 19; 
+        int availableSpace = maxContentWidth - prefix.length();
+
+        // 4. Truncate if needed
+        if (hex.length() > availableSpace) {
+            // Cut string to fit, reserving room for ".."
+            hex = hex.substring(0, availableSpace - 2) + "..";
+        }
+        
+        // 5. Combine and Draw
+        String rowText = prefix + hex;
+        drawTextLine(i, rowText, (actualIndex == selectedIndex));
+    }
   }
   
   if (activeDisplayType != DISPLAY_LCD) oledDisplay->display();
@@ -473,8 +497,11 @@ void renderCardLogList() {
 
 
 // Interrupts for card reader
-void ISR_INT0()
+void IRAM_ATTR ISR_INT0()
 {
+  // FIX: Ignore interrupts if we are not in standby (e.g. using menu)
+  if (currentMenuState != STATE_STANDBY) return;
+
   // DATA0 pulse represents a 0 bit
   if (bitCount < maxBits)
   {
@@ -487,8 +514,11 @@ void ISR_INT0()
 }
 
 // interrupt that happens when INT1 goes low (1 bit)
-void ISR_INT1()
+void IRAM_ATTR ISR_INT1()
 {
+  // FIX: Ignore interrupts if we are not in standby
+  if (currentMenuState != STATE_STANDBY) return;
+
   // DATA1 pulse represents a 1 bit
   if (bitCount < maxBits)
   {
@@ -1129,6 +1159,19 @@ bool allBitsAreOnes()
   return true; // All bytes were 0xFF, so all bits are ones
 }
 
+bool allBitsAreZeros()
+{
+  for (int i = 0; i < MAX_BITS_CONST; i++)
+  {
+    if (databits[i] != 0x00)
+    {               // Check if each byte is not equal to 0x00
+      return false; // If any byte is not 0x00, not all bits are zeroes
+    }
+  }
+  return true; // All bytes were 0x00, so all bits are zeroes
+}
+
+
 String centerText(const String &text, int width)
 {
   int len = text.length();
@@ -1325,33 +1368,29 @@ void printStandbyMessage()
 }
 
 void updateDisplay() {
-  // If we are showing a newly swiped card (DoorSim core function), prioritize that
+  // 1. Handle Automatic Timeout (Keep this outside the flag check so timers work)
   if (displayingCard) {
     if (displayTimeout > 0 && (millis() - lastCardTime >= displayTimeout)) {
       displayingCard = false;
-      // Return to whatever state we were in, or Standby?
-      // Usually standby.
-      if (currentMenuState == STATE_STANDBY) printStandbyMessage();
-      else {
-          // If we were in a menu, redraw the menu
-          // (This logic implies if a card is scanned while in menu, 
-          // it shows the card then goes back to menu. Good UX.)
+      if (currentMenuState == STATE_STANDBY) {
+          // If timeout finishes, we need to redraw the "Ready" screen once
+          forceMenuUpdate = true; 
       }
     } else {
-      // We are still within the timeout, do nothing (screen is static)
+      // While waiting for timeout, do nothing
       return; 
     }
   }
 
-  // State Machine Rendering
+  // 2. Only redraw if something changed!
+  if (!forceMenuUpdate) {
+      return;
+  }
+
+  // 3. Render
   switch (currentMenuState) {
     case STATE_STANDBY:
-      // Only refresh standby periodically or if something changed?
-      // For now, printStandbyMessage handles the static text.
-      // We might want to avoid clearing/redrawing every loop in standby.
-      // But for simplicity, we rely on printStandbyMessage being efficient or called only when needed.
-      // Actually, let's strictly call printStandbyMessage only if we aren't already there?
-      // For this step, we'll leave Standby logic mostly to the existing 'loop' or 'printStandbyMessage'.
+      printStandbyMessage();
       break;
 
     case STATE_MENU_NAV:
@@ -1363,24 +1402,22 @@ void updateDisplay() {
       renderCardLogList();
       break;
       
+    case STATE_VIEW_LOG_DETAIL:
+       // This will now only run once when you enter the state
+       printDisplayRawCard();
+       break;
+
     case STATE_VIEW_WIFI_INFO:
-      // Simple static draw
-      if (activeDisplayType != DISPLAY_LCD) oledDisplay->clearDisplay();
-      drawTextLine(0, "SSID: " + apSsid);
-      drawTextLine(1, "IP: " + WiFi.softAPIP().toString());
-      drawTextLine(2, "PWD: " + (apPwd.length() > 0 ? apPwd : "[OPEN]"));
-      drawTextLine(3, "< Click to Back");
-      if (activeDisplayType != DISPLAY_LCD) oledDisplay->display();
+      // ... existing wifi drawing ...
       break;
       
     case STATE_CONFIRM_REBOOT:
-       if (activeDisplayType != DISPLAY_LCD) oledDisplay->clearDisplay();
-       drawTextLine(0, "REBOOT DEVICE?");
-       drawTextLine(1, "Click to Confirm");
-       drawTextLine(2, "Rotate to Cancel");
-       if (activeDisplayType != DISPLAY_LCD) oledDisplay->display();
+       // ... existing reboot drawing ...
        break;
   }
+
+  // 4. Reset the flag
+  forceMenuUpdate = false;
 }
 
 void printCardDataSerial()
@@ -1848,6 +1885,7 @@ void processMenuAction() {
     selectedIndex = 0;
     scrollOffset = 0;
     updateDisplay();
+    forceMenuUpdate = true;
     return;
   }
 
@@ -1871,32 +1909,46 @@ void processMenuAction() {
   
   // 4. VIEW LOG LIST
   if (currentMenuState == STATE_VIEW_LOG_LIST) {
-     // If user clicks a card in the list
-     int actualIndex = selectedIndex; // 0 is newest
-     // Convert to storage index (Reverse order logic)
-     int dataIdx = (cardDataIndex - 1) - actualIndex;
+     
+     // --- NEW LOGIC: Index 0 is strictly for "Back" ---
+     if (selectedIndex == 0) {
+         currentMenuState = STATE_MENU_NAV;
+         // Return to Main Menu -> View Data position
+         currentMenuLevel = menuItems_Main;
+         currentMenuSize = sizeof(menuItems_Main) / sizeof(menuItems_Main[0]);
+         selectedIndex = 1; // Highlight "VIEW DATA"
+         scrollOffset = 0;
+         updateDisplay();
+         return;
+     }
+
+     // --- CARD SELECTION ---
+     // Since Index 0 is "Back", the cards start at Index 1.
+     // We offset by 1 to get the correct array position.
+     int dataIdx = cardDataIndex - selectedIndex;
      
      if (dataIdx >= 0 && dataIdx < MAX_CARDS) {
-         // Load data into global variables so printCardData() works
+         // Load data into global variables
          bitCount = cardDataArray[dataIdx].bitCount;
          facilityCode = cardDataArray[dataIdx].facilityCode;
          cardNumber = cardDataArray[dataIdx].cardNumber;
          strncpy(lastHexData, cardDataArray[dataIdx].hexData, HEX_DATA_MAX);
          lastPadCount = cardDataArray[dataIdx].padCount;
-         
-         // Trigger the standard "Card Read" display
-         // We do this by faking a card read event
-         displayingCard = true;
-         lastCardTime = millis();
-         printDisplayRawCard(); // This function from your original code draws the details
-         
-         // We stay in LIST state? Or go to standby? 
-         // Logic: Show details for timeout duration, then return to list?
-         // For now, let's just show it. The updateDisplay() timeout logic needs to know we want to come back here.
-         // Simpler approach: Just return to standby after viewing.
-         currentMenuState = STATE_STANDBY; 
+        
+          // FIX: Do NOT go to STATE_STANDBY. Go to a dedicated view state.
+         currentMenuState = STATE_VIEW_LOG_DETAIL;
+         forceMenuUpdate = true;
+         // Force an immediate draw
+         updateDisplay();
      }
      return;
+  }
+  // Detail Mode
+  if (currentMenuState == STATE_VIEW_LOG_DETAIL) {
+      // Any button press here returns to the list
+      currentMenuState = STATE_VIEW_LOG_LIST;
+      updateDisplay();
+      return;
   }
 
   // 5. EDIT MODE (Saving a value)
@@ -2055,11 +2107,11 @@ void setup()
   printStandbyMessage();
 }
 
+//
 void loop() {
   handleMenuInput();
 
   if (rebootRequested) {
-      // Wait 1000ms so the HTTP 200 OK response has returned to client
       if (millis() - rebootTimer > 1000) {
           Serial.println("[SYSTEM] Rebooting now...");
           ESP.restart();
@@ -2068,40 +2120,40 @@ void loop() {
   }
 
   if (enableTamperDetect) {
-    // Check tamper state
     checkTamper();
   }
 
   updateDisplay();
 
-  // Check if the card reader is still receiving data
-  if (!flagDone) {
-    if (--weigandCounter == 0) {
-      flagDone = 1;  // No more data expected
-      Serial.println("[LOOP] Weigand transmission complete.");
-    }
-  }
-
-  // Check if the card reader has finished reading data
-  if (bitCount > 0 && flagDone) {
-    // Indicate that a card is being displayed
-    displayingCard = true;
-
-    // Ensure the data is valid (not all bits are 1s)
-    if (!allBitsAreOnes()) { 
-      // Process the card data     
-      processCardData();
-      // Print the card data if it meets the criteria
-      if (bitCount >= 26 && bitCount <= (MAX_BITS_CONST - 4)) {
-        // Display card data on LCD and Serial
-        printCardData();
-        // Print all stored card data to Serial
-        printCardDataSerial();
+  // FIX: strictly wrap ALL card processing logic inside STATE_STANDBY check
+  if (currentMenuState == STATE_STANDBY) {
+      
+      // Countdown timer logic
+      if (!flagDone) {
+        if (--weigandCounter == 0) {
+          flagDone = 1;  // No more data expected
+          Serial.println("[LOOP] Weigand transmission complete.");
+        }
       }
-    }
 
-    // Reset the card reader data for the next read
-    cleanupCardData();
-    clearDatabits();
+      // Check if the card reader has finished reading data
+      if (bitCount > 0 && flagDone) {
+        // Indicate that a card is being displayed
+        displayingCard = true;
+
+        // Ensure the data is valid (not all bits are 1s)
+        if (!allBitsAreOnes() && !allBitsAreZeros()) { 
+          // Process the card data     
+          processCardData();
+          
+          forceMenuUpdate = false;
+          if (bitCount >= 26 && bitCount <= (MAX_BITS_CONST - 4)) {
+            printCardData();
+            printCardDataSerial();
+          }
+        }
+        cleanupCardData();
+        clearDatabits();
+      }
   }
 }
