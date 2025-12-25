@@ -439,6 +439,7 @@ void renderMenu() {
 }
 
 void renderCardLogList() {
+  // OLEDs use a buffer, so we can clear the whole thing first.
   if (activeDisplayType != DISPLAY_LCD) oledDisplay->clearDisplay();
   
   int visibleRows = getVisibleRows();
@@ -455,8 +456,15 @@ void renderCardLogList() {
 
   for (int i = 0; i < visibleRows; i++) {
     int actualIndex = scrollOffset + i; 
-    if (actualIndex >= totalRows) break;
     
+    // --- CHANGED HERE ---
+    // Instead of breaking if we run out of data, we explicitly draw a blank line.
+    // This wipes any "ghost" text from the previous menu screen on LCDs.
+    if (actualIndex >= totalRows) {
+        drawTextLine(i, "");
+        continue;
+    }
+
     // --- TOP ITEM IS BACK BUTTON ---
     if (actualIndex == 0) {
         drawTextLine(i, "Back", (actualIndex == selectedIndex));
@@ -465,7 +473,6 @@ void renderCardLogList() {
     else {
         // Map list index to array index. 
         // List Index 1 = Newest Card (cardDataArray[cardDataIndex - 1])
-        // List Index 2 = 2nd Newest (cardDataArray[cardDataIndex - 2])
         int dataIdx = cardDataIndex - actualIndex; 
         
         // 1. Build Prefix
