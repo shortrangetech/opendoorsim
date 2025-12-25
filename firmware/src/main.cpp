@@ -1375,7 +1375,7 @@ void printStandbyMessage()
 }
 
 void updateDisplay() {
-  // 1. Handle Automatic Timeout (Keep this outside the flag check so timers work)
+  // 1. Handle Automatic Timeout
   if (displayingCard) {
     if (displayTimeout > 0 && (millis() - lastCardTime >= displayTimeout)) {
       displayingCard = false;
@@ -1410,16 +1410,26 @@ void updateDisplay() {
       break;
       
     case STATE_VIEW_LOG_DETAIL:
-       // This will now only run once when you enter the state
        printDisplayRawCard();
        break;
 
+    // --- FIX 1: ADDED WIFI INFO DRAWING ---
     case STATE_VIEW_WIFI_INFO:
-      // ... existing wifi drawing ...
+      {
+         // Create strings for the IP and Password
+         String ipLine = "IP: " + WiFi.softAPIP().toString();
+         // If password is set, show it. If empty, show [OPEN]
+         String passLine = (apPwd.length() > 0) ? "Pwd: " + apPwd : "Pwd: [OPEN]";
+         
+         // Use the helper to draw to LCD or OLED
+         // .c_str() converts the String object to the const char* required by the function
+         printDisplayText("   WIFI SETTINGS    ", ("SSID: " + apSsid).c_str(), ipLine.c_str(), passLine.c_str());
+      }
       break;
       
+    // --- FIX 2: ADDED REBOOT CONFIRMATION DRAWING ---
     case STATE_CONFIRM_REBOOT:
-       // ... existing reboot drawing ...
+       printDisplayText("   CONFIRM REBOOT?  ", "", "  Click to Confirm  ", "  Rotate to Cancel  ");
        break;
   }
 
@@ -1886,13 +1896,17 @@ void checkTamper() {
 void processMenuAction() {
   // 1. WAKE UP FROM STANDBY
   if (currentMenuState == STATE_STANDBY) {
+    // --- FIX: Kill the card display timeout immediately ---
+    displayingCard = false; 
+    
     currentMenuState = STATE_MENU_NAV;
     currentMenuLevel = menuItems_Main;
     currentMenuSize = sizeof(menuItems_Main) / sizeof(menuItems_Main[0]);
     selectedIndex = 0;
     scrollOffset = 0;
-    updateDisplay();
+    
     forceMenuUpdate = true;
+    updateDisplay();
     return;
   }
 
@@ -1930,8 +1944,6 @@ void processMenuAction() {
      }
 
      // --- CARD SELECTION ---
-     // Since Index 0 is "Back", the cards start at Index 1.
-     // We offset by 1 to get the correct array position.
      int dataIdx = cardDataIndex - selectedIndex;
      
      if (dataIdx >= 0 && dataIdx < MAX_CARDS) {
@@ -1942,14 +1954,13 @@ void processMenuAction() {
          strncpy(lastHexData, cardDataArray[dataIdx].hexData, HEX_DATA_MAX);
          lastPadCount = cardDataArray[dataIdx].padCount;
         
-          // FIX: Do NOT go to STATE_STANDBY. Go to a dedicated view state.
          currentMenuState = STATE_VIEW_LOG_DETAIL;
          forceMenuUpdate = true;
-         // Force an immediate draw
          updateDisplay();
      }
      return;
   }
+  
   // Detail Mode
   if (currentMenuState == STATE_VIEW_LOG_DETAIL) {
       // Any button press here returns to the list
@@ -1968,7 +1979,6 @@ void processMenuAction() {
       
       // SPECIAL HANDLER: Apply changes immediately if needed
       if (String(item->label) == "Mode") {
-         // 0 = raw, 1 = ctf
          deviceMode = (editTempIndex == 0) ? "raw" : "ctf";
       }
 
@@ -2002,9 +2012,7 @@ void processMenuAction() {
 
       case ITEM_SUBMENU:
         currentMenuLevel = item->submenu;
-        // Manual Size Calculation for Submenus
-        // We match the label defined in menuItems_Main ("GENERAL")
-        if (String(item->label) == "GENERAL") currentMenuSize = 4; // Fixed: Label match & Size (Back, Mode, Timeout, Tamper)
+        if (String(item->label) == "GENERAL") currentMenuSize = 4; 
         else if (String(item->label) == "WIFI") currentMenuSize = 4;
         else if (String(item->label) == "CTF") currentMenuSize = 2;
         
@@ -2051,6 +2059,7 @@ void processMenuAction() {
     updateDisplay();
   }
 }
+
 void setup()
 {
   pinMode(DATA0_PIN, INPUT);
