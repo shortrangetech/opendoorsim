@@ -17,13 +17,14 @@
 // --- MENU SYSTEM CONSTANTS & STRUCTS ---
 
 enum MenuState {
-  STATE_STANDBY,        // Normal operation (DoorSim scanning)
-  STATE_MENU_NAV,       // Scrolling through menu items
-  STATE_MENU_EDIT,      // Changing a specific setting
-  STATE_VIEW_LOG_LIST,  // Viewing the list of captured cards
-  STATE_VIEW_LOG_DETAIL,// Viewing details of a specific card
-  STATE_VIEW_WIFI_INFO, // Static screen for Wifi Info
-  STATE_CONFIRM_REBOOT  // "Are you sure?" screen
+  STATE_STANDBY,
+  STATE_MENU_NAV,
+  STATE_MENU_EDIT,
+  STATE_VIEW_LOG_LIST,
+  STATE_VIEW_LOG_DETAIL,
+  STATE_VIEW_WIFI_INFO,
+  STATE_CONFIRM_REBOOT,
+  STATE_CONFIRM_WIFI_REBOOT
 };
 
 // Types of menu items to determine how they are handled
@@ -54,7 +55,8 @@ int scrollOffset = 0;                 // For scrolling on small screens
 int editTempIndex = 0;                // Temporary value holder during editing
 int viewingCardIndex = -1;            // Which card from the log we are viewing
 bool forceMenuUpdate = true; // Flag to force a redraw of the menu
-
+bool origApMode = true;
+int origSsidHidden = 0;
 
 
 
@@ -290,28 +292,39 @@ void handleMenuInput() {
     } 
     else if (currentMenuState == STATE_MENU_NAV || currentMenuState == STATE_VIEW_LOG_LIST) {
       selectedIndex += encoderCount;
-      
       int maxIndex = (currentMenuState == STATE_VIEW_LOG_LIST) ? cardDataIndex : (currentMenuSize - 1);
-
       if (maxIndex < 0) maxIndex = 0;
       if (selectedIndex < 0) selectedIndex = 0;
       if (selectedIndex > maxIndex) selectedIndex = maxIndex;
-      
-      // --- FIX ADDED HERE ---
       forceMenuUpdate = true; 
     }
-
     else if (currentMenuState == STATE_CONFIRM_REBOOT) {
       currentMenuState = STATE_MENU_NAV;
-      // You likely want to force an update here too so the screen clears the reboot prompt
       forceMenuUpdate = true; 
     }
+    // --- FIX: CANCEL REBOOT LOGIC ---
+    else if (currentMenuState == STATE_CONFIRM_WIFI_REBOOT) {
+      // 1. Revert the changes
+      apMode = origApMode;
+      ssidHidden = origSsidHidden;
+      
+      // 2. Go back to MAIN MENU (Not Wifi Menu)
+      currentMenuState = STATE_MENU_NAV;
+      currentMenuLevel = menuItems_Main;
+      currentMenuSize = sizeof(menuItems_Main) / sizeof(menuItems_Main[0]);
+      
+      // Optional: Highlight "WIFI" (Index 3) so they know where they came from
+      selectedIndex = 3; 
+      scrollOffset = 0;
+      
+      forceMenuUpdate = true;
+    }
+    
     encoderCount = 0; 
     updateDisplay(); 
   }
 
   if (buttonPressedFlag) {
-    Serial.println("[DEBUG] Button Pressed");
     buttonPressedFlag = false; 
     processMenuAction(); 
     forceMenuUpdate = true;
@@ -1431,6 +1444,12 @@ void updateDisplay() {
     case STATE_CONFIRM_REBOOT:
        printDisplayText("   CONFIRM REBOOT?  ", "", "  Click to Confirm  ", "  Rotate to Cancel  ");
        break;
+
+    case STATE_CONFIRM_WIFI_REBOOT:
+    printDisplayText("   WIFI CHANGES:    ", "  Reboot Required   ", " Click: Reboot Now  ", " Rotate: Cancel ");
+    break;
+
+
   }
 
   // 4. Reset the flag
@@ -1471,6 +1490,7 @@ void showSettingsSaved()
 
 void setupWifi()
 {
+
   if (!WiFi.softAPConfig(local_IP, gateway, subnet)) {
     Serial.println("[ERROR] AP Custom Config Failed");
   }
@@ -1478,22 +1498,18 @@ void setupWifi()
   Serial.println("[SYSTEM] Configuring Access Point...");
   
   const char* ssid = apSsid.c_str();
-  const char* pwd = nullptr; // Default to NULL (Open Network)
+  const char* pwd = nullptr; 
 
-  // WPA2 Requirement: Password must be at least 8 characters
   if (apPwd.length() >= 8) {
       pwd = apPwd.c_str();
       Serial.println("[SYSTEM] Security: WPA2-PSK (Password set)");
   } else if (apPwd.length() > 0) {
-      // fallback to open to avoid crash
-      Serial.println("[SYSTEM] WARNING: Password '" + apPwd + "' is too short (min 8 chars).");
-      Serial.println("[SYSTEM] FALLBACK: Starting as OPEN network to prevent crash.");
+      Serial.println("[SYSTEM] WARNING: Password too short. Fallback to OPEN.");
       pwd = nullptr; 
   } else {
       Serial.println("[SYSTEM] Security: OPEN (No password set)");
   }
 
-  // Start AP
   if (WiFi.softAP(ssid, pwd, apChannel, ssidHidden)) {
       Serial.println("[SYSTEM] SoftAP started successfully.");
       Serial.print("[SYSTEM] IP Address: ");
@@ -1501,7 +1517,6 @@ void setupWifi()
   } else {
       Serial.println("[SYSTEM] CRITICAL ERROR: Failed to start SoftAP!");
   }
-
 }
 
 void webServer()
@@ -1896,64 +1911,63 @@ void checkTamper() {
 void processMenuAction() {
   // 1. WAKE UP FROM STANDBY
   if (currentMenuState == STATE_STANDBY) {
-    // --- FIX: Kill the card display timeout immediately ---
-    displayingCard = false; 
-    
+    displayingCard = false;
     currentMenuState = STATE_MENU_NAV;
     currentMenuLevel = menuItems_Main;
     currentMenuSize = sizeof(menuItems_Main) / sizeof(menuItems_Main[0]);
     selectedIndex = 0;
     scrollOffset = 0;
-    
     forceMenuUpdate = true;
     updateDisplay();
     return;
   }
 
-  // 2. CONFIRM REBOOT
+  // 2. CONFIRM REBOOT (Standard)
   if (currentMenuState == STATE_CONFIRM_REBOOT) {
-    // User confirmed reboot
     printDisplayText("    REBOOTING...    ", "", "", "");
     delay(1000);
     ESP.restart();
     return;
   }
 
+  // --- FIX: WIFI REBOOT CONFIRMATION ---
+  if (currentMenuState == STATE_CONFIRM_WIFI_REBOOT) {
+    printDisplayText("    SAVING...       ", "    REBOOTING...    ", "", "");
+    
+    // 1. Actually Save the settings!
+    saveSettingsToPreferences();
+    delay(1000);
+    
+    // 2. Then Reboot
+    ESP.restart();
+    return;
+  }
+
   // 3. WIFI INFO SCREEN
   if (currentMenuState == STATE_VIEW_WIFI_INFO) {
-    // Click to go back to Wifi Menu
     currentMenuState = STATE_MENU_NAV;
-    // We remain in the Wifi Menu level, just change state
     updateDisplay();
     return;
   }
   
-  // 4. VIEW LOG LIST
+  // 4. VIEW LOG LOGIC
   if (currentMenuState == STATE_VIEW_LOG_LIST) {
-     
-     // --- NEW LOGIC: Index 0 is strictly for "Back" ---
-     if (selectedIndex == 0) {
+     if (selectedIndex == 0) { // Back Button
          currentMenuState = STATE_MENU_NAV;
-         // Return to Main Menu -> View Data position
          currentMenuLevel = menuItems_Main;
          currentMenuSize = sizeof(menuItems_Main) / sizeof(menuItems_Main[0]);
-         selectedIndex = 1; // Highlight "VIEW DATA"
+         selectedIndex = 1; 
          scrollOffset = 0;
          updateDisplay();
          return;
      }
-
-     // --- CARD SELECTION ---
      int dataIdx = cardDataIndex - selectedIndex;
-     
      if (dataIdx >= 0 && dataIdx < MAX_CARDS) {
-         // Load data into global variables
          bitCount = cardDataArray[dataIdx].bitCount;
          facilityCode = cardDataArray[dataIdx].facilityCode;
          cardNumber = cardDataArray[dataIdx].cardNumber;
          strncpy(lastHexData, cardDataArray[dataIdx].hexData, HEX_DATA_MAX);
          lastPadCount = cardDataArray[dataIdx].padCount;
-        
          currentMenuState = STATE_VIEW_LOG_DETAIL;
          forceMenuUpdate = true;
          updateDisplay();
@@ -1961,27 +1975,18 @@ void processMenuAction() {
      return;
   }
   
-  // Detail Mode
   if (currentMenuState == STATE_VIEW_LOG_DETAIL) {
-      // Any button press here returns to the list
       currentMenuState = STATE_VIEW_LOG_LIST;
       updateDisplay();
       return;
   }
 
-  // 5. EDIT MODE (Saving a value)
+  // 5. EDIT MODE 
   if (currentMenuState == STATE_MENU_EDIT) {
     MenuItem* item = &currentMenuLevel[selectedIndex];
-    
-    // Save the temp value to the real variable
     if (item->variable != nullptr) {
       *(int*)item->variable = editTempIndex;
-      
-      // SPECIAL HANDLER: Apply changes immediately if needed
-      if (String(item->label) == "Mode") {
-         deviceMode = (editTempIndex == 0) ? "raw" : "ctf";
-      }
-
+      if (String(item->label) == "Mode") deviceMode = (editTempIndex == 0) ? "raw" : "ctf";
       if (String(item->label) == "Timeout") {
          switch(editTempIndex) {
              case 0: displayTimeout = 0; break;
@@ -1993,14 +1998,12 @@ void processMenuAction() {
          }
       }
     }
-    
-    // Return to Nav
     currentMenuState = STATE_MENU_NAV;
     updateDisplay();
     return;
   }
 
-  // 6. NAVIGATION MODE (Clicking an item)
+  // 6. NAVIGATION MODE
   if (currentMenuState == STATE_MENU_NAV) {
     MenuItem* item = &currentMenuLevel[selectedIndex];
 
@@ -2012,28 +2015,40 @@ void processMenuAction() {
 
       case ITEM_SUBMENU:
         currentMenuLevel = item->submenu;
-        if (String(item->label) == "GENERAL") currentMenuSize = 4; 
-        else if (String(item->label) == "WIFI") currentMenuSize = 4;
+        if (String(item->label) == "GENERAL") currentMenuSize = 4;
+        else if (String(item->label) == "WIFI") {
+            currentMenuSize = 4;
+            // Capture Settings on Entry
+            origApMode = apMode;
+            origSsidHidden = ssidHidden;
+        }
         else if (String(item->label) == "CTF") currentMenuSize = 2;
-        
         selectedIndex = 0;
         scrollOffset = 0;
         break;
         
       case ITEM_ACTION:
         if (String(item->label) == "Back") {
-          // Return to Main Menu
+          
+          // --- WIFI CHANGE DETECTION ---
+          if (currentMenuLevel == menuItems_Wifi) {
+              // Only trigger if settings ACTUALLY changed
+              if (apMode != origApMode || ssidHidden != origSsidHidden) {
+                  currentMenuState = STATE_CONFIRM_WIFI_REBOOT;
+                  forceMenuUpdate = true;
+                  updateDisplay();
+                  return; // Stop here! Do not go back yet.
+              }
+          }
+
+          // Normal Back Behavior (No changes, or not Wifi menu)
           currentMenuLevel = menuItems_Main;
           currentMenuSize = sizeof(menuItems_Main) / sizeof(menuItems_Main[0]);
           selectedIndex = 0;
           scrollOffset = 0;
         }
-        else if (String(item->label) == "REBOOT") {
-            currentMenuState = STATE_CONFIRM_REBOOT;
-        }
-        else if (String(item->label) == "View Info") {
-            currentMenuState = STATE_VIEW_WIFI_INFO;
-        }
+        else if (String(item->label) == "REBOOT") currentMenuState = STATE_CONFIRM_REBOOT;
+        else if (String(item->label) == "View Info") currentMenuState = STATE_VIEW_WIFI_INFO;
         else if (String(item->label) == "VIEW DATA") {
             currentMenuState = STATE_VIEW_LOG_LIST;
             selectedIndex = 0;
@@ -2044,15 +2059,14 @@ void processMenuAction() {
       case ITEM_TOGGLE:
         if (item->variable != nullptr) {
           bool* val = (bool*)item->variable;
-          *val = !(*val); // Toggle boolean
+          *val = !(*val);
         }
         break;
 
       case ITEM_SELECT:
-        // Enter Edit Mode
         if (item->variable != nullptr) {
           currentMenuState = STATE_MENU_EDIT;
-          editTempIndex = *(int*)item->variable; // Load current value
+          editTempIndex = *(int*)item->variable;
         }
         break;
     }
@@ -2108,14 +2122,18 @@ void setup()
     lastWrittenDatabits[i] = 0;
   }
 
-
-
-  Serial.println("[SYSTEM] Setting up Wifi...");
-  setupWifi();
-  Serial.println("[SYSTEM] Wifi Setup Complete");
-
-  Serial.println("[SYSTEM] Starting web server...");
-  webServer();
+  if (apMode) {
+      Serial.println("[SYSTEM] Setting up Wifi...");
+      setupWifi();
+      
+      Serial.println("[SYSTEM] Starting web server...");
+      webServer();
+      
+      Serial.println("[SYSTEM] Wifi & Server Started.");
+  } else {
+      Serial.println("[SYSTEM] AP Mode is OFF. Disabling WiFi.");
+      WiFi.mode(WIFI_OFF);
+  }
 
   Serial.println("[SYSTEM] DoorSim Ready!");
 
