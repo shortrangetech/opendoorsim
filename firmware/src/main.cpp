@@ -375,6 +375,7 @@ void drawTextLine(int row, String text, bool inverted = false) {
 }
 
 void renderMenu() {
+  // OLEDs clear the whole buffer first, so they don't have this issue.
   if (activeDisplayType != DISPLAY_LCD) oledDisplay->clearDisplay();
   
   int visibleRows = getVisibleRows();
@@ -390,7 +391,14 @@ void renderMenu() {
   // Draw Items
   for (int i = 0; i < visibleRows; i++) {
     int itemIndex = scrollOffset + i;
-    if (itemIndex >= currentMenuSize) break;
+    
+    // --- FIX START: CLEAR UNUSED ROWS ---
+    // Instead of 'break', we explicitly draw a blank line to wipe old text.
+    if (itemIndex >= currentMenuSize) {
+        drawTextLine(i, ""); 
+        continue;
+    }
+    // --- FIX END ---
     
     MenuItem* item = &currentMenuLevel[itemIndex];
     String label = String(item->label);
@@ -407,7 +415,7 @@ void renderMenu() {
          val = editTempIndex; // Show the temporary value we are scrolling
       }
       if (String(item->label) == "Mode") {
-      label += ": " + String(val == 0 ? "RAW" : "CTF");
+        label += ": " + String(val == 0 ? "RAW" : "CTF");
       } 
       else if (String(item->label) == "Timeout") {
         String tStr;
@@ -422,26 +430,22 @@ void renderMenu() {
         }
         label += ": " + tStr;
       } 
-      // ----------------------
       else {
         label += ": " + String(val);
       }
     }
 
     // Draw the line
-    // If we are editing, show "*" instead of ">" (handled conceptually here)
     bool isSelected = (itemIndex == selectedIndex);
     
     // LCD Specific: Add indicator chars to the string
     if (activeDisplayType == DISPLAY_LCD) {
        if (currentMenuState == STATE_MENU_EDIT && isSelected) {
-         // Override the drawTextLine ">" logic slightly by prepending here? 
-         // Actually, let's keep it simple. editing = *
-         // We'll handle visual cues in the text string for LCD
+         // visual cue for editing
          if (isSelected) label = (currentMenuState == STATE_MENU_EDIT) ? "*" + label : label; 
        }
     } else {
-       // OLED: We use the inverted bar. If editing, maybe blink or add *?
+       // OLED visual cue
        if (currentMenuState == STATE_MENU_EDIT && isSelected) label = "*" + label;
     }
 
@@ -1442,11 +1446,11 @@ void updateDisplay() {
       
     // --- FIX 2: ADDED REBOOT CONFIRMATION DRAWING ---
     case STATE_CONFIRM_REBOOT:
-       printDisplayText("   CONFIRM REBOOT?  ", "", "  Click to Confirm  ", "  Rotate to Cancel  ");
+       printDisplayText("  CONFIRM REBOOT?   ", "", "  Click to Confirm  ", "  Rotate to Cancel  ");
        break;
 
     case STATE_CONFIRM_WIFI_REBOOT:
-    printDisplayText("   WIFI CHANGES:    ", "  Reboot Required   ", " Click: Reboot Now  ", " Rotate: Cancel ");
+    printDisplayText("  CONFIRM REBOOT?   ", " New Wifi Settings: ", "  Click to Confirm   ", "  Rotate to Cancel  ");
     break;
 
 
