@@ -1478,7 +1478,7 @@ void updateDisplay() {
          
          // Use the helper to draw to LCD or OLED
          // .c_str() converts the String object to the const char* required by the function
-         printDisplayText("   WIFI SETTINGS    ", ("SSID: " + apSsid).c_str(), ipLine.c_str(), passLine.c_str());
+         printDisplayText("   WIFI AP INFO    ", ("SSID: " + apSsid).c_str(), ipLine.c_str(), passLine.c_str());
       }
       break;
       
