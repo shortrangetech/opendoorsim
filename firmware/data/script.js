@@ -17,11 +17,55 @@ let sortNewestFirst = true;
 // FIX 1: Track if the user is currently editing the form
 let unsavedChanges = false;
 
-function markDirty() {
-    if (!unsavedChanges) {
-        unsavedChanges = true;
-        const saveBtn = document.querySelector('#settings button'); // The Save button
-        if(saveBtn) saveBtn.innerHTML = "Save Settings <span style='color:orange'>(Unsaved)</span>";
+// NEW globals for dirty checking
+let originalMode = "raw";
+let originalTimeout = 5000;
+let originalCustomMessage = "";
+let originalLedValid = 1;
+let originalTamper = false;
+
+// --- script.js ---
+
+function checkDirty() {
+    // 1. Gather Current Values
+    const currSsid = document.getElementById('ap_ssid').value;
+    const currPwd = document.getElementById('ap_pwd').value;
+    const currHidden = document.getElementById('ssid_hidden').checked;
+    
+    const currMode = document.getElementById('modeSelect').value;
+    const currTimeout = document.getElementById('timeoutSelect').value; // is string
+    const currMsg = document.getElementById('customMessage').value;
+    const currLed = document.getElementById('ledValid').value; // is string
+    const currDisplay = document.getElementById('activeDisplayType').value; // is string
+    const currFlip = document.getElementById('flipOled').checked;
+    const currTamper = document.getElementById('enable_tamper_detect').checked;
+
+    // 2. Compare (using loose equality != to handle string vs number differences)
+    let isDirty = false;
+
+    if (currSsid !== originalSsid) isDirty = true;
+    if (currPwd !== originalPwd) isDirty = true;
+    if (currHidden !== originalHidden) isDirty = true;
+    
+    if (currMode !== originalMode) isDirty = true;
+    if (currTimeout != originalTimeout) isDirty = true;
+    if (currMsg !== originalCustomMessage) isDirty = true;
+    if (currLed != originalLedValid) isDirty = true;
+    if (currDisplay != originalDisplayType) isDirty = true;
+    if (currFlip !== originalFlipOled) isDirty = true;
+    if (currTamper !== originalTamper) isDirty = true;
+
+    // 3. Update State & UI
+    unsavedChanges = isDirty;
+    const saveBtn = document.querySelector('#settings button'); // Adjust selector if you have multiple buttons
+
+    if (saveBtn) {
+        if (unsavedChanges) {
+            // Gold Badge Style
+            saveBtn.innerHTML = 'Save Settings <span class="badge badge-yellow" style="margin-left:8px; font-size:0.75rem;">UNSAVED</span>';
+        } else {
+            saveBtn.innerHTML = "Save Settings";
+        }
     }
 }
 
@@ -377,10 +421,12 @@ function fetchSettings(forceUpdateUI = false) {
         .catch(error => console.error('Error fetching settings:', error));
 }
 
+// --- script.js ---
+
 function updateSettingsUI(settings) {
     const mode = settings.device_mode || settings.mode || '';
     
-    // FIX START: Use explicit checks or nullish coalescing (??) so '0' is not treated as false
+    // FIX: Falsey 0 logic included here
     const displayTimeout = (settings.display_timeout !== undefined) 
         ? settings.display_timeout 
         : (settings.displayTimeout !== undefined ? settings.displayTimeout : '');
@@ -388,20 +434,16 @@ function updateSettingsUI(settings) {
     const ledValid = (settings.led_valid !== undefined) 
         ? settings.led_valid 
         : (settings.ledValid !== undefined ? settings.ledValid : 1);
-    // FIX END
 
     const apSsid = settings.ap_ssid || settings.apSsid || '';
     const apPass = settings.ap_pwd || settings.apPassphrase || '';
-    
-    // You actually handled this one correctly already!
     const ssidHidden = (settings.ssid_hidden !== undefined) ? settings.ssid_hidden : settings.ssidHidden;
-    
     const customMessage = settings.custom_message || settings.customMessage || '';
     const activeDisplayType = settings.active_display_type || settings.activeDisplayType || '';
     const enableTamperDetect = (settings.enable_tamper_detect !== undefined) ? settings.enable_tamper_detect : settings.enableTamperDetect;
     const version = settings.version || settings.version || '';
 
-    // UI Updates
+    // 1. Populate UI
     if (document.getElementById('modeSelect')) document.getElementById('modeSelect').value = (mode || '').toString().toLowerCase();
     
     const modeValueEl = document.getElementById('modeValue');
@@ -412,30 +454,36 @@ function updateSettingsUI(settings) {
     if (document.getElementById('ap_pwd')) document.getElementById('ap_pwd').value = apPass;
     if (document.getElementById('ssid_hidden') && typeof ssidHidden !== 'undefined') document.getElementById('ssid_hidden').checked = ssidHidden;
     if (document.getElementById('customMessage')) document.getElementById('customMessage').value = customMessage;
-    
-    // FIX: ledValid is now the correct integer (0, 1, or 2)
     if (document.getElementById('ledValid')) document.getElementById('ledValid').value = ledValid;
-    
     if (document.getElementById('activeDisplayType')) document.getElementById('activeDisplayType').value = activeDisplayType;
     if (document.getElementById('enable_tamper_detect')) document.getElementById('enable_tamper_detect').checked = enableTamperDetect;
     if (document.getElementById('versionValue')) document.getElementById('versionValue').textContent = version;
     if (document.getElementById('flipOled')) document.getElementById('flipOled').checked = settings.flip_oled_display; 
 
-    // Update listeners and visibility
+    // 2. STORE ORIGINAL VALUES
+    originalSsid = apSsid;
+    originalPwd = apPass;
+    originalHidden = (ssidHidden == 1 || ssidHidden === true);
+    originalDisplayType = activeDisplayType;
+    originalFlipOled = settings.flip_oled_display;
+    
+    // New globals
+    originalMode = (mode || '').toString().toLowerCase();
+    originalTimeout = displayTimeout;
+    originalCustomMessage = customMessage;
+    originalLedValid = ledValid;
+    originalTamper = enableTamperDetect;
+
+    // Listeners
     const displaySelect = document.getElementById('activeDisplayType');
     if (displaySelect) {
         displaySelect.addEventListener('change', toggleFlipOption);
     }
 
-    originalSsid = settings.ap_ssid || settings.apSsid || '';
-    let rawHidden = (settings.ssid_hidden !== undefined) ? settings.ssid_hidden : settings.ssidHidden;
-    originalHidden = (rawHidden == 1 || rawHidden === true);
-    originalPwd = settings.ap_pwd || settings.apPassphrase || '';
-    originalDisplayType = settings.active_display_type || settings.activeDisplayType || 1;
-    originalFlipOled = (settings.flip_oled_display !== undefined) ? settings.flip_oled_display : false;
-
     toggleFlipOption();
-    checkChanges(); 
+    
+    // Run the check immediately to reset the button state
+    checkDirty(); 
 }
 
 function exportData() {
@@ -684,19 +732,17 @@ function togglePasswordVisibility() {
     }
 }
 
-// Global Event Listeners - initialized once
-document.getElementById('ap_ssid').addEventListener('input', () => { markDirty(); checkChanges(); });
-document.getElementById('ap_pwd').addEventListener('input', () => { markDirty(); checkChanges(); });
-document.getElementById('ssid_hidden').addEventListener('change', () => { markDirty(); checkChanges(); });
-document.getElementById('activeDisplayType').addEventListener('change', () => { markDirty(); checkChanges(); });
-document.getElementById('flipOled').addEventListener('change', () => { markDirty(); checkChanges(); });
+document.getElementById('ap_ssid').addEventListener('input', () => { checkDirty(); checkChanges(); });
+document.getElementById('ap_pwd').addEventListener('input', () => { checkDirty(); checkChanges(); });
+document.getElementById('ssid_hidden').addEventListener('change', () => { checkDirty(); checkChanges(); });
+document.getElementById('activeDisplayType').addEventListener('change', () => { checkDirty(); checkChanges(); });
+document.getElementById('flipOled').addEventListener('change', () => { checkDirty(); checkChanges(); });
 
-// Attach markDirty to all other inputs
-document.getElementById('modeSelect').addEventListener('change', markDirty);
-document.getElementById('timeoutSelect').addEventListener('change', markDirty);
-document.getElementById('ledValid').addEventListener('change', markDirty);
-document.getElementById('customMessage').addEventListener('input', markDirty);
-document.getElementById('enable_tamper_detect').addEventListener('change', markDirty);
+document.getElementById('modeSelect').addEventListener('change', checkDirty);
+document.getElementById('timeoutSelect').addEventListener('change', checkDirty);
+document.getElementById('ledValid').addEventListener('change', checkDirty);
+document.getElementById('customMessage').addEventListener('input', checkDirty);
+document.getElementById('enable_tamper_detect').addEventListener('change', checkDirty);
 
 setInterval(updateTable, 5000);
 setInterval(updateLastReadCardsTable, 5000);
