@@ -33,14 +33,14 @@ function checkDirty() {
     const currHidden = document.getElementById('ssid_hidden').checked;
     
     const currMode = document.getElementById('modeSelect').value;
-    const currTimeout = document.getElementById('timeoutSelect').value; // is string
+    const currTimeout = document.getElementById('timeoutSelect').value;
     const currMsg = document.getElementById('customMessage').value;
-    const currLed = document.getElementById('ledValid').value; // is string
-    const currDisplay = document.getElementById('activeDisplayType').value; // is string
+    const currLed = document.getElementById('ledValid').value;
+    const currDisplay = document.getElementById('activeDisplayType').value;
     const currFlip = document.getElementById('flipOled').checked;
     const currTamper = document.getElementById('enable_tamper_detect').checked;
 
-    // 2. Compare (using loose equality != to handle string vs number differences)
+    // 2. Compare
     let isDirty = false;
 
     if (currSsid !== originalSsid) isDirty = true;
@@ -55,16 +55,34 @@ function checkDirty() {
     if (currFlip !== originalFlipOled) isDirty = true;
     if (currTamper !== originalTamper) isDirty = true;
 
-    // 3. Update State & UI
+    // 3. Update UI
     unsavedChanges = isDirty;
-    const saveBtn = document.querySelector('#settings button'); // Adjust selector if you have multiple buttons
+    const saveBtn = document.querySelector('#settings button');
 
     if (saveBtn) {
+        // Ensure the button text is clean (no accidental duplication)
+        if (saveBtn.childNodes.length === 0 || (saveBtn.firstChild.nodeType === 3 && saveBtn.firstChild.nodeValue !== "Save Settings")) {
+             saveBtn.firstChild.nodeValue = "Save Settings";
+        }
+
+        let badge = document.getElementById('unsavedBadge');
+        
+        // Create badge if it doesn't exist
+        if (!badge) {
+            badge = document.createElement('span');
+            badge.id = 'unsavedBadge';
+            // We do NOT use the generic .badge class here to avoid style conflicts.
+            // The ID selector in CSS handles all the styling.
+            badge.className = 'collapsed'; 
+            badge.textContent = 'UNSAVED';
+            saveBtn.appendChild(badge);
+        }
+
+        // Toggle Visibility
         if (unsavedChanges) {
-            // Gold Badge Style
-            saveBtn.innerHTML = 'Save Settings <span class="badge badge-yellow" style="margin-left:8px; font-size:0.75rem;">UNSAVED</span>';
+            badge.classList.remove('collapsed');
         } else {
-            saveBtn.innerHTML = "Save Settings";
+            badge.classList.add('collapsed');
         }
     }
 }
@@ -262,10 +280,21 @@ function toggleCollapsible() {
 function toggleFlipOption() {
     const displayType = document.getElementById('activeDisplayType').value;
     const container = document.getElementById('flipOledContainer');
+    const flipCheckbox = document.getElementById('flipOled');
     
     if (displayType === "1") {
+        // LCD Mode selected
         container.style.display = 'none';
+        
+        // Logic: If user clicks LCD, force Flip to FALSE
+        if (flipCheckbox.checked) {
+            flipCheckbox.checked = false;
+            // Run dirty check so the "UNSAVED" badge appears immediately
+            checkDirty(); // TODO: Combine checkDirty and checkChanges because they really do the same thing
+            checkChanges();
+        }
     } else {
+        // OLED Mode selected
         container.style.display = 'inline-block';
     }
 }
@@ -389,7 +418,6 @@ function saveSettings() {
                 alert('Settings saved successfully.');
                 // RESET DIRTY FLAG ON SUCCESSFUL SAVE
                 unsavedChanges = false;
-                document.querySelector('#settings button').textContent = "Save Settings";
                 fetchSettings(true); 
             }
             document.getElementById('rebootWarning').style.display = 'none';
