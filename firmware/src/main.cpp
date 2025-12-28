@@ -225,7 +225,7 @@ int tempTimeoutIndex = 0;
 // 1. CTF Submenu
 MenuItem menuItems_CTF[] = {
   { "Back",           ITEM_ACTION, nullptr, 0, 0, nullptr, 0 },
-  { "LED on Valid",   ITEM_SELECT, &ledValid, 0, 2, nullptr, 0 } // 0=None, 1=Rapid, 2=Long
+  { "Valid LED",   ITEM_SELECT, &ledValid, 0, 2, nullptr, 0 } // 0=None, 1=Rapid, 2=Long
 };
 
 // 2. Wifi Submenu
@@ -458,6 +458,16 @@ void renderMenu() {
         }
         label += ": " + tStr;
       } 
+      else if (String(item->label) == "Valid LED") {
+        String lStr;
+        switch(val) {
+            case 0: lStr = "None"; break;
+            case 1: lStr = "Rapid"; break;
+            case 2: lStr = "Long"; break;
+            default: lStr = String(val);
+        }
+        label += ": " + lStr;
+      }
       else {
         label += ": " + String(val);
       }
