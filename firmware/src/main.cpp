@@ -1656,6 +1656,16 @@ void webServer()
     flipOledDisplay = jsonObj["flip_oled_display"] | flipOledDisplay;
     enableTamperDetect = jsonObj["enable_tamper_detect"] | enableTamperDetect;
 
+    // sync encoder menu variables
+    tempDeviceModeInt = (deviceMode == "ctf") ? 1 : 0;
+
+    if (displayTimeout == 0) tempTimeoutIndex = 0;       // None
+    else if (displayTimeout <= 5000) tempTimeoutIndex = 1; // 5s
+    else if (displayTimeout <= 7000) tempTimeoutIndex = 2; // 7s
+    else if (displayTimeout <= 15000) tempTimeoutIndex = 3;// 15s
+    else if (displayTimeout <= 20000) tempTimeoutIndex = 4;// 20s
+    else tempTimeoutIndex = 5;                             // 30s
+
     // --- Check Reboot Flag from Client ---
     bool clientSaysReboot = jsonObj["should_reboot"] | false;
 
@@ -2028,7 +2038,9 @@ void processMenuAction() {
     MenuItem* item = &currentMenuLevel[selectedIndex];
     if (item->variable != nullptr) {
       *(int*)item->variable = editTempIndex;
-      if (String(item->label) == "Mode") deviceMode = (editTempIndex == 0) ? "raw" : "ctf";
+      if (String(item->label) == "Mode") {
+        deviceMode = (editTempIndex == 0) ? "raw" : "ctf";
+      }
       if (String(item->label) == "Timeout") {
          switch(editTempIndex) {
              case 0: displayTimeout = 0; break;
@@ -2039,6 +2051,7 @@ void processMenuAction() {
              case 5: displayTimeout = 30000; break;
          }
       }
+      saveSettingsToPreferences();
     }
     currentMenuState = STATE_MENU_NAV;
     updateDisplay();
@@ -2102,6 +2115,8 @@ void processMenuAction() {
         if (item->variable != nullptr) {
           bool* val = (bool*)item->variable;
           *val = !(*val);
+
+        saveSettingsToPreferences();
         }
         break;
 
