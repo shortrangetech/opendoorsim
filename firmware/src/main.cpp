@@ -135,8 +135,14 @@ volatile unsigned long lastButtonPress = 0;
 const unsigned long DEBOUNCE_DELAY = 200; // ms
 volatile bool buttonPressedFlag = false;
 
-// Variables to track rotation state
-volatile int lastClk = HIGH;
+// State Machine Table
+static const int8_t enc_states[] = {
+    0, -1,  1,  0,
+    1,  0,  0, -1,
+   -1,  0,  0,  1,
+    0,  1, -1,  0
+};
+volatile uint8_t old_AB = 0; // Stores the previous pin state (0..3)
 
 
 // Reader config and variables
@@ -249,16 +255,23 @@ MenuItem menuItems_Main[] = {
 };
 
 void IRAM_ATTR isr_rotary() {
-  int clkState = digitalRead(ROTARY_CLK);
-  int dtState = digitalRead(ROTARY_DT);
+  // Read current state of CLK and DT
+  // We shift CLK to bit 1, and DT to bit 0.
+  // Note: digitalRead is fast enough on ESP32, but direct port manipulation is faster.
+  // For now, digitalRead is sufficient for menu navigation.
+  uint8_t new_AB = (digitalRead(ROTARY_CLK) << 1) | digitalRead(ROTARY_DT);
 
-  if (clkState != lastClk) {
-    if (clkState == LOW) { 
-      if (dtState == HIGH) encoderCount++; 
-      else encoderCount--; 
-    }
-  }
-  lastClk = clkState;
+  // Combine old state and new state to create the index for our table
+  // Index = (old_AB * 4) + new_AB
+  // We mask with 0x0f (15) just to be safe, though logically unnecessary if old_AB is 2 bits.
+  old_AB &= 0x03; // ensure old_AB is only 2 bits
+  int stateIndex = (old_AB << 2) | new_AB;
+
+  // Add the table value to the count
+  encoderCount += enc_states[stateIndex];
+
+  // Update old state for next time
+  old_AB = new_AB;
 }
 
 void IRAM_ATTR isr_button() {
@@ -269,10 +282,19 @@ void IRAM_ATTR isr_button() {
 }
 
 void setupEncoder() {
-  pinMode(ROTARY_CLK, INPUT);
-  pinMode(ROTARY_DT, INPUT);
+  // Use Internal Pullups
+  pinMode(ROTARY_CLK, INPUT_PULLUP);
+  pinMode(ROTARY_DT, INPUT_PULLUP);
   pinMode(ROTARY_SW, INPUT_PULLUP);
+
+  // Initialize the state variable immediately so we don't start with a jump
+  old_AB = (digitalRead(ROTARY_CLK) << 1) | digitalRead(ROTARY_DT);
+
+  // Attach interrupts to BOTH pins on CHANGE
   attachInterrupt(digitalPinToInterrupt(ROTARY_CLK), isr_rotary, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(ROTARY_DT), isr_rotary, CHANGE);
+  
+  // Button remains the same
   attachInterrupt(digitalPinToInterrupt(ROTARY_SW), isr_button, FALLING);
 }
 
@@ -282,46 +304,52 @@ void updateDisplay(); // Ensure this is also known if not already
 
 void handleMenuInput() {
   if (encoderCount != 0) {
-    if (currentMenuState == STATE_MENU_EDIT) {
-      editTempIndex += encoderCount;
-      MenuItem* item = &currentMenuLevel[selectedIndex];
-      if (editTempIndex < item->minVal) editTempIndex = item->minVal;
-      if (editTempIndex > item->maxVal) editTempIndex = item->maxVal;
-      encoderCount = 0;
-      forceMenuUpdate = true;
-    } 
-    else if (currentMenuState == STATE_MENU_NAV || currentMenuState == STATE_VIEW_LOG_LIST) {
-      selectedIndex += encoderCount;
-      int maxIndex = (currentMenuState == STATE_VIEW_LOG_LIST) ? cardDataIndex : (currentMenuSize - 1);
-      if (maxIndex < 0) maxIndex = 0;
-      if (selectedIndex < 0) selectedIndex = 0;
-      if (selectedIndex > maxIndex) selectedIndex = maxIndex;
-      forceMenuUpdate = true; 
+    // RESOLUTION ADJUSTMENT:
+    // Most encoders have 4 "steps" per physical detent/click.
+    // We only move the menu if we have accumulated enough steps.
+    // Try dividing by 4 first. If it feels too slow, change to 2.
+    int steps = encoderCount / 4; 
+
+    if (steps != 0) {
+      // Consume the steps we used
+      encoderCount -= (steps * 4); 
+
+      if (currentMenuState == STATE_MENU_EDIT) {
+        editTempIndex += steps;
+        MenuItem* item = &currentMenuLevel[selectedIndex];
+        if (editTempIndex < item->minVal) editTempIndex = item->minVal;
+        if (editTempIndex > item->maxVal) editTempIndex = item->maxVal;
+        forceMenuUpdate = true;
+      } 
+      else if (currentMenuState == STATE_MENU_NAV || currentMenuState == STATE_VIEW_LOG_LIST) {
+        selectedIndex += steps;
+        int maxIndex = (currentMenuState == STATE_VIEW_LOG_LIST) ? cardDataIndex : (currentMenuSize - 1);
+        
+        // Wrap-around or Clamp logic?
+        // Currently clamping:
+        if (maxIndex < 0) maxIndex = 0;
+        if (selectedIndex < 0) selectedIndex = 0;
+        if (selectedIndex > maxIndex) selectedIndex = maxIndex;
+        
+        forceMenuUpdate = true; 
+      }
+      else if (currentMenuState == STATE_CONFIRM_REBOOT) {
+        currentMenuState = STATE_MENU_NAV;
+        forceMenuUpdate = true; 
+      }
+      else if (currentMenuState == STATE_CONFIRM_WIFI_REBOOT) {
+        apMode = origApMode;
+        ssidHidden = origSsidHidden;
+        currentMenuState = STATE_MENU_NAV;
+        currentMenuLevel = menuItems_Main;
+        currentMenuSize = sizeof(menuItems_Main) / sizeof(menuItems_Main[0]);
+        selectedIndex = 3; 
+        scrollOffset = 0;
+        forceMenuUpdate = true;
+      }
+
+      updateDisplay(); 
     }
-    else if (currentMenuState == STATE_CONFIRM_REBOOT) {
-      currentMenuState = STATE_MENU_NAV;
-      forceMenuUpdate = true; 
-    }
-    // --- FIX: CANCEL REBOOT LOGIC ---
-    else if (currentMenuState == STATE_CONFIRM_WIFI_REBOOT) {
-      // 1. Revert the changes
-      apMode = origApMode;
-      ssidHidden = origSsidHidden;
-      
-      // 2. Go back to MAIN MENU (Not Wifi Menu)
-      currentMenuState = STATE_MENU_NAV;
-      currentMenuLevel = menuItems_Main;
-      currentMenuSize = sizeof(menuItems_Main) / sizeof(menuItems_Main[0]);
-      
-      // Optional: Highlight "WIFI" (Index 3) so they know where they came from
-      selectedIndex = 3; 
-      scrollOffset = 0;
-      
-      forceMenuUpdate = true;
-    }
-    
-    encoderCount = 0; 
-    updateDisplay(); 
   }
 
   if (buttonPressedFlag) {
