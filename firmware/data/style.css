@@ -11,7 +11,8 @@
 }
 
 body {
-    font-family: "Courier New", Courier, monospace;
+    font-family: "DejaVu Sans Mono", "Liberation Mono", Menlo, Monaco, Consolas, monospace;
+    
     font-weight: 600;
     letter-spacing: -0.5px;
     background: var(--bg);
@@ -92,6 +93,9 @@ input[type="text"], input[type="number"], input[type="password"], textarea, sele
     padding: 8px 10px;
     border-radius: 10px;
     box-sizing: border-box;
+
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-weight: 500;
 }
 
 @media (max-width:700px){
@@ -175,6 +179,7 @@ button:hover{
     color: #dfcdf0;
     padding-left: 8px;
     padding-right: 8px;
+    border: 1px solid #52009f;
 }
 
 .badge-gray {
@@ -187,7 +192,7 @@ button:hover{
 .badge-clickable {
     cursor: pointer;
     margin-left: 6px;
-    opacity: 0.8;
+    opacity: 0.9;
     transition: all 0.2s ease;
     user-select: none; /* Prevents text selection on hover */
 }
