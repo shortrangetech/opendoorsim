@@ -1,4 +1,4 @@
-# OpenDoorSim
+# The OpenDoorSim Project
 [TODO: animated gif here]  
 OpenDoorSim is an **open-source PACS/RFID lab** you can **build entirely at home!** Built with **off-the-shelf parts** and a few **simple tools**, OpenDoorSim simulates Physical Access Control Systems (PACS) just like the real world - and makes running everything from home experiments to big CTFs a breeze. Sporting a **fresh web UI** and a **new on-device hardware menu**, you can run things your way - even offline. Turnkey **tamper detection**, easy **batch user management** and granular data options make it easier than ever to get started on your next RFID adventure. 
 
