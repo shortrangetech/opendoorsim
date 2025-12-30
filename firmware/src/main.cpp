@@ -131,9 +131,10 @@ bool isSystemPaused = false; // Tracks if the scanner is paused
 
 // --- ROTARY ENCODER VARIABLES ---
 volatile int encoderCount = 0;
-volatile unsigned long lastButtonPress = 0;
+volatile unsigned long lastEncoderPress = 0;
 const unsigned long DEBOUNCE_DELAY = 200; // ms
-volatile bool buttonPressedFlag = false;
+volatile bool encoderPressedFlag = false;
+bool disableEncoder = false;
 
 // State Machine Table
 static const int8_t enc_states[] = {
@@ -275,9 +276,9 @@ void IRAM_ATTR isr_rotary() {
 }
 
 void IRAM_ATTR isr_button() {
-  if (millis() - lastButtonPress > DEBOUNCE_DELAY) {
-    buttonPressedFlag = true;
-    lastButtonPress = millis();
+  if (millis() - lastEncoderPress > DEBOUNCE_DELAY) {
+    encoderPressedFlag = true;
+    lastEncoderPress = millis();
   }
 }
 
@@ -303,6 +304,15 @@ void processMenuAction();
 void updateDisplay(); // Ensure this is also known if not already
 
 void handleMenuInput() {
+
+  // check for encoder disabled
+  if (disableEncoder && currentMenuState == STATE_STANDBY) {
+      // Reset flags so they don't pile up
+      encoderCount = 0;
+      encoderPressedFlag = false;
+      return; 
+  }
+
   if (encoderCount != 0) {
     // RESOLUTION ADJUSTMENT:
     // Most encoders have 4 "steps" per physical detent/click.
@@ -352,8 +362,8 @@ void handleMenuInput() {
     }
   }
 
-  if (buttonPressedFlag) {
-    buttonPressedFlag = false; 
+  if (encoderPressedFlag) {
+    encoderPressedFlag = false;
     processMenuAction(); 
     forceMenuUpdate = true;
   }
@@ -619,6 +629,7 @@ void saveSettingsToPreferences()
   doc["active_display_type"] = activeDisplayType; // 1 for LCD, 2 for OLED 128x32, 3 for OLED 128x64
   doc["flip_oled_display"] = flipOledDisplay;
   doc["enable_tamper_detect"] = enableTamperDetect;
+  doc["disable_encoder"] = disableEncoder;
 
   if (serializeJson(doc, file) == 0)
   {
@@ -681,6 +692,7 @@ void loadSettingsFromPreferences()
   activeDisplayType = doc["active_display_type"] | activeDisplayType;
   flipOledDisplay = doc["flip_oled_display"] | flipOledDisplay;
   enableTamperDetect = doc["enable_tamper_detect"] | false;
+  disableEncoder = doc["disable_encoder"] | false;
 
   unsigned int loadedMaxBits = doc["max_bits"] | (unsigned int)MAX_BITS_CONST;
   if (loadedMaxBits == 0) loadedMaxBits = MAX_BITS_CONST;
@@ -1618,6 +1630,8 @@ void webServer()
     doc["custom_message"] = customMessage;
     doc["version"] = firmwareVersion;
     doc["led_valid"] = ledValid;
+    doc["disable_encoder"] = disableEncoder;
+
     String response;
     serializeJson(doc, response);
     request->send(200, "application/json", response);
@@ -1655,6 +1669,8 @@ void webServer()
     activeDisplayType = jsonObj["active_display_type"] | activeDisplayType;
     flipOledDisplay = jsonObj["flip_oled_display"] | flipOledDisplay;
     enableTamperDetect = jsonObj["enable_tamper_detect"] | enableTamperDetect;
+    disableEncoder = jsonObj["disable_encoder"] | false;
+    
 
     // sync encoder menu variables
     tempDeviceModeInt = (deviceMode == "ctf") ? 1 : 0;
