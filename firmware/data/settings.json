@@ -12,5 +12,6 @@
     "active_display_type": 1,
     "display_timeout": 7000,
     "flip_oled_display": false,
-    "enable_tamper_detect": false
+    "enable_tamper_detect": false,
+    "disable_encoder": false
 }

@@ -23,6 +23,7 @@ let originalTimeout = 5000;
 let originalCustomMessage = "";
 let originalLedValid = 1;
 let originalTamper = false;
+let originalDisableEncoder = false;
 
 // --- script.js ---
 
@@ -39,7 +40,7 @@ function checkDirty() {
     const currDisplay = document.getElementById('activeDisplayType').value;
     const currFlip = document.getElementById('flipOled').checked;
     const currTamper = document.getElementById('enable_tamper_detect').checked;
-
+    const currDisableEncoder = document.getElementById('disable_encoder').checked; // NEW
     // 2. Compare
     let isDirty = false;
 
@@ -54,6 +55,7 @@ function checkDirty() {
     if (currDisplay != originalDisplayType) isDirty = true;
     if (currFlip !== originalFlipOled) isDirty = true;
     if (currTamper !== originalTamper) isDirty = true;
+    if (currDisableEncoder !== originalDisableEncoder) isDirty = true;
 
     // 3. Update UI
     unsavedChanges = isDirty;
@@ -340,6 +342,7 @@ function saveSettings() {
     const pwdInput = document.getElementById('ap_pwd').value;
     const ssidInput = document.getElementById('ap_ssid').value;
     const hiddenInput = document.getElementById('ssid_hidden').checked;
+    const disableEncoder = document.getElementById('disable_encoder').checked;
 
     if (!ssidInput || ssidInput.trim().length === 0) {
         alert("Cannot Save: SSID cannot be empty.");
@@ -402,7 +405,8 @@ function saveSettings() {
         active_display_type: parseInt(activeDisplayType, 10),
         flip_oled_display: currentFlip,
         enable_tamper_detect: enableTamperDetect,
-        should_reboot: rebootRequired
+        should_reboot: rebootRequired,
+        disable_encoder: disableEncoder
     };
 
     fetch('/saveSettings', {
@@ -470,6 +474,7 @@ function updateSettingsUI(settings) {
     const activeDisplayType = settings.active_display_type || settings.activeDisplayType || '';
     const enableTamperDetect = (settings.enable_tamper_detect !== undefined) ? settings.enable_tamper_detect : settings.enableTamperDetect;
     const version = settings.version || settings.version || '';
+    const disableEncoder = (settings.disable_encoder !== undefined) ? settings.disable_encoder : false;
 
     // 1. Populate UI
     if (document.getElementById('modeSelect')) document.getElementById('modeSelect').value = (mode || '').toString().toLowerCase();
@@ -487,6 +492,7 @@ function updateSettingsUI(settings) {
     if (document.getElementById('enable_tamper_detect')) document.getElementById('enable_tamper_detect').checked = enableTamperDetect;
     if (document.getElementById('versionValue')) document.getElementById('versionValue').textContent = version;
     if (document.getElementById('flipOled')) document.getElementById('flipOled').checked = settings.flip_oled_display; 
+    if (document.getElementById('disable_encoder')) document.getElementById('disable_encoder').checked = disableEncoder;
 
     // 2. STORE ORIGINAL VALUES
     originalSsid = apSsid;
@@ -495,12 +501,14 @@ function updateSettingsUI(settings) {
     originalDisplayType = activeDisplayType;
     originalFlipOled = settings.flip_oled_display;
     
+    
     // New globals
     originalMode = (mode || '').toString().toLowerCase();
     originalTimeout = displayTimeout;
     originalCustomMessage = customMessage;
     originalLedValid = ledValid;
     originalTamper = enableTamperDetect;
+    originalDisableEncoder = disableEncoder;
 
     // Listeners
     const displaySelect = document.getElementById('activeDisplayType');
@@ -771,6 +779,7 @@ document.getElementById('timeoutSelect').addEventListener('change', checkDirty);
 document.getElementById('ledValid').addEventListener('change', checkDirty);
 document.getElementById('customMessage').addEventListener('input', checkDirty);
 document.getElementById('enable_tamper_detect').addEventListener('change', checkDirty);
+document.getElementById('disable_encoder').addEventListener('change', checkDirty);
 
 setInterval(updateTable, 5000);
 setInterval(updateLastReadCardsTable, 5000);
