@@ -14,6 +14,53 @@
 
 #include "doorsim.h"
 
+// --- MENU SYSTEM CONSTANTS & STRUCTS ---
+
+enum MenuState {
+  STATE_STANDBY,
+  STATE_MENU_NAV,
+  STATE_MENU_EDIT,
+  STATE_VIEW_LOG_LIST,
+  STATE_VIEW_LOG_DETAIL,
+  STATE_VIEW_WIFI_INFO,
+  STATE_CONFIRM_REBOOT,
+  STATE_CONFIRM_WIFI_REBOOT,
+  STATE_SYSTEM_PAUSED
+};
+
+// Types of menu items to determine how they are handled
+enum MenuItemType {
+  ITEM_SUBMENU,     // Enters a new menu level
+  ITEM_ACTION,      // Triggers a function (e.g., Reboot, Back)
+  ITEM_TOGGLE,      // ON/OFF (bool)
+  ITEM_SELECT,      // Cycle through predefined options (int/enum)
+  ITEM_EXIT         // Returns to Standby
+};
+
+struct MenuItem {
+  const char* label;    // Text to display
+  MenuItemType type;    
+  void* variable;       // Pointer to the variable being modified (optional)
+  int minVal;           // For integer/select types
+  int maxVal;           // For integer/select types
+  MenuItem* submenu;    // Pointer to child menu array (if SUBMENU)
+  int submenuSize;      // Size of child menu array
+};
+
+// Global Menu State Variables
+MenuState currentMenuState = STATE_STANDBY;
+MenuItem* currentMenuLevel = nullptr; // Pointer to the current array of menu items
+int currentMenuSize = 0;              // Number of items in current level
+int selectedIndex = 0;                // Currently highlighted row
+int scrollOffset = 0;                 // For scrolling on small screens
+int editTempIndex = 0;                // Temporary value holder during editing
+int viewingCardIndex = -1;            // Which card from the log we are viewing
+bool forceMenuUpdate = true; // Flag to force a redraw of the menu
+bool origApMode = true;
+int origSsidHidden = 0;
+
+
+
 AsyncWebServer server(80);
 
 IPAddress local_IP(192, 168, 8, 8);
@@ -83,6 +130,23 @@ bool rebootRequested = false;
 unsigned long rebootTimer = 0;
 bool isSystemPaused = false; // Tracks if the scanner is paused
 
+// --- ROTARY ENCODER VARIABLES ---
+volatile int encoderCount = 0;
+volatile unsigned long lastEncoderPress = 0;
+const unsigned long DEBOUNCE_DELAY = 200; // ms
+volatile bool encoderPressedFlag = false;
+bool disableEncoder = false;
+
+// State Machine Table
+static const int8_t enc_states[] = {
+    0, -1,  1,  0,
+    1,  0,  0, -1,
+   -1,  0,  0,  1,
+    0,  1, -1,  0
+};
+volatile uint8_t old_AB = 0; // Stores the previous pin state (0..3)
+
+
 // Reader config and variables
 
 // compile-time array size for bits (kept as a safe upper bound)
@@ -110,6 +174,7 @@ volatile unsigned int weigandCounter;
 unsigned long displayTimeout = 7000; // 7 seconds
 unsigned long lastCardTime = 0;
 bool displayingCard = false;
+bool isSystemMessage = false;
 
 // Wifi Settings
 bool apMode = true;
@@ -127,7 +192,7 @@ int ledValid = 1;
 // Custom Display Message
 String customMessage = "OPENDOORSIM";
 // settings file version (read from settings.json)
-String firmwareVersion = "0.8.6";
+String firmwareVersion = "0.8.8";
 
 // decoded facility code and card code
 unsigned long facilityCode = 0;
@@ -155,9 +220,362 @@ const int MAX_WIEGAND_FORMATS = 50;
 WiegandFormat wiegandFormats[MAX_WIEGAND_FORMATS];
 int wiegandFormatCounter = 0;
 
+int tempDeviceModeInt = 0;
+int tempTimeoutIndex = 0;
+
+// --- MENU ARRAYS ---
+
+// 1. CTF Submenu
+MenuItem menuItems_CTF[] = {
+  { "Back",           ITEM_ACTION, nullptr, 0, 0, nullptr, 0 },
+  { "Valid LED",   ITEM_SELECT, &ledValid, 0, 2, nullptr, 0 } // 0=None, 1=Rapid, 2=Long
+};
+
+// 2. Wifi Submenu
+MenuItem menuItems_Wifi[] = {
+  { "Back",           ITEM_ACTION, nullptr, 0, 0, nullptr, 0 },
+  { "Access Point",   ITEM_TOGGLE, &apMode, 0, 1, nullptr, 0 }, 
+  { "Hidden",         ITEM_TOGGLE, &ssidHidden, 0, 1, nullptr, 0 },
+  { "View Info",      ITEM_ACTION, nullptr, 0, 0, nullptr, 0 }
+};
+
+// 3. General Submenu
+MenuItem menuItems_General[] = {
+  { "Back",           ITEM_ACTION, nullptr, 0, 0, nullptr, 0 },
+  { "Mode",           ITEM_SELECT, &tempDeviceModeInt, 0, 1, nullptr, 0 },
+  { "Timeout",        ITEM_SELECT, &tempTimeoutIndex, 0, 5, nullptr, 0 }, 
+  { "Tamper",         ITEM_TOGGLE, &enableTamperDetect, 0, 1, nullptr, 0 }
+};
+
+// 4. Main Menu
+MenuItem menuItems_Main[] = {
+  { "Return to Doorsim", ITEM_EXIT,    nullptr, 0, 0, nullptr, 0 },
+  { "VIEW DATA",         ITEM_ACTION,  nullptr, 0, 0, nullptr, 0 }, 
+  { "GENERAL",          ITEM_SUBMENU, nullptr, 0, 0, menuItems_General, 0 }, 
+  { "WIFI",              ITEM_SUBMENU, nullptr, 0, 0, menuItems_Wifi, 0 },
+  { "CTF",               ITEM_SUBMENU, nullptr, 0, 0, menuItems_CTF, 0 },
+  { "REBOOT",            ITEM_ACTION,  nullptr, 0, 0, nullptr, 0 }
+};
+
+void IRAM_ATTR isr_rotary() {
+  if (isSystemPaused) return;
+  uint8_t new_AB = (digitalRead(ROTARY_CLK) << 1) | digitalRead(ROTARY_DT);
+
+  // Combine old state and new state to create the index for our table
+  // Index = (old_AB * 4) + new_AB
+  // We mask with 0x0f (15) just to be safe, though logically unnecessary if old_AB is 2 bits.
+  old_AB &= 0x03; // ensure old_AB is only 2 bits
+  int stateIndex = (old_AB << 2) | new_AB;
+
+  // Add the table value to the count
+  encoderCount += enc_states[stateIndex];
+
+  // Update old state for next time
+  old_AB = new_AB;
+}
+
+void IRAM_ATTR isr_button() {
+  if (isSystemPaused) return;
+  if (millis() - lastEncoderPress > DEBOUNCE_DELAY) {
+    encoderPressedFlag = true;
+    lastEncoderPress = millis();
+  }
+}
+
+void setupEncoder() {
+  // Use Internal Pullups
+  pinMode(ROTARY_CLK, INPUT_PULLUP);
+  pinMode(ROTARY_DT, INPUT_PULLUP);
+  pinMode(ROTARY_SW, INPUT_PULLUP);
+
+  // Initialize the state variable immediately so we don't start with a jump
+  old_AB = (digitalRead(ROTARY_CLK) << 1) | digitalRead(ROTARY_DT);
+
+  // Attach interrupts to BOTH pins on CHANGE
+  attachInterrupt(digitalPinToInterrupt(ROTARY_CLK), isr_rotary, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(ROTARY_DT), isr_rotary, CHANGE);
+  
+  // Button remains the same
+  attachInterrupt(digitalPinToInterrupt(ROTARY_SW), isr_button, FALLING);
+}
+
+// FORWARD DECLARATION (Fixes the error)
+void processMenuAction(); 
+void updateDisplay(); // Ensure this is also known if not already
+
+void handleMenuInput() {
+
+  // check for encoder disabled
+  if (disableEncoder && currentMenuState == STATE_STANDBY) {
+      // Reset flags so they don't pile up
+      encoderCount = 0;
+      encoderPressedFlag = false;
+      return; 
+  }
+
+  if (encoderCount != 0) {
+    // RESOLUTION ADJUSTMENT:
+    // Most encoders have 4 "steps" per physical detent/click.
+    // We only move the menu if we have accumulated enough steps.
+    // Try dividing by 4 first. If it feels too slow, change to 2.
+    int steps = encoderCount / 4; 
+
+    if (steps != 0) {
+
+      displayingCard = false;
+      encoderCount -= (steps * 4); 
+
+      if (currentMenuState == STATE_MENU_EDIT) {
+        editTempIndex += steps;
+        MenuItem* item = &currentMenuLevel[selectedIndex];
+        if (editTempIndex < item->minVal) editTempIndex = item->minVal;
+        if (editTempIndex > item->maxVal) editTempIndex = item->maxVal;
+        forceMenuUpdate = true;
+      } 
+      else if (currentMenuState == STATE_MENU_NAV || currentMenuState == STATE_VIEW_LOG_LIST) {
+        selectedIndex += steps;
+        int maxIndex = (currentMenuState == STATE_VIEW_LOG_LIST) ? cardDataIndex : (currentMenuSize - 1);
+        
+        // Wrap-around or Clamp logic?
+        // Currently clamping:
+        if (maxIndex < 0) maxIndex = 0;
+        if (selectedIndex < 0) selectedIndex = 0;
+        if (selectedIndex > maxIndex) selectedIndex = maxIndex;
+        
+        forceMenuUpdate = true; 
+      }
+      else if (currentMenuState == STATE_CONFIRM_REBOOT) {
+        currentMenuState = STATE_MENU_NAV;
+        forceMenuUpdate = true; 
+      }
+      else if (currentMenuState == STATE_CONFIRM_WIFI_REBOOT) {
+        apMode = origApMode;
+        ssidHidden = origSsidHidden;
+        currentMenuState = STATE_MENU_NAV;
+        currentMenuLevel = menuItems_Main;
+        currentMenuSize = sizeof(menuItems_Main) / sizeof(menuItems_Main[0]);
+        selectedIndex = 3; 
+        scrollOffset = 0;
+        forceMenuUpdate = true;
+      }
+
+      updateDisplay(); 
+    }
+  }
+
+  if (encoderPressedFlag) {
+    displayingCard = false;
+    encoderPressedFlag = false;
+    processMenuAction(); 
+    forceMenuUpdate = true;
+  }
+}
+
+int getVisibleRows() {
+  if (activeDisplayType == DISPLAY_LCD) return 4;
+  if (activeDisplayType == DISPLAY_OLED_32) return 4; // Small text fits ~4 lines
+  if (activeDisplayType == DISPLAY_OLED_64) return 8; // Small text fits ~8 lines
+  return 4;
+}
+
+void drawTextLine(int row, String text, bool inverted = false) {
+  int yPos = 0;
+  
+  if (activeDisplayType == DISPLAY_LCD && lcdDisplay != nullptr) {
+    if (row >= 4) return; // LCD only has 4 rows
+    lcdDisplay->setCursor(0, row);
+    // LCD can't really "invert" text easily without custom chars, 
+    // so we mark selected lines with a ">" character instead.
+    if (inverted) lcdDisplay->print(">"); 
+    else lcdDisplay->print(" ");
+    
+    // Print text, trimming if too long
+    if (text.length() > 19) text = text.substring(0, 19);
+    lcdDisplay->print(text);
+    
+    // Clear rest of line
+    for(int i=text.length()+1; i<20; i++) lcdDisplay->print(" ");
+  } 
+  
+  else if ((activeDisplayType == DISPLAY_OLED_32 || activeDisplayType == DISPLAY_OLED_64) && oledDisplay != nullptr) {
+    int rowHeight = 8; // standard 5x7 font + spacing
+    yPos = row * rowHeight;
+    
+    if (inverted) {
+      oledDisplay->setTextColor(SSD1306_BLACK, SSD1306_WHITE); // Draw black text on white bg
+      // Draw background bar
+      oledDisplay->fillRect(0, yPos, OLED_WIDTH, 8, SSD1306_WHITE);
+    } else {
+      oledDisplay->setTextColor(SSD1306_WHITE);
+    }
+    
+    oledDisplay->setCursor(0, yPos);
+    oledDisplay->println(text);
+  }
+}
+
+void renderMenu() {
+  // OLEDs clear the whole buffer first, so they don't have this issue.
+  if (activeDisplayType != DISPLAY_LCD) oledDisplay->clearDisplay();
+  
+  int visibleRows = getVisibleRows();
+  
+  // Calculate Scroll Offset
+  if (selectedIndex < scrollOffset) {
+    scrollOffset = selectedIndex;
+  } 
+  else if (selectedIndex >= scrollOffset + visibleRows) {
+    scrollOffset = selectedIndex - visibleRows + 1;
+  }
+  
+  // Draw Items
+  for (int i = 0; i < visibleRows; i++) {
+    int itemIndex = scrollOffset + i;
+    
+    // --- FIX START: CLEAR UNUSED ROWS ---
+    // Instead of 'break', we explicitly draw a blank line to wipe old text.
+    if (itemIndex >= currentMenuSize) {
+        drawTextLine(i, ""); 
+        continue;
+    }
+    // --- FIX END ---
+    
+    MenuItem* item = &currentMenuLevel[itemIndex];
+    String label = String(item->label);
+    
+    // Helper to show current values for Select/Toggle items
+    if (item->type == ITEM_TOGGLE && item->variable != nullptr) {
+      bool val = *(bool*)item->variable;
+      label += ": " + String(val ? "ON" : "OFF");
+    }
+    else if (item->type == ITEM_SELECT && item->variable != nullptr) {
+      int val = *(int*)item->variable;
+      // Special handling for editing state
+      if (currentMenuState == STATE_MENU_EDIT && itemIndex == selectedIndex) {
+         val = editTempIndex; // Show the temporary value we are scrolling
+      }
+      if (String(item->label) == "Mode") {
+        label += ": " + String(val == 0 ? "RAW" : "CTF");
+      } 
+      else if (String(item->label) == "Timeout") {
+        String tStr;
+        switch(val) {
+            case 0: tStr = "None"; break;
+            case 1: tStr = "5s"; break;
+            case 2: tStr = "7s"; break;
+            case 3: tStr = "15s"; break;
+            case 4: tStr = "20s"; break;
+            case 5: tStr = "30s"; break;
+            default: tStr = String(val);
+        }
+        label += ": " + tStr;
+      } 
+      else if (String(item->label) == "Valid LED") {
+        String lStr;
+        switch(val) {
+            case 0: lStr = "None"; break;
+            case 1: lStr = "Rapid"; break;
+            case 2: lStr = "Long"; break;
+            default: lStr = String(val);
+        }
+        label += ": " + lStr;
+      }
+      else {
+        label += ": " + String(val);
+      }
+    }
+
+    // Draw the line
+    bool isSelected = (itemIndex == selectedIndex);
+    
+    // LCD Specific: Add indicator chars to the string
+    if (activeDisplayType == DISPLAY_LCD) {
+       if (currentMenuState == STATE_MENU_EDIT && isSelected) {
+         // visual cue for editing
+         if (isSelected) label = (currentMenuState == STATE_MENU_EDIT) ? "*" + label : label; 
+       }
+    } else {
+       // OLED visual cue
+       if (currentMenuState == STATE_MENU_EDIT && isSelected) label = "*" + label;
+    }
+
+    drawTextLine(i, label, isSelected);
+  }
+  
+  if (activeDisplayType != DISPLAY_LCD) oledDisplay->display();
+}
+
+void renderCardLogList() {
+  // OLEDs use a buffer, so we can clear the whole thing first.
+  if (activeDisplayType != DISPLAY_LCD) oledDisplay->clearDisplay();
+  
+  int visibleRows = getVisibleRows();
+  // Total rows = All cards + 1 for the "Back" button at top
+  int totalRows = cardDataIndex + 1; 
+
+  // Calculate Scroll Offset
+  if (selectedIndex < scrollOffset) {
+    scrollOffset = selectedIndex;
+  } 
+  else if (selectedIndex >= scrollOffset + visibleRows) {
+    scrollOffset = selectedIndex - visibleRows + 1;
+  }
+
+  for (int i = 0; i < visibleRows; i++) {
+    int actualIndex = scrollOffset + i; 
+    
+    // --- CHANGED HERE ---
+    // Instead of breaking if we run out of data, we explicitly draw a blank line.
+    // This wipes any "ghost" text from the previous menu screen on LCDs.
+    if (actualIndex >= totalRows) {
+        drawTextLine(i, "");
+        continue;
+    }
+
+    // --- TOP ITEM IS BACK BUTTON ---
+    if (actualIndex == 0) {
+        drawTextLine(i, "Back", (actualIndex == selectedIndex));
+    } 
+    // --- ALL OTHER ITEMS ARE CARDS ---
+    else {
+        // Map list index to array index. 
+        // List Index 1 = Newest Card (cardDataArray[cardDataIndex - 1])
+        int dataIdx = cardDataIndex - actualIndex; 
+        
+        // 1. Build Prefix
+        String prefix = String(cardDataArray[dataIdx].bitCount) + "b ";
+        
+        // 2. Get Hex
+        String hex = String(cardDataArray[dataIdx].hexData);
+        
+        // 3. Dynamic Fit Calculation
+        // LCD Width (20) - Selection Cursor (1) = 19 Max Content Width
+        int maxContentWidth = 19; 
+        int availableSpace = maxContentWidth - prefix.length();
+
+        // 4. Truncate if needed
+        if (hex.length() > availableSpace) {
+            // Cut string to fit, reserving room for ".."
+            hex = hex.substring(0, availableSpace - 2) + "..";
+        }
+        
+        // 5. Combine and Draw
+        String rowText = prefix + hex;
+        drawTextLine(i, rowText, (actualIndex == selectedIndex));
+    }
+  }
+  
+  if (activeDisplayType != DISPLAY_LCD) oledDisplay->display();
+}
+
+
+
 // Interrupts for card reader
-void ISR_INT0()
-{
+void IRAM_ATTR ISR_INT0() {
+  if (isSystemPaused) return;
+  // FIX: Ignore interrupts if we are not in standby (e.g. using menu)
+  if (currentMenuState != STATE_STANDBY) return;
+
   // DATA0 pulse represents a 0 bit
   if (bitCount < maxBits)
   {
@@ -170,8 +588,11 @@ void ISR_INT0()
 }
 
 // interrupt that happens when INT1 goes low (1 bit)
-void ISR_INT1()
-{
+void IRAM_ATTR ISR_INT1() {
+  if (isSystemPaused) return;
+  // FIX: Ignore interrupts if we are not in standby
+  if (currentMenuState != STATE_STANDBY) return;
+
   // DATA1 pulse represents a 1 bit
   if (bitCount < maxBits)
   {
@@ -210,6 +631,7 @@ void saveSettingsToPreferences()
   doc["active_display_type"] = activeDisplayType; // 1 for LCD, 2 for OLED 128x32, 3 for OLED 128x64
   doc["flip_oled_display"] = flipOledDisplay;
   doc["enable_tamper_detect"] = enableTamperDetect;
+  doc["disable_encoder"] = disableEncoder;
 
   if (serializeJson(doc, file) == 0)
   {
@@ -272,6 +694,7 @@ void loadSettingsFromPreferences()
   activeDisplayType = doc["active_display_type"] | activeDisplayType;
   flipOledDisplay = doc["flip_oled_display"] | flipOledDisplay;
   enableTamperDetect = doc["enable_tamper_detect"] | false;
+  disableEncoder = doc["disable_encoder"] | false;
 
   unsigned int loadedMaxBits = doc["max_bits"] | (unsigned int)MAX_BITS_CONST;
   if (loadedMaxBits == 0) loadedMaxBits = MAX_BITS_CONST;
@@ -279,6 +702,15 @@ void loadSettingsFromPreferences()
   else maxBits = loadedMaxBits;
 
   weigandWaitTime = doc["wiegand_wait_time"] | weigandWaitTime;
+
+  // 2. Sync Timeout (Millis -> Index 0-5)
+  if (displayTimeout == 0) tempTimeoutIndex = 0;       // None
+  else if (displayTimeout <= 5000) tempTimeoutIndex = 1; // 5s
+  else if (displayTimeout <= 7000) tempTimeoutIndex = 2; // 7s
+  else if (displayTimeout <= 15000) tempTimeoutIndex = 3;// 15s
+  else if (displayTimeout <= 20000) tempTimeoutIndex = 4;// 20s
+  else tempTimeoutIndex = 5;                             // 30s
+
   Serial.println("[SYSTEM] Settings loaded successfully.");
 }
 
@@ -597,6 +1029,7 @@ void printCardData()
 
   // Start the display timer
   lastCardTime = millis();
+  isSystemMessage = false;
   displayingCard = true;
 }
 
@@ -803,6 +1236,19 @@ bool allBitsAreOnes()
   return true; // All bytes were 0xFF, so all bits are ones
 }
 
+bool allBitsAreZeros()
+{
+  for (int i = 0; i < MAX_BITS_CONST; i++)
+  {
+    if (databits[i] != 0x00)
+    {               // Check if each byte is not equal to 0x00
+      return false; // If any byte is not 0x00, not all bits are zeroes
+    }
+  }
+  return true; // All bytes were 0x00, so all bits are zeroes
+}
+
+
 String centerText(const String &text, int width)
 {
   int len = text.length();
@@ -998,15 +1444,90 @@ void printStandbyMessage()
   }
 }
 
-void updateDisplay()
-{
-  // check for display timeout
-  if (displayTimeout > 0 && displayingCard && (millis() - lastCardTime >= displayTimeout))
-  {
-    printStandbyMessage();
-    displayingCard = false;
+void updateDisplay() {
+  // 1. Handle Automatic Timeout
+  if (displayingCard) {
+    // Determine duration: 2000ms for system messages, otherwise use User Setting
+    unsigned long duration = isSystemMessage ? 2000 : displayTimeout;
+
+    // If duration is 0 (None) and it's NOT a system message, stay forever
+    if (duration == 0 && !isSystemMessage) {
+        // Wait for user input (handled in handleMenuInput)
+        return; 
+    }
+
+    if (millis() - lastCardTime >= duration) {
+      displayingCard = false;
+      isSystemMessage = false;
+      // [FIX] Always force update to clear the message and show previous state
+      // (This fixes the bug where it wouldn't clear if you were in a menu)
+      forceMenuUpdate = true; 
+    } else {
+      // While waiting for timeout, do nothing
+      return; 
+    }
   }
+
+  // 2. High Priority: Pause Screen
+  if (isSystemPaused && currentMenuState != STATE_SYSTEM_PAUSED) {
+      currentMenuState = STATE_SYSTEM_PAUSED;
+      forceMenuUpdate = true;
+  }
+  else if (!isSystemPaused && currentMenuState == STATE_SYSTEM_PAUSED) {
+      currentMenuState = STATE_STANDBY;
+      forceMenuUpdate = true;
+  }
+
+  // 3. Only redraw if something changed!
+  if (!forceMenuUpdate) {
+      return;
+  }
+
+  // 4. Render
+  switch (currentMenuState) {
+    case STATE_STANDBY:
+      printStandbyMessage();
+      break;
+
+    case STATE_SYSTEM_PAUSED:
+       printDisplayText("","   OPENDOORSIM IS   ", "      PAUSED      ", "");
+       break;
+
+    case STATE_MENU_NAV:
+    case STATE_MENU_EDIT:
+      renderMenu();
+      break;
+
+    case STATE_VIEW_LOG_LIST:
+      renderCardLogList();
+      break;
+      
+    case STATE_VIEW_LOG_DETAIL:
+       printDisplayRawCard();
+       break;
+
+    case STATE_VIEW_WIFI_INFO:
+      {
+         String ipLine = "IP: " + WiFi.softAPIP().toString();
+         String passLine = (apPwd.length() > 0) ? "Pwd: " + apPwd : "Pwd: [OPEN]";
+         printDisplayText("   WIFI AP INFO    ", ("SSID: " + apSsid).c_str(), ipLine.c_str(), passLine.c_str());
+      }
+      break;
+      
+    case STATE_CONFIRM_REBOOT:
+       printDisplayText("  CONFIRM REBOOT?   ", "", "  Click to Confirm  ", "  Rotate to Cancel  ");
+       break;
+
+    case STATE_CONFIRM_WIFI_REBOOT:
+       printDisplayText("  CONFIRM REBOOT?   ", " New Wifi Settings: ", "  Click to Confirm   ", "  Rotate to Cancel  ");
+       break;
+  }
+
+  // 5. Reset the flag
+  forceMenuUpdate = false;
 }
+
+
 
 void printCardDataSerial()
 {
@@ -1035,13 +1556,14 @@ void showSettingsSaved()
   
   printDisplayText("   CONFIGURATION    ", "","  Settings saved.   ", "");
 
-  // fake "card read" to trigger display timeout
   lastCardTime = millis();
+  isSystemMessage = true;
   displayingCard = true; 
 }
 
 void setupWifi()
 {
+
   if (!WiFi.softAPConfig(local_IP, gateway, subnet)) {
     Serial.println("[ERROR] AP Custom Config Failed");
   }
@@ -1049,22 +1571,18 @@ void setupWifi()
   Serial.println("[SYSTEM] Configuring Access Point...");
   
   const char* ssid = apSsid.c_str();
-  const char* pwd = nullptr; // Default to NULL (Open Network)
+  const char* pwd = nullptr; 
 
-  // WPA2 Requirement: Password must be at least 8 characters
   if (apPwd.length() >= 8) {
       pwd = apPwd.c_str();
       Serial.println("[SYSTEM] Security: WPA2-PSK (Password set)");
   } else if (apPwd.length() > 0) {
-      // fallback to open to avoid crash
-      Serial.println("[SYSTEM] WARNING: Password '" + apPwd + "' is too short (min 8 chars).");
-      Serial.println("[SYSTEM] FALLBACK: Starting as OPEN network to prevent crash.");
+      Serial.println("[SYSTEM] WARNING: Password too short. Fallback to OPEN.");
       pwd = nullptr; 
   } else {
       Serial.println("[SYSTEM] Security: OPEN (No password set)");
   }
 
-  // Start AP
   if (WiFi.softAP(ssid, pwd, apChannel, ssidHidden)) {
       Serial.println("[SYSTEM] SoftAP started successfully.");
       Serial.print("[SYSTEM] IP Address: ");
@@ -1072,7 +1590,6 @@ void setupWifi()
   } else {
       Serial.println("[SYSTEM] CRITICAL ERROR: Failed to start SoftAP!");
   }
-
 }
 
 void webServer()
@@ -1132,9 +1649,27 @@ void webServer()
     doc["custom_message"] = customMessage;
     doc["version"] = firmwareVersion;
     doc["led_valid"] = ledValid;
+    doc["disable_encoder"] = disableEncoder;
+    doc["is_paused"] = isSystemPaused;
+
     String response;
     serializeJson(doc, response);
     request->send(200, "application/json", response);
+  });
+
+  server.on("/togglePause", HTTP_POST, [](AsyncWebServerRequest *request) {
+      isSystemPaused = !isSystemPaused;
+      
+      if (isSystemPaused) {
+          Serial.println("[SYSTEM] System PAUSED via WebUI");
+          currentMenuState = STATE_SYSTEM_PAUSED;
+      } else {
+          Serial.println("[SYSTEM] System UN-PAUSED via WebUI");
+          currentMenuState = STATE_STANDBY;
+      }
+      
+      forceMenuUpdate = true;
+      request->send(200, "text/plain", isSystemPaused ? "PAUSED" : "ACTIVE");
   });
 
   AsyncCallbackJsonWebHandler *handler = new AsyncCallbackJsonWebHandler("/saveSettings", [](AsyncWebServerRequest *request, JsonVariant &json) {
@@ -1169,6 +1704,18 @@ void webServer()
     activeDisplayType = jsonObj["active_display_type"] | activeDisplayType;
     flipOledDisplay = jsonObj["flip_oled_display"] | flipOledDisplay;
     enableTamperDetect = jsonObj["enable_tamper_detect"] | enableTamperDetect;
+    disableEncoder = jsonObj["disable_encoder"] | false;
+    
+
+    // sync encoder menu variables
+    tempDeviceModeInt = (deviceMode == "ctf") ? 1 : 0;
+
+    if (displayTimeout == 0) tempTimeoutIndex = 0;       // None
+    else if (displayTimeout <= 5000) tempTimeoutIndex = 1; // 5s
+    else if (displayTimeout <= 7000) tempTimeoutIndex = 2; // 7s
+    else if (displayTimeout <= 15000) tempTimeoutIndex = 3;// 15s
+    else if (displayTimeout <= 20000) tempTimeoutIndex = 4;// 20s
+    else tempTimeoutIndex = 5;                             // 30s
 
     // --- Check Reboot Flag from Client ---
     bool clientSaysReboot = jsonObj["should_reboot"] | false;
@@ -1464,6 +2011,177 @@ void checkTamper() {
   }
 }
 
+void processMenuAction() {
+  // 1. WAKE UP FROM STANDBY
+  if (currentMenuState == STATE_STANDBY) {
+    displayingCard = false;
+    currentMenuState = STATE_MENU_NAV;
+    currentMenuLevel = menuItems_Main;
+    currentMenuSize = sizeof(menuItems_Main) / sizeof(menuItems_Main[0]);
+    selectedIndex = 0;
+    scrollOffset = 0;
+    forceMenuUpdate = true;
+    updateDisplay();
+    return;
+  }
+
+  // 2. CONFIRM REBOOT (Standard)
+  if (currentMenuState == STATE_CONFIRM_REBOOT) {
+    printDisplayText("    REBOOTING...    ", "", "", "");
+    delay(1000);
+    ESP.restart();
+    return;
+  }
+
+  // --- FIX: WIFI REBOOT CONFIRMATION ---
+  if (currentMenuState == STATE_CONFIRM_WIFI_REBOOT) {
+    printDisplayText("    SAVING...       ", "    REBOOTING...    ", "", "");
+    
+    // 1. Actually Save the settings!
+    saveSettingsToPreferences();
+    delay(1000);
+    
+    // 2. Then Reboot
+    ESP.restart();
+    return;
+  }
+
+  // 3. WIFI INFO SCREEN
+  if (currentMenuState == STATE_VIEW_WIFI_INFO) {
+    currentMenuState = STATE_MENU_NAV;
+    updateDisplay();
+    return;
+  }
+  
+  // 4. VIEW LOG LOGIC
+  if (currentMenuState == STATE_VIEW_LOG_LIST) {
+     if (selectedIndex == 0) { // Back Button
+         currentMenuState = STATE_MENU_NAV;
+         currentMenuLevel = menuItems_Main;
+         currentMenuSize = sizeof(menuItems_Main) / sizeof(menuItems_Main[0]);
+         selectedIndex = 1; 
+         scrollOffset = 0;
+         updateDisplay();
+         return;
+     }
+     int dataIdx = cardDataIndex - selectedIndex;
+     if (dataIdx >= 0 && dataIdx < MAX_CARDS) {
+         bitCount = cardDataArray[dataIdx].bitCount;
+         facilityCode = cardDataArray[dataIdx].facilityCode;
+         cardNumber = cardDataArray[dataIdx].cardNumber;
+         strncpy(lastHexData, cardDataArray[dataIdx].hexData, HEX_DATA_MAX);
+         lastPadCount = cardDataArray[dataIdx].padCount;
+         currentMenuState = STATE_VIEW_LOG_DETAIL;
+         forceMenuUpdate = true;
+         updateDisplay();
+     }
+     return;
+  }
+  
+  if (currentMenuState == STATE_VIEW_LOG_DETAIL) {
+      currentMenuState = STATE_VIEW_LOG_LIST;
+      updateDisplay();
+      return;
+  }
+
+  // 5. EDIT MODE 
+  if (currentMenuState == STATE_MENU_EDIT) {
+    MenuItem* item = &currentMenuLevel[selectedIndex];
+    if (item->variable != nullptr) {
+      *(int*)item->variable = editTempIndex;
+      if (String(item->label) == "Mode") {
+        deviceMode = (editTempIndex == 0) ? "raw" : "ctf";
+      }
+      if (String(item->label) == "Timeout") {
+         switch(editTempIndex) {
+             case 0: displayTimeout = 0; break;
+             case 1: displayTimeout = 5000; break;
+             case 2: displayTimeout = 7000; break;
+             case 3: displayTimeout = 15000; break;
+             case 4: displayTimeout = 20000; break;
+             case 5: displayTimeout = 30000; break;
+         }
+      }
+      saveSettingsToPreferences();
+    }
+    currentMenuState = STATE_MENU_NAV;
+    updateDisplay();
+    return;
+  }
+
+  // 6. NAVIGATION MODE
+  if (currentMenuState == STATE_MENU_NAV) {
+    MenuItem* item = &currentMenuLevel[selectedIndex];
+
+    switch (item->type) {
+      case ITEM_EXIT:
+        currentMenuState = STATE_STANDBY;
+        printStandbyMessage();
+        break;
+
+      case ITEM_SUBMENU:
+        currentMenuLevel = item->submenu;
+        if (String(item->label) == "GENERAL") currentMenuSize = 4;
+        else if (String(item->label) == "WIFI") {
+            currentMenuSize = 4;
+            // Capture Settings on Entry
+            origApMode = apMode;
+            origSsidHidden = ssidHidden;
+        }
+        else if (String(item->label) == "CTF") currentMenuSize = 2;
+        selectedIndex = 0;
+        scrollOffset = 0;
+        break;
+        
+      case ITEM_ACTION:
+        if (String(item->label) == "Back") {
+          
+          // --- WIFI CHANGE DETECTION ---
+          if (currentMenuLevel == menuItems_Wifi) {
+              // Only trigger if settings ACTUALLY changed
+              if (apMode != origApMode || ssidHidden != origSsidHidden) {
+                  currentMenuState = STATE_CONFIRM_WIFI_REBOOT;
+                  forceMenuUpdate = true;
+                  updateDisplay();
+                  return; // Stop here! Do not go back yet.
+              }
+          }
+
+          // Normal Back Behavior (No changes, or not Wifi menu)
+          currentMenuLevel = menuItems_Main;
+          currentMenuSize = sizeof(menuItems_Main) / sizeof(menuItems_Main[0]);
+          selectedIndex = 0;
+          scrollOffset = 0;
+        }
+        else if (String(item->label) == "REBOOT") currentMenuState = STATE_CONFIRM_REBOOT;
+        else if (String(item->label) == "View Info") currentMenuState = STATE_VIEW_WIFI_INFO;
+        else if (String(item->label) == "VIEW DATA") {
+            currentMenuState = STATE_VIEW_LOG_LIST;
+            selectedIndex = 0;
+            scrollOffset = 0;
+        }
+        break;
+
+      case ITEM_TOGGLE:
+        if (item->variable != nullptr) {
+          bool* val = (bool*)item->variable;
+          *val = !(*val);
+
+        saveSettingsToPreferences();
+        }
+        break;
+
+      case ITEM_SELECT:
+        if (item->variable != nullptr) {
+          currentMenuState = STATE_MENU_EDIT;
+          editTempIndex = *(int*)item->variable;
+        }
+        break;
+    }
+    updateDisplay();
+  }
+}
+
 void setup()
 {
   pinMode(DATA0_PIN, INPUT);
@@ -1489,6 +2207,10 @@ void setup()
   loadSettingsFromPreferences();
   loadUsersFromPreferences();
 
+  setupEncoder(); 
+  Serial.println("[SYSTEM] Encoder initialized");
+  tempDeviceModeInt = (deviceMode == "ctf") ? 1 : 0; // TODO: make all of them import
+
   if (enableTamperDetect) {
     Serial.println("[SYSTEM] Tamper Detection is ENABLED");
   } else {
@@ -1508,14 +2230,18 @@ void setup()
     lastWrittenDatabits[i] = 0;
   }
 
-
-
-  Serial.println("[SYSTEM] Setting up Wifi...");
-  setupWifi();
-  Serial.println("[SYSTEM] Wifi Setup Complete");
-
-  Serial.println("[SYSTEM] Starting web server...");
-  webServer();
+  if (apMode) {
+      Serial.println("[SYSTEM] Setting up Wifi...");
+      setupWifi();
+      
+      Serial.println("[SYSTEM] Starting web server...");
+      webServer();
+      
+      Serial.println("[SYSTEM] Wifi & Server Started.");
+  } else {
+      Serial.println("[SYSTEM] AP Mode is OFF. Disabling WiFi.");
+      WiFi.mode(WIFI_OFF);
+  }
 
   Serial.println("[SYSTEM] DoorSim Ready!");
 
@@ -1523,10 +2249,11 @@ void setup()
   printStandbyMessage();
 }
 
+//
 void loop() {
+  handleMenuInput();
 
   if (rebootRequested) {
-      // Wait 1000ms so the HTTP 200 OK response has returned to client
       if (millis() - rebootTimer > 1000) {
           Serial.println("[SYSTEM] Rebooting now...");
           ESP.restart();
@@ -1535,40 +2262,40 @@ void loop() {
   }
 
   if (enableTamperDetect) {
-    // Check tamper state
     checkTamper();
   }
 
   updateDisplay();
 
-  // Check if the card reader is still receiving data
-  if (!flagDone) {
-    if (--weigandCounter == 0) {
-      flagDone = 1;  // No more data expected
-      Serial.println("[LOOP] Weigand transmission complete.");
-    }
-  }
-
-  // Check if the card reader has finished reading data
-  if (bitCount > 0 && flagDone) {
-    // Indicate that a card is being displayed
-    displayingCard = true;
-
-    // Ensure the data is valid (not all bits are 1s)
-    if (!allBitsAreOnes()) { 
-      // Process the card data     
-      processCardData();
-      // Print the card data if it meets the criteria
-      if (bitCount >= 26 && bitCount <= (MAX_BITS_CONST - 4)) {
-        // Display card data on LCD and Serial
-        printCardData();
-        // Print all stored card data to Serial
-        printCardDataSerial();
+  // FIX: strictly wrap ALL card processing logic inside STATE_STANDBY check
+  if (currentMenuState == STATE_STANDBY) {
+      
+      // Countdown timer logic
+      if (!flagDone) {
+        if (--weigandCounter == 0) {
+          flagDone = 1;  // No more data expected
+          Serial.println("[LOOP] Weigand transmission complete.");
+        }
       }
-    }
 
-    // Reset the card reader data for the next read
-    cleanupCardData();
-    clearDatabits();
+      // Check if the card reader has finished reading data
+      if (bitCount > 0 && flagDone) {
+        // Indicate that a card is being displayed
+        displayingCard = true;
+
+        // Ensure the data is valid (not all bits are 1s)
+        if (!allBitsAreOnes() && !allBitsAreZeros()) { 
+          // Process the card data     
+          processCardData();
+          
+          forceMenuUpdate = false;
+          if (bitCount >= 26 && bitCount <= (MAX_BITS_CONST - 4)) {
+            printCardData();
+            printCardDataSerial();
+          }
+        }
+        cleanupCardData();
+        clearDatabits();
+      }
   }
 }

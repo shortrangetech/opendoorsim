@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Card Data</title>
     <link rel="stylesheet" href="style.css">    
+    <link rel="icon" type="image/png" href="logo512_big.png">
+    <link rel="apple-touch-icon" href="logo512_big.png">
 </head>
 
 <body>
@@ -155,9 +157,13 @@
                     <option value="60000">1 minute</option>
                     <option value="0">None</option>
                 </select>
-                <div style="margin-top: 20px;">
+                <div style="margin-top: 30px;">
                     <label for="enable_tamper_detect">Enable Tamper Detect:</label>
                     <input type="checkbox" id="enable_tamper_detect">
+                </div>
+                <div style="margin-top: 30px;">
+                    <label for="disable_encoder">Disable Knob Menu:</label>
+                    <input type="checkbox" id="disable_encoder">
                 </div>
             </div>
             <h2><br>Wifi</h2>
@@ -180,10 +186,13 @@
                     <div id="pwdHint" class="hidden">
                         Password must be 8+ chars (or empty for open network)
                     </div>
+                    
                 </div>
 
-                <label for="ssid_hidden">Hidden:</label>
-                <input type="checkbox" id="ssid_hidden">
+                <div style="margin-top: 30px;">
+                    <label for="ssid_hidden">Hidden:</label>
+                    <input type="checkbox" id="ssid_hidden">
+                </div>
             </div>
 
             <h2><br>CTF Mode</h2>
@@ -215,7 +224,10 @@
                     by shortrange.tech
                 </div>
                 
-                <button class="button-danger" onclick="rebootDevice()">Remote Reboot</button>
+                <div style="display:flex; gap: 15px;">
+                    <button id="btnPause" class="button-purple" onclick="togglePause()">Pause DoorSim</button>
+                    <button class="button-danger" onclick="rebootDevice()">Remote Reboot</button>
+                </div>
             </div>
         </div>
     </div>
