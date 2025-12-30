@@ -1,4 +1,4 @@
-# DoorSim
+# OpenDoorSim
 
 This project is a refactored version of the [DoorSim](https://github.com/evildaemond/doorsim) Firmware by evildaemond, designed to work with PlatformIO.
 
