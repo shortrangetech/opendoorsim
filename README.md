@@ -1,10 +1,10 @@
 # The OpenDoorSim Project
 [TODO: animated gif here]  
-OpenDoorSim is an **open-source PACS/RFID lab** you can **build entirely at home!** Built with **off-the-shelf parts** and a few **simple tools**, OpenDoorSim simulates Physical Access Control Systems (PACS) just like the real world - and makes running everything from home experiments to big CTFs a breeze. Sporting a **fresh web UI**, **new on-device hardware menu**, turnkey **tamper detection**, and easy **batch user management**, you may find it hard to put down... 
+OpenDoorSim is an **open-source PACS / RFID lab** you can **build entirely at home!** Built with **off-the-shelf parts** and a few **simple tools**, OpenDoorSim simulates Physical Access Control Systems (PACS) just like the real world - and makes running everything from home experiments to big CTFs a breeze. Sporting a **fresh web UI**, **new on-device hardware menu**, turnkey **tamper detection**, and easy **batch user management**, you may find it hard to put down... 
 
 You can either buy the parts yourself and build at home, or **[order an easy-build kit](https://shortrange.tech)** from my website. Kits come with a pre-flashed microcontroller, all the parts you need to build, and a quality, weather-resistant 3D printed ASA case, plus some other goodies... and of course the feel-good fuzzies you get for supporting the project. 
 
-Thank you for supporting **OpenDoorSim**, which is based on the excellent work and help of many RFID/PACS greats like evildaemond, nechry, iceman, bettse, and others - this project wouldn't exist without them. Please check out the [acknowledgements](#Acknowledgments) section!
+Thank you for supporting **OpenDoorSim**, which is based on the excellent work and help of many PACS / RFID greats like evildaemond, nechry, iceman, bettse, and others - this project wouldn't exist without them. Please check out the [acknowledgements](#Acknowledgments) section!
 
 ## Table of Contents
 
@@ -26,7 +26,7 @@ Thank you for supporting **OpenDoorSim**, which is based on the excellent work a
 
 ## How to Build your OpenDoorSim:
 Building an OpenDoorSim is as easy as 1-2-3:  
-1. Gather the required materials and tools (order yourself or support the project by [buying a kit from my website](https://shortrange.tech), which includes everything but the reader and tools).  
+1. Gather the required materials (order yourself or support the project by [buying a kit from my website](https://shortrange.tech), which includes everything but the reader).  
 2. Build by following the [pdf guide](#build-your-opendoorsim) or this [step-by-step video](https://shortrange.tech).  
 3. Flash the microcontroller by following the [pdf guide](#flash-your-opendoorsim) or this [step-by-step video](https://shortrange.tech).  
 	
@@ -47,7 +47,7 @@ All components necessary to build a doorsim are found below, and (besides the re
 | Display Screen (LED or OLED, with I2C module)                                                                                        | 1        | Choose any ONE (1) screen from the list below                                                                                                                                                                                                                                                      |
 | Encoder Knob KY-040 360 Degree Rotary Encoder Module                                                                                 | 1        | 8-Pack [Amazon](https://www.amazon.com/WGCD-KY-040-Degree-Encoder-Arduino/dp/B07B68H6R8/ref=sr_1_1?tag=shortrange-20)<br>4-Pack [Amazon](https://www.amazon.com/JTAREA-KY-040-Encoder-Encoders-Modules/dp/B0D2TW63G1/ref=sr_1_6?tag=shortrange-20)<br>                                             |
 | 3D Printed Rugged ASA Case (optional, but recommended)                                                                               | (1)      | (Optional) Print yourself [link to hardware files here] or buy at [shortrange.tech](https://shortrange.tech)                                                                                                                                                                                                                     |
-| Card Reader (any wiegand reader, with D0 and D1 wires. The reader you get depends on what kind of cards you want to read - LF or HF) | 1        | I usually get my readers on eBay. You can try your luck with cheap LF readers on amazon as well.<br>Cheap LF Reader [Amazon](https://www.amazon.com/LBS-125Khz-Waterproof-Wiegand-Control/dp/B08F7PK1KN/ref=sr_1_3?tag=shortrange-20)                                                              |
+| Card Reader (any wiegand reader, with D0 and D1 wires. The reader you get depends on what kind of cards you want to read - LF or HF) | 1        | I usually get my HF readers on eBay. You can try your luck with cheap LF readers on amazon as well.<br>Cheap LF Reader [Amazon](https://www.amazon.com/LBS-125Khz-Waterproof-Wiegand-Control/dp/B08F7PK1KN/ref=sr_1_3?tag=shortrange-20)                                                              |
 
 
 #### Connections and Wire
@@ -70,13 +70,17 @@ All components necessary to build a doorsim are found below, and (besides the re
 | OLED 128x32     | 5-Pack [Buy on Amazon](https://www.amazon.com/Teyleten-Robot-Display-SSD1306-Raspberry/dp/B08ZY4YBHL/ref=sr_1_4?tag=shortrange-20)<br>1-Pack [Buy on Amazon](https://www.amazon.com/HiLetgo-Serial-Display-SSD1306-Arduino/dp/B01N0KIVUX/ref=sr_1_7?tag=shortrange-20)        |
 
 #### Tools
-To build the OpenDoorSim, you will need the following (unless they are marked as optional, in which case I still highly recommend having it):
-- Soldering Iron
-- Wire Cutter
-- Wire Stripper
-- Small Screwdriver
-- Soldering Stand or Helping Hands (optional)
-- Parts mat (optional)
+*Note: These are my personal toolkit favorites that I use **all the time** and recommend to everyone. I still suggest the optional items as they make life a lot easier.*
+
+| Shortrange's Tools     | Link                                                                                                                                |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Soldering Iron (I know there are cheaper ones out there... but I love this one)        | [Amazon](https://www.amazon.com/FNIRSI-Soldering-Temperature-Electronics-Precision/dp/B0DBLMH1HS/ref=sr_1_2_sspa?tag=shortrange-20) |
+| Wire Stripper / Cutter | [Amazon](https://www.amazon.com/haisstronica-Stripper-Automatic-Crimping-Universal/dp/B0B2NWK1QX/ref=sr_1_1_sspa?tag=shortrange-20) |
+| Helping Hands (optional)      | [Amazon](https://www.amazon.com/Helping-Soldering-Workshop-Non-slip-Weighted/dp/B07MDKXNPC/ref=sr_1_9?tag=shortrange-20)            |
+| Parts Mat  (optional)            | [Amazon](https://www.amazon.com/Kaisi-Insulation-Soldering-Maintenance-Electronics/dp/B073RFB6BX/ref=sr_1_6?tag=shortrange-20)      |
+| Small Screwdriver Set  | [Amazon](https://www.amazon.com/AXTH-Precision-Screwdriver-Professional-Electronic/dp/B0CBTYZY2S/ref=sr_1_6?tag=shortrange-20)      |
+
+
 
 
 
@@ -97,7 +101,7 @@ You may be able to find all the materials yourself online for cheaper than the c
 ## Support the Project
 There are so many ways to support the project! Here are a few:
 - Tell your friends about OpenDoorSim
-- Buy an [official kit](https://shortrange.tech)!
+- Buy an [official kit](https://shortrange.tech)
 - Purchase from the Amazon links above
 - Star the repository
 
@@ -106,16 +110,16 @@ There are so many ways to support the project! Here are a few:
 #### 
 
 #### Amazon Links
-I purchase many of my components and tools from Amazon, and to support my projects and research I have **affiliate linking!** This means if you purchase through a link from me (for example, on this page), **I may make a small commission**. This is a great way to support my research and projects without purchasing anything directly from me. Amazon requires me to disclose this, and it is something I want to disclose anyways: As an Amazon Associate I earn from qualifying purchases.
+I purchase many of my components and tools from Amazon, and to support my projects and research I have **affiliate linking.** This means if you click a link from me and check out within 24 hours, **I may make a small commission**. This is a great way to support my research and projects without purchasing anything directly from me. Amazon requires me to disclose this, and it is something I want to disclose anyways: As an Amazon Associate I earn from qualifying purchases.
 
 #### GPLv3 License
 This program is free software: you can freely use, modify, and distribute it. If you distribute your version, you must do so under the same GNU General Public License Version 3 (GPLv3) and include the source code. The software is provided without warranty, and the authors are not liable for damages.
 
 ## Acknowledgments
-This project is largely based on and greatly inspired by evildaemond's [DoorSim project](https://github.com/evildaemond/doorsim), without which this project would likely not exist! 
+This project is largely based on and greatly inspired by evildaemond's [DoorSim project](https://github.com/evildaemond/doorsim), without which this project would likely not exist.
 
 Thanks to nechry for his [PlatformIO refactoring fork](https://github.com/nechry/DoorSim) of evildaemond's original DoorSim project. It was a great base to work from and LittleFS as well as PlatformIO really saved the day on development.  
 
 A big thank you to the incredible students, hackers, professionals, and mentors in Iceman's Discord community [RFID Hacking By Iceman](https://discord.gg/F6wwKj6BHr), and to Iceman for his support. You all inspire me.  
 
-Thank you to all other open source creators and mentors who are doing inspiring work in the field of PACS/RFID! Let's Hack The Planet!  
+Thank you to all other open source creators and mentors who are doing inspiring work in the field of PACS / RFID! **Let's Hack The Planet!**  
