@@ -1,10 +1,10 @@
 # OpenDoorSim
-[TODO: animated gif here]
+[TODO: animated gif here]  
 OpenDoorSim is an **open-source PACS/RFID lab** you can **build entirely at home!** Built with **off-the-shelf parts** and a few **simple tools**, OpenDoorSim simulates Physical Access Control Systems (PACS) just like the real world - and makes running everything from home experiments to big CTFs a breeze. Sporting a **fresh web UI** and a **new on-device hardware menu**, you can run things your way - even offline. Turnkey **tamper detection**, easy **batch user management** and granular data options make it easier than ever to get started on your next RFID adventure. 
 
 You can either buy the parts yourself and build at home, or **[order an easy-build kit from my website shortrange.tech](https://shortrange.tech)!** Kits come with a pre-flashed microcontroller, all the parts you need to build, and a quality, weather-resistant 3D printed ASA case, plus some other goodies... and of course the feel-good fuzzies you get for supporting the project. 
 
-Thank you for supporting **OpenDoorSim by [shortrange.tech](shortrange.tech)**, which is based on the excellent work and help of many RFID/PACS greats like evildaemond, nechry, iceman, bettse, and others - this project wouldn't exist without them. Please check out the [acknowledgements](#Acknowledgments) section!
+Thank you for supporting **OpenDoorSim**, which is based on the excellent work and help of many RFID/PACS greats like evildaemond, nechry, iceman, bettse, and others - this project wouldn't exist without them. Please check out the [acknowledgements](#Acknowledgments) section!
 
 ## Table of Contents
 
@@ -25,13 +25,13 @@ Thank you for supporting **OpenDoorSim by [shortrange.tech](shortrange.tech)**, 
 
 
 ## How to Build your OpenDoorSim:
-Building an OpenDoorSim is as easy as 1-2-3:
-	1. Gather the required materials and tools (order yourself or support the project by [buying a kit from my website](https://shortrange.tech), which includes everything but the reader and tools).
-	2. Build by following the [pdf guide](#build-your-opendoorsim) or this [step-by-step video](https://shortrange.tech).
-	3. Flash the microcontroller by following the [pdf guide](#flash-your-opendoorsim) or this [step-by-step video](https://shortrange.tech).
+Building an OpenDoorSim is as easy as 1-2-3:  
+	1. Gather the required materials and tools (order yourself or support the project by [buying a kit from my website](https://shortrange.tech), which includes everything but the reader and tools).  
+	2. Build by following the [pdf guide](#build-your-opendoorsim) or this [step-by-step video](https://shortrange.tech).  
+	3. Flash the microcontroller by following the [pdf guide](#flash-your-opendoorsim) or this [step-by-step video](https://shortrange.tech).  
 	
 ### Materials and Tools Needed (Bill of Materials):
-[TODO: All materials image here]
+[TODO: All materials image here]  
 All components necessary to build a doorsim are found below, and (besides the reader) are included in the [official kit](https://shortrange.tech). 
 
 `Disclaimer: All Amazon links below are affiliate links. If you purchase within 24hrs of clicking I may recieve a small commission, which helps support the OpenDoorSim project. Thank you!`
