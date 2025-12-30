@@ -475,13 +475,13 @@ function updateSettingsUI(settings) {
     const enableTamperDetect = (settings.enable_tamper_detect !== undefined) ? settings.enable_tamper_detect : settings.enableTamperDetect;
     const version = settings.version || settings.version || '';
     const disableEncoder = (settings.disable_encoder !== undefined) ? settings.disable_encoder : false;
+    
+    // Get Pause State
+    const isPaused = (settings.is_paused === true);
 
-    // 1. Populate UI
+    // 1. Populate UI Inputs
     if (document.getElementById('modeSelect')) document.getElementById('modeSelect').value = (mode || '').toString().toLowerCase();
     
-    const modeValueEl = document.getElementById('modeValue');
-    if (modeValueEl) modeValueEl.textContent = (mode || '').toString().toUpperCase();
-
     if (document.getElementById('timeoutSelect')) document.getElementById('timeoutSelect').value = displayTimeout;
     if (document.getElementById('ap_ssid')) document.getElementById('ap_ssid').value = apSsid;
     if (document.getElementById('ap_pwd')) document.getElementById('ap_pwd').value = apPass;
@@ -494,13 +494,37 @@ function updateSettingsUI(settings) {
     if (document.getElementById('flipOled')) document.getElementById('flipOled').checked = settings.flip_oled_display; 
     if (document.getElementById('disable_encoder')) document.getElementById('disable_encoder').checked = disableEncoder;
 
-    // 2. STORE ORIGINAL VALUES
+    // 2. [NEW] Update Mode Banner (Top Right)
+    const modeBox = document.getElementById('modeBox');
+    const modeValueEl = document.getElementById('modeValue');
+
+    if (modeBox && modeValueEl) {
+        if (isPaused) {
+            modeValueEl.textContent = "PAUSED";
+            modeBox.classList.add('mode-paused');
+        } else {
+            // Revert to standard mode text (RAW/CTF) and remove purple class
+            modeValueEl.textContent = (mode || '').toString().toUpperCase();
+            modeBox.classList.remove('mode-paused');
+        }
+    }
+
+    // 3. Update Pause Button Text
+    const btnPause = document.getElementById('btnPause');
+    if (btnPause) {
+        if (isPaused) {
+            btnPause.textContent = "Un-pause DoorSim";
+        } else {
+            btnPause.textContent = "Pause DoorSim";
+        }
+    }
+
+    // 4. STORE ORIGINAL VALUES
     originalSsid = apSsid;
     originalPwd = apPass;
     originalHidden = (ssidHidden == 1 || ssidHidden === true);
     originalDisplayType = activeDisplayType;
     originalFlipOled = settings.flip_oled_display;
-    
     
     // New globals
     originalMode = (mode || '').toString().toLowerCase();
@@ -517,10 +541,19 @@ function updateSettingsUI(settings) {
     }
 
     toggleFlipOption();
-    
-    // Run the check immediately to reset the button state
     checkDirty(); 
 }
+
+function togglePause() {
+    fetch('/togglePause', { method: 'POST' })
+    .then(response => response.text())
+    .then(status => {
+        // Trigger a settings fetch to update the UI button state immediately
+        fetchSettings(true);
+    })
+    .catch(err => alert("Error toggling pause state."));
+}
+
 
 function exportData() {
     fetch('/getUsers')
