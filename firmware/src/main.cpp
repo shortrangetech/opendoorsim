@@ -24,7 +24,8 @@ enum MenuState {
   STATE_VIEW_LOG_DETAIL,
   STATE_VIEW_WIFI_INFO,
   STATE_CONFIRM_REBOOT,
-  STATE_CONFIRM_WIFI_REBOOT
+  STATE_CONFIRM_WIFI_REBOOT,
+  STATE_SYSTEM_PAUSED
 };
 
 // Types of menu items to determine how they are handled
@@ -173,6 +174,7 @@ volatile unsigned int weigandCounter;
 unsigned long displayTimeout = 7000; // 7 seconds
 unsigned long lastCardTime = 0;
 bool displayingCard = false;
+bool isSystemMessage = false;
 
 // Wifi Settings
 bool apMode = true;
@@ -190,7 +192,7 @@ int ledValid = 1;
 // Custom Display Message
 String customMessage = "OPENDOORSIM";
 // settings file version (read from settings.json)
-String firmwareVersion = "0.8.7";
+String firmwareVersion = "0.8.8";
 
 // decoded facility code and card code
 unsigned long facilityCode = 0;
@@ -256,10 +258,7 @@ MenuItem menuItems_Main[] = {
 };
 
 void IRAM_ATTR isr_rotary() {
-  // Read current state of CLK and DT
-  // We shift CLK to bit 1, and DT to bit 0.
-  // Note: digitalRead is fast enough on ESP32, but direct port manipulation is faster.
-  // For now, digitalRead is sufficient for menu navigation.
+  if (isSystemPaused) return;
   uint8_t new_AB = (digitalRead(ROTARY_CLK) << 1) | digitalRead(ROTARY_DT);
 
   // Combine old state and new state to create the index for our table
@@ -276,6 +275,7 @@ void IRAM_ATTR isr_rotary() {
 }
 
 void IRAM_ATTR isr_button() {
+  if (isSystemPaused) return;
   if (millis() - lastEncoderPress > DEBOUNCE_DELAY) {
     encoderPressedFlag = true;
     lastEncoderPress = millis();
@@ -321,7 +321,8 @@ void handleMenuInput() {
     int steps = encoderCount / 4; 
 
     if (steps != 0) {
-      // Consume the steps we used
+
+      displayingCard = false;
       encoderCount -= (steps * 4); 
 
       if (currentMenuState == STATE_MENU_EDIT) {
@@ -363,6 +364,7 @@ void handleMenuInput() {
   }
 
   if (encoderPressedFlag) {
+    displayingCard = false;
     encoderPressedFlag = false;
     processMenuAction(); 
     forceMenuUpdate = true;
@@ -569,8 +571,8 @@ void renderCardLogList() {
 
 
 // Interrupts for card reader
-void IRAM_ATTR ISR_INT0()
-{
+void IRAM_ATTR ISR_INT0() {
+  if (isSystemPaused) return;
   // FIX: Ignore interrupts if we are not in standby (e.g. using menu)
   if (currentMenuState != STATE_STANDBY) return;
 
@@ -586,8 +588,8 @@ void IRAM_ATTR ISR_INT0()
 }
 
 // interrupt that happens when INT1 goes low (1 bit)
-void IRAM_ATTR ISR_INT1()
-{
+void IRAM_ATTR ISR_INT1() {
+  if (isSystemPaused) return;
   // FIX: Ignore interrupts if we are not in standby
   if (currentMenuState != STATE_STANDBY) return;
 
@@ -1027,6 +1029,7 @@ void printCardData()
 
   // Start the display timer
   lastCardTime = millis();
+  isSystemMessage = false;
   displayingCard = true;
 }
 
@@ -1444,28 +1447,51 @@ void printStandbyMessage()
 void updateDisplay() {
   // 1. Handle Automatic Timeout
   if (displayingCard) {
-    if (displayTimeout > 0 && (millis() - lastCardTime >= displayTimeout)) {
+    // Determine duration: 2000ms for system messages, otherwise use User Setting
+    unsigned long duration = isSystemMessage ? 2000 : displayTimeout;
+
+    // If duration is 0 (None) and it's NOT a system message, stay forever
+    if (duration == 0 && !isSystemMessage) {
+        // Wait for user input (handled in handleMenuInput)
+        return; 
+    }
+
+    if (millis() - lastCardTime >= duration) {
       displayingCard = false;
-      if (currentMenuState == STATE_STANDBY) {
-          // If timeout finishes, we need to redraw the "Ready" screen once
-          forceMenuUpdate = true; 
-      }
+      isSystemMessage = false;
+      // [FIX] Always force update to clear the message and show previous state
+      // (This fixes the bug where it wouldn't clear if you were in a menu)
+      forceMenuUpdate = true; 
     } else {
       // While waiting for timeout, do nothing
       return; 
     }
   }
 
-  // 2. Only redraw if something changed!
+  // 2. High Priority: Pause Screen
+  if (isSystemPaused && currentMenuState != STATE_SYSTEM_PAUSED) {
+      currentMenuState = STATE_SYSTEM_PAUSED;
+      forceMenuUpdate = true;
+  }
+  else if (!isSystemPaused && currentMenuState == STATE_SYSTEM_PAUSED) {
+      currentMenuState = STATE_STANDBY;
+      forceMenuUpdate = true;
+  }
+
+  // 3. Only redraw if something changed!
   if (!forceMenuUpdate) {
       return;
   }
 
-  // 3. Render
+  // 4. Render
   switch (currentMenuState) {
     case STATE_STANDBY:
       printStandbyMessage();
       break;
+
+    case STATE_SYSTEM_PAUSED:
+       printDisplayText("","   OPENDOORSIM IS   ", "      PAUSED      ", "");
+       break;
 
     case STATE_MENU_NAV:
     case STATE_MENU_EDIT:
@@ -1480,35 +1506,28 @@ void updateDisplay() {
        printDisplayRawCard();
        break;
 
-    // --- FIX 1: ADDED WIFI INFO DRAWING ---
     case STATE_VIEW_WIFI_INFO:
       {
-         // Create strings for the IP and Password
          String ipLine = "IP: " + WiFi.softAPIP().toString();
-         // If password is set, show it. If empty, show [OPEN]
          String passLine = (apPwd.length() > 0) ? "Pwd: " + apPwd : "Pwd: [OPEN]";
-         
-         // Use the helper to draw to LCD or OLED
-         // .c_str() converts the String object to the const char* required by the function
          printDisplayText("   WIFI AP INFO    ", ("SSID: " + apSsid).c_str(), ipLine.c_str(), passLine.c_str());
       }
       break;
       
-    // --- FIX 2: ADDED REBOOT CONFIRMATION DRAWING ---
     case STATE_CONFIRM_REBOOT:
        printDisplayText("  CONFIRM REBOOT?   ", "", "  Click to Confirm  ", "  Rotate to Cancel  ");
        break;
 
     case STATE_CONFIRM_WIFI_REBOOT:
-    printDisplayText("  CONFIRM REBOOT?   ", " New Wifi Settings: ", "  Click to Confirm   ", "  Rotate to Cancel  ");
-    break;
-
-
+       printDisplayText("  CONFIRM REBOOT?   ", " New Wifi Settings: ", "  Click to Confirm   ", "  Rotate to Cancel  ");
+       break;
   }
 
-  // 4. Reset the flag
+  // 5. Reset the flag
   forceMenuUpdate = false;
 }
+
+
 
 void printCardDataSerial()
 {
@@ -1537,8 +1556,8 @@ void showSettingsSaved()
   
   printDisplayText("   CONFIGURATION    ", "","  Settings saved.   ", "");
 
-  // fake "card read" to trigger display timeout
   lastCardTime = millis();
+  isSystemMessage = true;
   displayingCard = true; 
 }
 
@@ -1631,10 +1650,26 @@ void webServer()
     doc["version"] = firmwareVersion;
     doc["led_valid"] = ledValid;
     doc["disable_encoder"] = disableEncoder;
+    doc["is_paused"] = isSystemPaused;
 
     String response;
     serializeJson(doc, response);
     request->send(200, "application/json", response);
+  });
+
+  server.on("/togglePause", HTTP_POST, [](AsyncWebServerRequest *request) {
+      isSystemPaused = !isSystemPaused;
+      
+      if (isSystemPaused) {
+          Serial.println("[SYSTEM] System PAUSED via WebUI");
+          currentMenuState = STATE_SYSTEM_PAUSED;
+      } else {
+          Serial.println("[SYSTEM] System UN-PAUSED via WebUI");
+          currentMenuState = STATE_STANDBY;
+      }
+      
+      forceMenuUpdate = true;
+      request->send(200, "text/plain", isSystemPaused ? "PAUSED" : "ACTIVE");
   });
 
   AsyncCallbackJsonWebHandler *handler = new AsyncCallbackJsonWebHandler("/saveSettings", [](AsyncWebServerRequest *request, JsonVariant &json) {

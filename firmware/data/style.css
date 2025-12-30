@@ -46,9 +46,10 @@ header{
 
 .brand{
     font-weight:800;
-    font-size:1.5rem;
+    font-size:1.4rem;
     line-height:1;
     margin-left:10px;
+    margin-top:2px;
 }
 
 .header-banner{
@@ -72,17 +73,20 @@ header{
 .header-center a:hover{text-decoration:underline}
 .header-right{min-width:160px;text-align:right}
 
-#modeBox{
-    background:var(--card-bg);
-    padding:10px 12px;
-    border-radius:12px;
-    border:1px solid #2f2f2f;
-    color:var(--text);
-    font-weight:700;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    min-width:120px
+#modeBox {
+    background: var(--card-bg);
+    padding: 10px 12px; 
+    border-radius: 12px;
+    border: 1px solid #2f2f2f;
+    color: var(--text);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 120px;
+    
+    font-size: 0.85rem; 
+    gap: 6px;
 }
 
 /* --- Inputs & Buttons --- */
@@ -322,10 +326,18 @@ button:hover{
     position: relative;
     display: inline-block; 
     width: auto;
+    width: 250px;
 }
 
 .password-wrapper input {
     width: 100%; 
+}
+
+.mode-paused {
+    background-color: #52009f !important; /* Purple matches buttons */
+    border-color: #52009f !important;
+    color: #fff !important;
+    transition: background-color 0.3s ease;
 }
 
 #togglePwdBtn {
@@ -341,6 +353,8 @@ button:hover{
     opacity: 0.6;
     transition: opacity 0.2s;
 }
+
+
 
 #togglePwdBtn:hover {
     opacity: 1;
