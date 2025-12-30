@@ -4,7 +4,7 @@ OpenDoorSim is an **open-source PACS/RFID lab** you can **build entirely at home
 
 You can either buy the parts yourself and build at home, or **[order an easy-build kit from my website shortrange.tech](https://shortrange.tech)!** Kits come with a pre-flashed microcontroller, all the parts you need to build, and a quality, weather-resistant 3D printed ASA case, plus some other goodies... and of course the feel-good fuzzies you get for supporting the project. 
 
-Thank you for supporting **OpenDoorSim by [shortrange.tech](shortrange.tech)**, which is based on the excellent work and help of many RFID/PACS greats like evildaemond, nechry, iceman, bettse, and others - this project wouldn't exist without them. Please check out the [acknowledgements](##Acknowledgments) section!
+Thank you for supporting **OpenDoorSim by [shortrange.tech](shortrange.tech)**, which is based on the excellent work and help of many RFID/PACS greats like evildaemond, nechry, iceman, bettse, and others - this project wouldn't exist without them. Please check out the [acknowledgements](#Acknowledgments) section!
 
 ## Table of Contents
 
