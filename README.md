@@ -65,9 +65,9 @@ All components necessary to build a doorsim are found below, and (besides the re
 
 | Display Screens | Link                                                                                                                                                                                                                                                                          |
 | --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| LCD 20x4        | 3-Pack [Buy on Amazon](https://www.amazon.com/Hosyond-Module-Display-Arduino-Raspberry/dp/B0C1G9GBRZ/ref=sr_1_1?tag=shortrange-20)<br>1-Pack [Buy on Amazon](https://www.amazon.com/GeeekPi-Interface-Adapter-Backlight-Raspberry/dp/B07QLRD3TM/ref=sr_1_3?tag=shortrange-20) |
-| OLED 128x64     | 5-Pack [Buy on Amazon](https://www.amazon.com/Hosyond-Display-Self-Luminous-Compatible-Raspberry/dp/B0BFD4X6YV/ref=sr_1_3?tag=shortrange-20)                                                                                                                                  |
-| OLED 128x32     | 5-Pack [Buy on Amazon](https://www.amazon.com/Teyleten-Robot-Display-SSD1306-Raspberry/dp/B08ZY4YBHL/ref=sr_1_4?tag=shortrange-20)<br>1-Pack [Buy on Amazon](https://www.amazon.com/HiLetgo-Serial-Display-SSD1306-Arduino/dp/B01N0KIVUX/ref=sr_1_7?tag=shortrange-20)        |
+| LCD 20x4        | 3-Pack [Amazon](https://www.amazon.com/Hosyond-Module-Display-Arduino-Raspberry/dp/B0C1G9GBRZ/ref=sr_1_1?tag=shortrange-20)<br>1-Pack [Amazon](https://www.amazon.com/GeeekPi-Interface-Adapter-Backlight-Raspberry/dp/B07QLRD3TM/ref=sr_1_3?tag=shortrange-20) |
+| OLED 128x64     | 5-Pack [Amazon](https://www.amazon.com/Hosyond-Display-Self-Luminous-Compatible-Raspberry/dp/B0BFD4X6YV/ref=sr_1_3?tag=shortrange-20)                                                                                                                                  |
+| OLED 128x32     | 5-Pack [Amazon](https://www.amazon.com/Teyleten-Robot-Display-SSD1306-Raspberry/dp/B08ZY4YBHL/ref=sr_1_4?tag=shortrange-20)<br>1-Pack [Amazon](https://www.amazon.com/HiLetgo-Serial-Display-SSD1306-Arduino/dp/B01N0KIVUX/ref=sr_1_7?tag=shortrange-20)        |
 
 #### Tools
 *Note: These are my personal toolkit favorites that I use **all the time** and recommend to everyone. I still suggest the optional items as they make life a lot easier.*
