@@ -71,14 +71,16 @@ const char *settingsFile = "/settings.json";
 const char *usersFile = "/users.json";
 const char *wiegandFormatsFile = "/wiegand_formats.json";
 
-// I2C Pins 
-#define I2C_SCL 33
-#define I2C_SDA 32
+// I2C Screen Pins 
+#define SCN_SDA 32
+#define SCN_CLK 33
 
-// Rotary Encoder Pins 
-#define ROTARY_CLK 27
-#define ROTARY_DT 26
-#define ROTARY_SW 25
+
+// Rotary Encoder Pins
+#define ENC_SW 25
+#define ENC_DT 26
+#define ENC_CLK 27
+
 
 // Reader input pins 
 #define DATA0_PIN 18
@@ -88,6 +90,16 @@ const char *wiegandFormatsFile = "/wiegand_formats.json";
 
 // Reader output pins 
 #define LED_PIN 16
+
+// System Command I2C (unused currently, reserved for future use)
+#define SYS_I2C_SDA 21
+#define SYS_I2C_CLK 22
+
+// Reserved Pins For Future Use
+#define RESERVED_PIN0 13
+#define RESERVED_PIN1 14
+#define RESERVED_PIN2 17
+#define RESERVED_PIN3 23
 
 // Display type constants
 #define DISPLAY_LCD 1
@@ -259,7 +271,7 @@ MenuItem menuItems_Main[] = {
 
 void IRAM_ATTR isr_rotary() {
   if (isSystemPaused) return;
-  uint8_t new_AB = (digitalRead(ROTARY_CLK) << 1) | digitalRead(ROTARY_DT);
+  uint8_t new_AB = (digitalRead(ENC_CLK) << 1) | digitalRead(ENC_DT);
 
   // Combine old state and new state to create the index for our table
   // Index = (old_AB * 4) + new_AB
@@ -284,19 +296,19 @@ void IRAM_ATTR isr_button() {
 
 void setupEncoder() {
   // Use Internal Pullups
-  pinMode(ROTARY_CLK, INPUT_PULLUP);
-  pinMode(ROTARY_DT, INPUT_PULLUP);
-  pinMode(ROTARY_SW, INPUT_PULLUP);
+  pinMode(ENC_CLK, INPUT_PULLUP);
+  pinMode(ENC_DT, INPUT_PULLUP);
+  pinMode(ENC_SW, INPUT_PULLUP);
 
   // Initialize the state variable immediately so we don't start with a jump
-  old_AB = (digitalRead(ROTARY_CLK) << 1) | digitalRead(ROTARY_DT);
+  old_AB = (digitalRead(ENC_CLK) << 1) | digitalRead(ENC_DT);
 
   // Attach interrupts to BOTH pins on CHANGE
-  attachInterrupt(digitalPinToInterrupt(ROTARY_CLK), isr_rotary, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(ROTARY_DT), isr_rotary, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(ENC_CLK), isr_rotary, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(ENC_DT), isr_rotary, CHANGE);
   
   // Button remains the same
-  attachInterrupt(digitalPinToInterrupt(ROTARY_SW), isr_button, FALLING);
+  attachInterrupt(digitalPinToInterrupt(ENC_SW), isr_button, FALLING);
 }
 
 // FORWARD DECLARATION (Fixes the error)
@@ -1269,12 +1281,12 @@ void initializeDisplay()
 {
   Serial.println("[SYSTEM] Initializing Display...");
 
-  Wire.begin(I2C_SDA, I2C_SCL);
+  Wire.begin(SCN_SDA, SCN_CLK);
   
   if (activeDisplayType == DISPLAY_LCD)
   {
     lcdDisplay = new LiquidCrystal_I2C(LCD_ADDRESS, LCD_COLUMNS, LCD_ROWS);
-    lcdDisplay->init(I2C_SDA, I2C_SCL);
+    lcdDisplay->init(SCN_SDA, SCN_CLK);
     lcdDisplay->backlight();
     lcdDisplay->clear();
     lcdDisplay->setCursor(0, 0);
