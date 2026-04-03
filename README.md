@@ -12,6 +12,9 @@ You can either buy the parts yourself and build at home, or order an easy-build 
 
 Thank you for supporting **OpenDoorSim**, which is based on the excellent work of many RF greats like evildaemond, nechry, iceman, bettse, and others - this project wouldn't exist without them. Please check out the [acknowledgements](#Acknowledgments) section!
 
+
+---
+
 ## Features
 
 - Designed for students, hobbyists, and industry professionals
@@ -27,6 +30,10 @@ Thank you for supporting **OpenDoorSim**, which is based on the excellent work o
 - Tamper Detection (for supported readers)
 - Batch User Management
 - Knob. <3
+
+---
+
+![Banner](images/pocketlabbanner.jpg)
 ## OpenDoorSim Model Comparison
 
 | **Model**                 | **LAB**    | **Pocket** | **Tarrif-ic** |
@@ -46,6 +53,9 @@ Thank you for supporting **OpenDoorSim**, which is based on the excellent work o
 | Magnetic Decal Tile       | ✅          | ❌          | ❌             |
 | Strap Loops               | ✅          | ❌          | ❌             |
 | Keyring and Carabiner     | ❌          | ✅          | ❌             |
+
+---
+
 ## Getting Started:
 
 ### How to Build your OpenDoorSim:
