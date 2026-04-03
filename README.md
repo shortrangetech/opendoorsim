@@ -61,10 +61,14 @@ Thank you for supporting **OpenDoorSim**, which is based on the excellent work o
 ### How to Build your OpenDoorSim:
 Building an OpenDoorSim is as easy as 1-2-3:
 1. Gather the required materials and tools for your build.
-	1. Materials and Tool BOMs (Bill of Materials) can be found in the![docs folder](docs/).
-	2. Need tools? Here is my personal ![favorite tool list](docs/Tools/README)
+	1. Materials and Tool BOMs (Bill of Materials) can be found in the ![docs folder](docs/).
+	2. Need tools? Here is my personal ![favorite tool list](docs/Tools/README).
 2. Follow the 3-part build guide (Build, Assemble, Flash!) for the model you want to build.
+	1. BUILD GUIDES:
+		1. LAB + Pocket Official Written Build Guide
+		2. Tarrif-ic Written Build Guide
 3. Learn how to use it!
+	1. 🚧 Youtube Videos, How-To articles, etc. coming soon!
 
 ### How to Build your OpenDoorSim:
 Building an OpenDoorSim is as easy as 1-2-3:  
