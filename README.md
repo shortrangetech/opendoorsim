@@ -2,7 +2,7 @@
 
 > [!NOTE]
 > 
-> 🚧 README and Documentation are still under construction! Full documentation will be released incrementally as it becomes available 🚧
+> 🚧 README and Documentation are still under construction! Full documentation will be released incrementally as it becomes available! Check back soon for updates. 🚧
 
 ![Banner](images/ThinBanner.jpg)
 
@@ -62,7 +62,7 @@ Thank you for supporting **OpenDoorSim**, which is based on the excellent work o
 Building an OpenDoorSim is as easy as 1-2-3:
 1. Gather the required materials and tools for your build.
 	1. Materials and Tool BOMs (Bill of Materials) can be found in the![docs folder](docs/).
-	2. Need tools? Here is my personal ![favorite tool list]()
+	2. Need tools? Here is my personal ![favorite tool list](docs/Tools/README)
 2. Follow the 3-part build guide (Build, Assemble, Flash!) for the model you want to build.
 3. Learn how to use it!
 
