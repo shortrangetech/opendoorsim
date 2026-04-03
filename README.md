@@ -3,37 +3,55 @@
 
 OpenDoorSim is an **open-source PACS / RFID lab** you can **build yourself!** OpenDoorSim simulates Physical Access Control Systems (PACS) just like the real world - and makes running everything from home experiments to big CTFs and demos a breeze. Sporting a **fresh web UI**, an **on-device hardware menu**, turnkey **tamper detection**, and easy **batch user management**, you may find it hard to put down... 
 
-You can either buy the parts yourself and build at home, or order an easy-build kit from [shortrange.tech](https://shortrange.tech) if you want to support the project. Kits come with a microcontroller, all the parts you need to build, and a quality, weather-resistant 3D printed ASA case, plus some other goodies... and of course the feel-good fuzzies you get for supporting the project. 
+You can either buy the parts yourself and build at home, or order an easy-build kit from [shortrange.tech](https://shortrange.tech) if you want to support the project. 🐙❤️ Kits come with a microcontroller, all the parts you need to build, a quality, weather-resistant 3D printed ASA case... and of course the feel-good fuzzies you get for supporting the project.
 
-Thank you for supporting **OpenDoorSim**, which is based on the excellent work and help of many RF greats like evildaemond, nechry, iceman, bettse, and others - this project wouldn't exist without them. Please check out the [acknowledgements](#Acknowledgments) section!
-
-## OpenDoorSim Models Comparison
-
-| Name      | Board           | Firmware |     | Magsafe Ring | Wiegand Compatible | Module Capability |
-| --------- | --------------- | -------- | --- | ------------ | ------------------ | ----------------- |
-| Pocket    | Official PCB    |          |     |              |                    |                   |
-| LAB       | Official PCB    |          |     |              |                    |                   |
-| Tarrif-ic | Prototype Board |          |     |              |                    |                   |
-
-
+Thank you for supporting **OpenDoorSim**, which is based on the excellent work of many RF greats like evildaemond, nechry, iceman, bettse, and others - this project wouldn't exist without them. Please check out the [acknowledgements](#Acknowledgments) section!
 
 ## Features
+
 - Designed for students, hobbyists, and industry professionals
 - Portable, easy to use and wire
-- Built entirely with off-the-shelf parts
-- Compatible with any wiegand reader
+- Can be built entirely with off-the-shelf parts (Tarrif-ic Model)
+- Compatible with any wiegand reader!
 - USB-C Powered
-- Highly Interactive Web UI
-- NEW Easy Hardware Menu (run it offline!)
-- Raw and CTF Modes for various use cases
-- Rugged 3D printed case options
-- Multiple screen options (LCD, OLED)
+- Beautiful Web UI, manage CTFs and card data with ease
+- Hardware Menu (run it offline!)
+- Multiple Modes for various use cases (Raw, CTF, Wifi, Tamper Detect, etc)
+- Rugged 3D printed cases!
+- Compatible with various screens (LCD, OLED)
 - Tamper Detection (for supported readers)
 - Batch User Management
 - Knob. <3
+## OpenDoorSim Model Comparison
 
+| **Model**                 | **LAB**    | **Pocket** | **Tarrif-ic** |
+| ------------------------- | ---------- | ---------- | ------------- |
+| Microcontroller           | ESP-32     | ESP-32     | ESP-32        |
+| Firmware                  | Latest     | Latest     | Latest        |
+| Screen Size               | 2.42" OLED | 0.96" OLED | Any           |
+| Custom PCB                | ✅          | ✅          | ❌             |
+| Case                      | ✅          | ✅          | ❌             |
+| Wiegand Reader Compatible | ✅          | ✅          | ✅             |
+| Hardware Menu             | ✅          | ✅          | ✅             |
+| Wi-Fi Enabled             | ✅          | ✅          | ✅             |
+| Custom GPIO Terminals (4) | ✅          | ✅          | ✅             |
+| Fixed Reader Mount        | ✅          | ❌          | ❌             |
+| Custom Module Slots       | ✅          | ❌          | ❌             |
+| MagSafe Compatible Ring   | ✅          | ❌          | ❌             |
+| Magnetic Decal Tile       | ✅          | ❌          | ❌             |
+| Strap Loops               | ✅          | ❌          | ❌             |
+| Keyring and Carabiner     | ❌          | ✅          | ❌             |
+## Getting Started:
 
-## How to Build your OpenDoorSim:
+### How to Build your OpenDoorSim:
+Building an OpenDoorSim is as easy as 1-2-3:
+1. Gather the required materials and tools for your build.
+	1. Material and Tool BOMs (Bill of Materials) can be found in the![docs folder](docs/).
+	2. 
+2. Follow the 3-part build guide (Build, Assemble, Flash!) for the model you want to build.
+3. Learn how to use it!
+
+### How to Build your OpenDoorSim:
 Building an OpenDoorSim is as easy as 1-2-3:  
 1. Gather the required materials (order yourself or support the project by [buying a kit from my website](https://shortrange.tech), which includes everything but the reader).  
 2. Build by following the [pdf guide](#build-your-opendoorsim) or this [step-by-step video](https://shortrange.tech).  
