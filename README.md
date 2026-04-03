@@ -8,9 +8,9 @@
 
 OpenDoorSim is an **open-source PACS / RFID lab** you can **build yourself!** OpenDoorSim simulates Physical Access Control Systems (PACS) just like the real world - and makes running everything from home experiments to big CTFs and demos a breeze. Sporting a **fresh web UI**, an **on-device hardware menu**, turnkey **tamper detection**, and easy **batch user management**, you may find it hard to put down... 
 
-You can either buy the parts yourself and build at home, or order an easy-build kit from [shortrange.tech](https://shortrange.tech) if you want to support the project. 🐙❤️ Kits come with a microcontroller, all the parts you need to build, a quality, weather-resistant 3D printed ASA case... and of course the feel-good fuzzies you get for supporting the project. Read more about them [here](#about-the-kits).
+You can either buy the parts yourself and build at home, or order an easy-build kit from [shortrange.tech](https://shortrange.tech) as an extra way of supporting the project. 🐙❤️ Kits come with a microcontroller, all the parts you need to build, a quality, weather-resistant 3D printed ASA case... and of course the feel-good fuzzies you get for supporting the project. Read more about the kits [here](#about-the-kits).
 
-Thank you for supporting **OpenDoorSim**, which is based on the excellent work of many RF greats like evildaemond, nechry, iceman, bettse, and others - this project wouldn't exist without them. Please check out the [acknowledgements](#Acknowledgments) section!
+Thank you for supporting **OpenDoorSim**, which is based on the excellent work of many RF greats like evildaemond,  iceman, bettse, nechry, and others - this project wouldn't exist without them. Please check out the [acknowledgements](#Acknowledgments) section!
 
 
 ---
@@ -80,9 +80,9 @@ There are so many ways to support the project! Here are a few:
 - Donate through the purchase of an [official kit](https://shortrange.tech).
 
 ## About the Kits
-Kits available at [shortrange.tech](https://shortrange.tech) come with a microcontroller, all the materials needed to build your own OpenDoorSim, and a rugged 3D printed ASA Carbon Fiber case. Because individual needs for readers vary, these kits are **BYOR (bring your own reader)**. That means if you want to use OpenDoorSim with a reader, you will need to **buy or bring your own reader**. If you buy a kit, thank you for supporting the project!
+Kits come with a microcontroller, all the materials needed to build your own OpenDoorSim, and a rugged 3D printed ASA Carbon Fiber case. Because individual needs for readers vary, these kits are **BYOR (bring your own reader)**. That means if you want to use OpenDoorSim with a reader, you will need to **buy or bring your own reader**. If you buy a kit, thank you for supporting the project!
 
-You may be able to find all the materials yourself and order the PCB online for cheaper than the cost of buying a kit. If so, that's great - I'm all for minimizing cost to help more people get into the awesome world of RFID! There's a reason this project is open source. However, if you're feeling the love, **a kit is a great way to support the OpenDoorSim project**. When you get kits directly from me at **[shortrange.tech](https://shortrange.tech)**, you are not just getting a sweet kit, but supporting me and the project - and for that I thank you!
+You may be able to find all the materials yourself and order the PCB online for cheaper than the cost of buying a kit. If so, sweet! The more people that can get into the awesome world of RF, the better. The goal of this project is to get a DoorSim into as many hands as possible, and there are many ways of supporting the project.
 
 ## Amazon Links
 I purchase many of my components and tools from Amazon, and to support my projects and research I have **affiliate linking.** This means if you click a link from me and check out within 24 hours, **I may make a small commission**. As an Amazon Associate I earn from qualifying purchases like these. This is a great way to support my research and projects  without purchasing anything directly from me, and **at no extra cost to you!**. 
