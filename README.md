@@ -1,12 +1,21 @@
 # The OpenDoorSim Project
 ![Banner](images/ThinBanner.jpg)
-OpenDoorSim is an **open-source PACS / RFID lab** you can **build entirely at home!** Built with **off-the-shelf parts** and a few **simple tools**, OpenDoorSim simulates Physical Access Control Systems (PACS) just like the real world - and makes running everything from home experiments to big CTFs a breeze. Sporting a **fresh web UI**, **new on-device hardware menu**, turnkey **tamper detection**, and easy **batch user management**, you may find it hard to put down... 
 
-You can either buy the parts yourself and build at home, or **[order an easy-build kit](https://shortrange.tech)** from my website. Kits come with a pre-flashed microcontroller, all the parts you need to build, and a quality, weather-resistant 3D printed ASA case, plus some other goodies... and of course the feel-good fuzzies you get for supporting the project. 
+OpenDoorSim is an **open-source PACS / RFID lab** you can **build yourself!** OpenDoorSim simulates Physical Access Control Systems (PACS) just like the real world - and makes running everything from home experiments to big CTFs and demos a breeze. Sporting a **fresh web UI**, an **on-device hardware menu**, turnkey **tamper detection**, and easy **batch user management**, you may find it hard to put down... 
 
-Thank you for supporting **OpenDoorSim**, which is based on the excellent work and help of many PACS / RFID greats like evildaemond, nechry, iceman, bettse, and others - this project wouldn't exist without them. Please check out the [acknowledgements](#Acknowledgments) section!
+You can either buy the parts yourself and build at home, or order an easy-build kit from [shortrange.tech](https://shortrange.tech) if you want to support the project. Kits come with a microcontroller, all the parts you need to build, and a quality, weather-resistant 3D printed ASA case, plus some other goodies... and of course the feel-good fuzzies you get for supporting the project. 
 
-## Table of Contents
+Thank you for supporting **OpenDoorSim**, which is based on the excellent work and help of many RF greats like evildaemond, nechry, iceman, bettse, and others - this project wouldn't exist without them. Please check out the [acknowledgements](#Acknowledgments) section!
+
+## OpenDoorSim Models Comparison
+
+| Name      | Board           | Firmware |     | Magsafe Ring | Wiegand Compatible | Module Capability |
+| --------- | --------------- | -------- | --- | ------------ | ------------------ | ----------------- |
+| Pocket    | Official PCB    |          |     |              |                    |                   |
+| LAB       | Official PCB    |          |     |              |                    |                   |
+| Tarrif-ic | Prototype Board |          |     |              |                    |                   |
+
+
 
 ## Features
 - Designed for students, hobbyists, and industry professionals
