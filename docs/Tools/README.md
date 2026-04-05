@@ -3,8 +3,8 @@ These are my personal tool kit favorites that I use **all the time** and recomme
 
 > [!NOTE]
 > 
->All Amazon links below are affiliate links.
->If you purchase within 24hrs of clicking I may receive a small commission, which helps support the OpenDoorSim project. Thank you!
+>Links below are affiliate links.
+>If you purchase within 24hrs of clicking I may receive a small commission, which helps support the OpenDoorSim project at no extra cost to you. Thank you!
 
 | Shortrange's Tools                                                                                    | Link                                                                                                                                |
 | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |

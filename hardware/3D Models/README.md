@@ -1,8 +1,12 @@
 # 3D Print Instructions
 The following print instructions and settings are what I use for the official cases at [shortrange.tech](https://shortrange.tech). You may try to use materials other than ASA, however, please note that you will definitely need to change the settings if you are using a different material.
 
-
 ## My Personal Printer Setup
+
+> [!NOTE]
+> 
+>Links below are affiliate links.
+>If you purchase within 24hrs of clicking I may receive a small commission, which helps support the OpenDoorSim project at no extra cost to you. Thank you!
 
 | Item           | Details                                  | Link                                                                                                                                                                                                                                                                                                                                        |
 | -------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
