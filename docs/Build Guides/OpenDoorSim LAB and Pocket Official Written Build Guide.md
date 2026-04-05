@@ -2,12 +2,9 @@
 This manual provides complete instructions for building your very own **OpenDoorSim LAB** or Pocket, assuming you have all parts on hand.
 
 ## Contents:
-[#BUILD The Board (Part 1)](#build-the-board-part-1)
-	Build and connect the main PCB with components.
-[[## Part 2: Assemble The OpenDoorSim]]
-	Assemble the board and accessories into the final OpenDoorSim device.
-[[## Part 3: Flash The Firmware]]
-	Flash and test the microcontroller firmware.
+[BUILD The Board (Part 1)](#build-the-board-part-1): Build and connect the main PCB with components.
+[ASSEMBLE The OpenDoorSim (Part 2)](#assemble-the-opendoorsim-part-2) Assemble the board and accessories into the final OpenDoorSim device.
+[FLASH The Firmware (Part 3)](#flash-the-firmware-part-3): Flash and test the microcontroller firmware.
 
 
 > [!TIP]
@@ -25,10 +22,10 @@ This manual provides complete instructions for building your very own **OpenDoor
 ## BUILD The Board (Part 1)
 This section contains instructions for building the main OpenDoorSim PCB, including core component connections and case fit preparation. 
 
-### Bill of Materials (BOM, Part 1)
+### Bill of Materials
 To complete Part 1 of the build, you will need the following tools and components. Depending on whether you're building the Lab or Pocket, you will need different components! 
 
-📈 **Table Key:**
+📈 **Table Key:**  
 	✅ Essential  
 	🟡 Optional  
 	❌ Not Needed  
@@ -56,11 +53,11 @@ To complete Part 1 of the build, you will need the following tools and component
 
 
 > [!NOTE]
-> ⚡️ ***TIP**
+> ⚡️ **TIP**
 >  I typically color scheme the 9x wire bundle as follows: 2x Red (Power), 2x Black (Ground), 2x Blue (Clock), 2x Yellow (Data), 1x Green (Switch)
 > 
 
-### Assembly Instructions
+### Instructions
 
 #### **Step 1: Microcontroller
 
@@ -125,20 +122,17 @@ Congratulations on completing your OpenDoorSim board build! Give yourself a pat 
 ## ASSEMBLE The OpenDoorSim (Part 2)
 This section contains instructions for putting everything together - preparing your incredible case, inserting magnets and threaded inserts, placing the board inside the case, and closing up the build!
 
-⚡️***TIP***
-	*If you want to make sure your board build works before putting it in the case, you may prefer to flash and test the board (Part 3) before assembling (Part 2). Otherwise, you may have to disassemble to troubleshoot properly. If that doesn't bother you, carry on!*
+> [!NOTE]
+> ⚡️***TIP***
+>*If you want to make sure your board build works before putting it in the case, you may prefer to flash and test the board (Part 3) before assembling (Part 2). Otherwise, you may have to disassemble to troubleshoot properly. If that doesn't bother you, carry on!*
 
----
-### ASSEMBLE Bill of Materials (BOM)
+### Bill of Materials
 To complete Part 2 of the build, you will need the following tools and components. Depending on whether you're building the Lab or Pocket, you will need different components! 
 
-📈 **Table Key:**
-	✅ Essential
-	🟡 Optional
-	❌ Not Needed
-
-❗️***Disclaimer:**
-	Links below are affiliate links. If you purchase within 24 hours of clicking I may receive a small commission, which helps support the OpenDoorSim project at no extra cost to you. Thank you!*
+📈 **Table Key:**  
+✅ Essential  
+🟡 Optional  
+❌ Not Needed  
 
 | **Tool**s                                                                                    | LAB | POCKET | Link |
 | :------------------------------------------------------------------------------------------- | :-- | :----- | :--- |
@@ -166,10 +160,7 @@ To complete Part 2 of the build, you will need the following tools and component
 | 4x       | **Screw, Hex Socket Head M2x4**           | ❌   | ✅      |      |
 | 1x       | **Key Ring, 20mm**                        | ❌   | ✅      |      |
 | 1x       | **Carabiner, 33mm**                       | ❌   | ✅      |      |
+### Instructions
 
 ---
-### Assembly Instructions
-
-#### **Step 1: TODO: Coming Soon
-
-## Part 3: Flash The Firmware
+## Flash The Firmware (Part 3)
