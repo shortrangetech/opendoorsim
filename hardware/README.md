@@ -9,7 +9,7 @@ PCB Production files for the OpenDoorSim board can be found in the [PCB Files](/
 > 
 
 ## 3D Models
-3D STL models, as well as print instructions and settings for the Pocket and LAB can be found in the ![3D Models](/hardware/3D Models/) folder.
+3D STL models, as well as print instructions and settings for the Pocket and LAB can be found in the [3D Models](/hardware/3D Models/) folder.
 
 > [!WARNING]
 > Print settings are for ASA. If you are not printing with ASA, then you will need to adjust your print settings!
