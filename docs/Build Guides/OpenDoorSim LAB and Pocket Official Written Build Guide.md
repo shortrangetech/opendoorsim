@@ -2,7 +2,7 @@
 This manual provides complete instructions for building your very own **OpenDoorSim LAB** or Pocket, assuming you have all parts on hand.
 
 ## Contents:
-[[#BUILD The Board (Part 1)]]
+[#BUILD The Board (Part 1)](#build-the-board-part-1)
 	Build and connect the main PCB with components.
 [[## Part 2: Assemble The OpenDoorSim]]
 	Assemble the board and accessories into the final OpenDoorSim device.
@@ -29,12 +29,9 @@ This section contains instructions for building the main OpenDoorSim PCB, includ
 To complete Part 1 of the build, you will need the following tools and components. Depending on whether you're building the Lab or Pocket, you will need different components! 
 
 📈 **Table Key:**
-	✅ Essential
-	🟡 Optional
-	❌ Not Needed
-
-❗️***Disclaimer:**
-	Amazon links below are affiliate links. If you purchase within 24 hours of clicking I may receive a small commission, which helps support the OpenDoorSim project at no extra cost to you.*
+	✅ Essential  
+	🟡 Optional  
+	❌ Not Needed  
 
 | **Tool**s                   | LAB | POCKET | Link |
 | :-------------------------- | :-- | :----- | :--- |
@@ -56,11 +53,13 @@ To complete Part 1 of the build, you will need the following tools and component
 | 9x       | **Solid Core Wire, 100mm Long, 22awg** | ✅   | ❌      |      |
 | 1x       | **128x64 OLED, 0.96"**                 | ❌   | ✅      |      |
 | 9x       | **Solid Core Wire, 60mm Long, 22awg**  | ❌   | ✅      |      |
-⚡️ ***TIP**
-	 I typically color scheme the 9x wire bundle as follows:
-	2x Red (Power), 2x Black (Ground), 2x Blue (Clock), 2x Yellow (Data), 1x Green (Switch)*
 
----
+
+> [!NOTE]
+> ⚡️ ***TIP**
+>  I typically color scheme the 9x wire bundle as follows: 2x Red (Power), 2x Black (Ground), 2x Blue (Clock), 2x Yellow (Data), 1x Green (Switch)
+> 
+
 ### Assembly Instructions
 
 #### **Step 1: Microcontroller
