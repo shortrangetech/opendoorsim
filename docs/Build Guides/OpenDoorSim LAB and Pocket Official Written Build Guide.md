@@ -20,7 +20,6 @@ This manual provides complete instructions for building your very own **OpenDoor
 >If you purchase within 24hrs of clicking I may receive a small commission, which helps support the OpenDoorSim project at no extra cost to you. Thank you!
 
 ---
----
 
 ## BUILD The Board (Part 1)
 This section contains instructions for building the main OpenDoorSim PCB, including core component connections and case fit preparation. 
@@ -58,7 +57,7 @@ To complete Part 1 of the build, you will need the following tools and component
 
 
 > [!NOTE]
-> ⚡️ **TIP**
+> 
 >  I typically color scheme the 9x wire bundle as follows: 2x Red (Power), 2x Black (Ground), 2x Blue (Clock), 2x Yellow (Data), 1x Green (Switch)
 > 
 
@@ -124,14 +123,12 @@ To complete Part 1 of the build, you will need the following tools and component
 Congratulations on completing your OpenDoorSim board build! Give yourself a pat on the back, grab a snack, and get ready for part 2!
 
 ---
----
-
 
 ## ASSEMBLE The OpenDoorSim (Part 2)
 This section contains instructions for putting everything together - preparing your incredible case, inserting magnets and threaded inserts, placing the board inside the case, and closing up the build!
 
 > [!NOTE]
-> ⚡️***TIP***
+> 
 >*If you want to make sure your board build works before putting it in the case, you may prefer to flash and test the board (Part 3) before assembling (Part 2). Otherwise, you may have to disassemble to troubleshoot properly. If that doesn't bother you, carry on!*
 
 ### Bill of Materials
