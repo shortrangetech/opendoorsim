@@ -9,7 +9,7 @@
     "wiegand_wait_time": 30000,
     "led_valid": 1,
     "custom_message": "OPENDOORSIM",
-    "active_display_type": 1,
+    "active_display_type": 2,
     "display_timeout": 7000,
     "flip_oled_display": false,
     "enable_tamper_detect": false,
