@@ -2,9 +2,11 @@
 This manual provides complete instructions for building your very own **OpenDoorSim LAB** or Pocket, assuming you have all parts on hand.  
 
 ## Contents:  
-[BUILD The Board (Part 1)](#build-the-board-part-1): Build and connect the main PCB with components.  
-[ASSEMBLE The OpenDoorSim (Part 2)](#assemble-the-opendoorsim-part-2) Assemble the board and accessories into the final OpenDoorSim device.  
-[FLASH The Firmware (Part 3)](#flash-the-firmware-part-3): Flash and test the microcontroller firmware.  
+
+| [BUILD The Board (Part 1)](#build-the-board-part-1)                   | Build and connect the main PCB with components.                       |
+| --------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| [ASSEMBLE The OpenDoorSim (Part 2)](#assemble-the-opendoorsim-part-2) | Assemble the board and accessories into the final OpenDoorSim device. |
+| [FLASH The Firmware (Part 3)](#flash-the-firmware-part-3)             | Flash and test the microcontroller firmware.                          |
 
 
 > [!TIP]
@@ -26,9 +28,12 @@ This section contains instructions for building the main OpenDoorSim PCB, includ
 To complete Part 1 of the build, you will need the following tools and components. Depending on whether you're building the Lab or Pocket, you will need different components! 
 
 📈 **Table Key:**  
-	✅ Essential  
-	🟡 Optional  
-	❌ Not Needed  
+
+| ✅                 | Essential  |
+| ----------------- | ---------- |
+| 🟡                | Optional   |
+| ❌                 | Not Needed |
+
 
 | **Tool**s                   | LAB | POCKET | Link |
 | :-------------------------- | :-- | :----- | :--- |
