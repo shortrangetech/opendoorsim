@@ -19,6 +19,8 @@ This manual provides complete instructions for building your very own **OpenDoor
 >Links below are affiliate links.
 >If you purchase within 24hrs of clicking I may receive a small commission, which helps support the OpenDoorSim project at no extra cost to you. Thank you!
 
+---
+---
 
 ## BUILD The Board (Part 1)
 This section contains instructions for building the main OpenDoorSim PCB, including core component connections and case fit preparation. 
@@ -120,6 +122,9 @@ To complete Part 1 of the build, you will need the following tools and component
 ### Final Thoughts
 
 Congratulations on completing your OpenDoorSim board build! Give yourself a pat on the back, grab a snack, and get ready for part 2!
+
+---
+---
 
 
 ## ASSEMBLE The OpenDoorSim (Part 2)
