@@ -1,10 +1,10 @@
 # OpenDoorSim Official Build Guide
-This manual provides complete instructions for building your very own **OpenDoorSim LAB** or Pocket, assuming you have all parts on hand.
+This manual provides complete instructions for building your very own **OpenDoorSim LAB** or Pocket, assuming you have all parts on hand.  
 
-## Contents:
-[BUILD The Board (Part 1)](#build-the-board-part-1): Build and connect the main PCB with components.
-[ASSEMBLE The OpenDoorSim (Part 2)](#assemble-the-opendoorsim-part-2) Assemble the board and accessories into the final OpenDoorSim device.
-[FLASH The Firmware (Part 3)](#flash-the-firmware-part-3): Flash and test the microcontroller firmware.
+## Contents:  
+[BUILD The Board (Part 1)](#build-the-board-part-1): Build and connect the main PCB with components.  
+[ASSEMBLE The OpenDoorSim (Part 2)](#assemble-the-opendoorsim-part-2) Assemble the board and accessories into the final OpenDoorSim device.  
+[FLASH The Firmware (Part 3)](#flash-the-firmware-part-3): Flash and test the microcontroller firmware.  
 
 
 > [!TIP]
@@ -18,7 +18,7 @@ This manual provides complete instructions for building your very own **OpenDoor
 >Links below are affiliate links.
 >If you purchase within 24hrs of clicking I may receive a small commission, which helps support the OpenDoorSim project at no extra cost to you. Thank you!
 
----
+
 ## BUILD The Board (Part 1)
 This section contains instructions for building the main OpenDoorSim PCB, including core component connections and case fit preparation. 
 
@@ -59,7 +59,7 @@ To complete Part 1 of the build, you will need the following tools and component
 
 ### Instructions
 
-#### **Step 1: Microcontroller
+#### **Step 1: Microcontroller**
 
 1. Align and insert the **ESP32** into the holes on the top of the PCB.
 2. Optionally, secure the ESP32 flat against the board with tape.
@@ -118,7 +118,7 @@ To complete Part 1 of the build, you will need the following tools and component
 
 Congratulations on completing your OpenDoorSim board build! Give yourself a pat on the back, grab a snack, and get ready for part 2!
 
----
+
 ## ASSEMBLE The OpenDoorSim (Part 2)
 This section contains instructions for putting everything together - preparing your incredible case, inserting magnets and threaded inserts, placing the board inside the case, and closing up the build!
 
