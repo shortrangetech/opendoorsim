@@ -14,7 +14,7 @@ This manual provides complete instructions for building your very own **OpenDoor
 > 
 >🚀 **SUPPORT THE PROJECT!**
 >You can support the project by purchasing an official build kit [here](https://shortrange.tech) or by buying your own components through affiliate links at no extra cost to you. Or, just tell your friends about the project! Thank you for your support. ❤️ 
-	
+
 
 > [!NOTE]
 > 
@@ -25,7 +25,6 @@ This manual provides complete instructions for building your very own **OpenDoor
 ## BUILD The Board (Part 1)
 This section contains instructions for building the main OpenDoorSim PCB, including core component connections and case fit preparation. 
 
----
 ### Bill of Materials (BOM, Part 1)
 To complete Part 1 of the build, you will need the following tools and components. Depending on whether you're building the Lab or Pocket, you will need different components! 
 
