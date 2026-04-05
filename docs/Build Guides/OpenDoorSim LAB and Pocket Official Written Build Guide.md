@@ -12,8 +12,8 @@ This manual provides complete instructions for building your very own **OpenDoor
 
 > [!TIP]
 > 
->🚀 **SUPPORT THE PROJECT!
->You can support the project by purchasing an official build kit [here](https://shortrange.tech) or by buying your own components through affiliate links at no extra cost to you. Or, just tell your friends about the project! Thank you for your support. ❤️ **
+>🚀 **SUPPORT THE PROJECT!**
+>You can support the project by purchasing an official build kit [here](https://shortrange.tech) or by buying your own components through affiliate links at no extra cost to you. Or, just tell your friends about the project! Thank you for your support. ❤️ 
 	
 
 > [!NOTE]
