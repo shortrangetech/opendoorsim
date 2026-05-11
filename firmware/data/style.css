@@ -354,7 +354,24 @@ button:hover{
     transition: opacity 0.2s;
 }
 
+.screen-container {
+    background: #000;
+    padding: 20px;
+    border-radius: 12px;
+    border: 4px solid #2a2a2a;
+    display: inline-block;
+    line-height: 0;
+}
 
+#oledCanvas {
+    /* This is the secret sauce for the retro look */
+    image-rendering: pixelated; 
+    image-rendering: crisp-edges;
+    width: 512px; /* Scales the 128px width by 4x */
+    height: 256px;
+    background-color: #000;
+    border: 1px solid #1a1a1a;
+}
 
 #togglePwdBtn:hover {
     opacity: 1;

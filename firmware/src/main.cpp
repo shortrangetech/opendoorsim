@@ -1809,6 +1809,14 @@ void webServer()
     }
   });
 
+  server.on("/screen", HTTP_GET, [](AsyncWebServerRequest *request) {
+    if (oledDisplay != nullptr && (activeDisplayType == DISPLAY_OLED_32 || activeDisplayType == DISPLAY_OLED_64)) {
+        request->send(200, "application/octet-stream", (const uint8_t*)oledDisplay->getBuffer(), 512);
+    } else {
+        request->send(404, "text/plain", "OLED Not Active");
+    }
+  });
+
   server.on("/updateUser", HTTP_GET, [](AsyncWebServerRequest *request) {
     if (request->hasParam("index")) {
       int index = request->getParam("index")->value().toInt();

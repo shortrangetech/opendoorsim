@@ -25,6 +25,11 @@ let originalLedValid = 1;
 let originalTamper = false;
 let originalDisableEncoder = false;
 
+// Virtual Screen Vars
+let screenInterval = null;
+const canvas = document.getElementById('oledCanvas');
+const ctx = canvas?.getContext('2d');
+
 // --- script.js ---
 
 function checkDirty() {
@@ -88,6 +93,41 @@ function checkDirty() {
         }
     }
 }
+
+function updateScreen() {
+    // Only fetch if the screen section is visible
+    if (document.getElementById('screen').classList.contains('hidden')) return;
+
+    fetch('/screen?t=' + Date.now())
+        .then(response => response.arrayBuffer())
+        .then(buffer => {
+            const data = new Uint8Array(buffer);
+            const imageData = ctx.createImageData(128, 64);
+            
+            // OLED Color Palette (Classic Blue/Cyan)
+            const r = 0, g = 209, b = 255; 
+
+            for (let page = 0; page < 8; page++) {
+                for (let x = 0; x < 128; x++) {
+                    const byte = data[page * 128 + x];
+                    for (let bit = 0; bit < 8; bit++) {
+                        const y = page * 8 + bit;
+                        const pixelOn = (byte >> bit) & 1;
+                        const index = (y * 128 + x) * 4;
+                        
+                        imageData.data[index]     = pixelOn ? r : 0;   // R
+                        imageData.data[index + 1] = pixelOn ? g : 0;   // G
+                        imageData.data[index + 2] = pixelOn ? b : 0;   // B
+                        imageData.data[index + 3] = 255;               // Alpha
+                    }
+                }
+            }
+            ctx.putImageData(imageData, 0, 0);
+        })
+        .catch(err => console.error("Screen fetch failed", err));
+}
+
+
 
 function updateTable() {
     // FIX 2: Add timestamp to prevent caching
@@ -264,7 +304,19 @@ function showSection(section) {
     document.getElementById('log').classList.add('hidden');
     document.getElementById('monitor').classList.add('hidden');
     document.getElementById('settings').classList.add('hidden');
+    document.getElementById('screen').classList.add('hidden'); // Add this
+    
     document.getElementById(section).classList.remove('hidden');
+
+    // Manage the Polling Interval
+    if (section === 'screen') {
+        if (!screenInterval) screenInterval = setInterval(updateScreen, 150); // ~6 FPS
+    } else {
+        if (screenInterval) {
+            clearInterval(screenInterval);
+            screenInterval = null;
+        }
+    }
 }
 
 function showSectionWithRefresh(section) {
