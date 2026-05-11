@@ -95,38 +95,47 @@ function checkDirty() {
 }
 
 function updateScreen() {
-    // Only fetch if the screen section is visible
     if (document.getElementById('screen').classList.contains('hidden')) return;
+
+    // 1. Check if the element even exists in Firefox's view
+    const canvas = document.getElementById('oledCanvas');
+    if (!canvas) {
+        console.log("Firefox Error: oledCanvas not found.");
+        return;
+    }
 
     fetch('/screen?t=' + Date.now())
         .then(response => response.arrayBuffer())
         .then(buffer => {
             const data = new Uint8Array(buffer);
-            const imageData = ctx.createImageData(128, 64);
+            const ctx = canvas.getContext('2d');
             
-            // OLED Color Palette (Classic Blue/Cyan)
+            // Force attributes to match 512-byte expectation
+            canvas.width = 128;
+            canvas.height = 32;
+
+            const imageData = ctx.createImageData(128, 32);
             const r = 0, g = 209, b = 255; 
 
-            for (let page = 0; page < 8; page++) {
+            for (let page = 0; page < 4; page++) {
                 for (let x = 0; x < 128; x++) {
                     const byte = data[page * 128 + x];
                     for (let bit = 0; bit < 8; bit++) {
                         const y = page * 8 + bit;
-                        const pixelOn = (byte >> bit) & 1;
                         const index = (y * 128 + x) * 4;
+                        const pixelOn = (byte >> bit) & 1;
                         
-                        imageData.data[index]     = pixelOn ? r : 0;   // R
-                        imageData.data[index + 1] = pixelOn ? g : 0;   // G
-                        imageData.data[index + 2] = pixelOn ? b : 0;   // B
-                        imageData.data[index + 3] = 255;               // Alpha
+                        imageData.data[index]     = pixelOn ? r : 0;
+                        imageData.data[index + 1] = pixelOn ? g : 0;
+                        imageData.data[index + 2] = pixelOn ? b : 0;
+                        imageData.data[index + 3] = 255;
                     }
                 }
             }
             ctx.putImageData(imageData, 0, 0);
         })
-        .catch(err => console.error("Screen fetch failed", err));
+        .catch(err => console.error("Firefox Fetch Error:", err));
 }
-
 
 
 function updateTable() {

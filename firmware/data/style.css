@@ -364,14 +364,15 @@ button:hover{
 }
 
 #oledCanvas {
-    /* This is the secret sauce for the retro look */
+    display: block; /* Forces Firefox to respect dimensions */
     image-rendering: pixelated; 
     image-rendering: crisp-edges;
-    width: 512px; /* Scales the 128px width by 4x */
-    height: 128px; /* default 256 to set to stretched height*/
+    width: 512px; 
+    height: 128px; 
     background-color: #000;
     border: 1px solid #1a1a1a;
-} 
+    margin: 0 auto; /* Centers it if needed */
+}
 
 #togglePwdBtn:hover {
     opacity: 1;
