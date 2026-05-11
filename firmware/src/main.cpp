@@ -83,23 +83,25 @@ const char *wiegandFormatsFile = "/wiegand_formats.json";
 
 
 // Reader input pins 
-#define DATA0_PIN 18
-#define DATA1_PIN 19
+#define DATA0_PIN 34
+#define DATA1_PIN 35
   // optional, tamper detection relay
-#define RELAY1_PIN 4
+#define TMPR_PIN 21
 
 // Reader output pins 
-#define LED_PIN 16
+#define LED_PIN 15
 
 // System Command I2C (unused currently, reserved for future use)
 #define SYS_I2C_SDA 21
 #define SYS_I2C_CLK 22
 
 // Reserved Pins For Future Use
-#define RESERVED_PIN0 13
-#define RESERVED_PIN1 14
-#define RESERVED_PIN2 17
-#define RESERVED_PIN3 23
+#define RESERVED_PIN1 13
+#define RESERVED_PIN2 14
+#define RESERVED_PIN3 18
+#define RESERVED_PIN4 19
+#define RESERVED_PIN5 22
+#define RESERVED_PIN6 23
 
 // Display type constants
 #define DISPLAY_LCD 1
@@ -166,7 +168,7 @@ const int MAX_BITS_CONST = 100;
 // runtime-configurable max bits (loaded from settings.json)
 volatile unsigned int maxBits = MAX_BITS_CONST;
 // time to wait for another weigand pulse (runtime-configurable)
-volatile unsigned int weigandWaitTime = 30000;
+volatile unsigned int weigandWaitTime = 30000; //orig 3000
 
 // stores all of the data bits (sized to compile-time const)
 volatile unsigned char databits[MAX_BITS_CONST];
@@ -946,14 +948,13 @@ void ledOnValid()
     delay(250);
     digitalWrite(LED_PIN, LOW);
     delay(250);
-    digitalWrite(LED_PIN, HIGH);
     break;
 
   case 2:
   // Long Flash
-    digitalWrite(LED_PIN, LOW);
-    delay(2000);
     digitalWrite(LED_PIN, HIGH);
+    delay(2000);
+    digitalWrite(LED_PIN, LOW);
     break;
   }
 }
@@ -2004,7 +2005,7 @@ void checkTamper() {
     // Read pin state
     // HIGH = Open Circuit (Reader Removed/Tampered)
     // LOW = Grounded (Reader Mounted/Safe)
-    bool currentReading = (digitalRead(RELAY1_PIN) == HIGH);
+    bool currentReading = (digitalRead(TMPR_PIN) == HIGH);
 
     // Only act if state has CHANGED
     if (currentReading != tamperState) {
@@ -2199,10 +2200,10 @@ void setup()
   pinMode(DATA0_PIN, INPUT);
   pinMode(DATA1_PIN, INPUT);
   pinMode(LED_PIN, OUTPUT);
-  pinMode(RELAY1_PIN, INPUT_PULLUP);
+  pinMode(TMPR_PIN, INPUT_PULLUP);
 
   // turn off led
-  digitalWrite(LED_PIN, HIGH);
+  digitalWrite(LED_PIN, LOW);
 
   Serial.begin(115200);
   delay(100);
