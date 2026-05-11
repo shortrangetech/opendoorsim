@@ -368,10 +368,10 @@ button:hover{
     image-rendering: pixelated; 
     image-rendering: crisp-edges;
     width: 512px; /* Scales the 128px width by 4x */
-    height: 256px;
+    height: 128px; /* default 256 to set to stretched height*/
     background-color: #000;
     border: 1px solid #1a1a1a;
-}
+} 
 
 #togglePwdBtn:hover {
     opacity: 1;
