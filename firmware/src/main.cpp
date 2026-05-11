@@ -147,7 +147,7 @@ bool isSystemPaused = false; // Tracks if the scanner is paused
 // --- ROTARY ENCODER VARIABLES ---
 volatile int encoderCount = 0;
 volatile unsigned long lastEncoderPress = 0;
-const unsigned long DEBOUNCE_DELAY = 200; // ms
+const unsigned long DEBOUNCE_DELAY = 50; // ms
 volatile bool encoderPressedFlag = false;
 bool disableEncoder = false;
 
@@ -290,10 +290,14 @@ void IRAM_ATTR isr_rotary() {
 
 void IRAM_ATTR isr_button() {
   if (isSystemPaused) return;
-  if (millis() - lastEncoderPress > DEBOUNCE_DELAY) {
+  if (encoderPressedFlag) return;
+  
+  if(digitalRead(ENC_SW) == LOW) {
+    if (millis() - lastEncoderPress > DEBOUNCE_DELAY) {
     encoderPressedFlag = true;
     lastEncoderPress = millis();
-  }
+    }
+  }  
 }
 
 void setupEncoder() {
@@ -378,10 +382,15 @@ void handleMenuInput() {
   }
 
   if (encoderPressedFlag) {
-    displayingCard = false;
-    encoderPressedFlag = false;
-    processMenuAction(); 
-    forceMenuUpdate = true;
+    // Check if the button is released
+    if (digitalRead(ENC_SW) == HIGH) {
+      
+      processMenuAction(); 
+      forceMenuUpdate = true;
+
+      // Unlock ISR
+      encoderPressedFlag = false; 
+    }
   }
 }
 
