@@ -1809,6 +1809,7 @@ void webServer()
     }
   });
 
+  // Virtual Screen for Iceman's Demons
   server.on("/screen", HTTP_GET, [](AsyncWebServerRequest *request) {
     if (oledDisplay != nullptr) {
         // Confirm buffer size and type in Serial Monitor
