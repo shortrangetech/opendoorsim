@@ -2,7 +2,7 @@
 
 > [!NOTE]
 > 
-> 🚧 README and Documentation are still under construction! Full documentation will be released incrementally as it becomes available! Check back soon for updates. 🚧
+> 🚧 README and Documentation are still under construction! Full documentation will be released incrementally as it becomes available, WITH FULL RELEASE AND CAPABILITES AVAILABLE END OF JULY. Check back for updates. 🚧
 
 ![Banner](images/ThinBanner.jpg)
 
