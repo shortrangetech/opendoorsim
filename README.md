@@ -1,4 +1,4 @@
-# The OpenDoorSim Project
+# OpenDoorSim — Personal RFID Lab
 
 > [!NOTE]
 > 
