@@ -423,8 +423,7 @@ void drawTextLine(int row, String text, bool inverted = false) {
       lcdDisplay->print(" ");
   }
 
-  else if (activeDisplayType == DISPLAY_OLED_32 &&
-           oledDisplay != nullptr) {
+  else if (activeDisplayType == DISPLAY_OLED_32 && oledDisplay != nullptr) {
     int rowHeight = 8; // standard 5x7 font + spacing
     yPos = row * rowHeight;
 
@@ -1300,11 +1299,11 @@ void initializeDisplay() {
     oledDisplay->setCursor(0, 0);
 
     if (flipOledDisplay) {
-      oledDisplay->setRotation(2);
-      oledRotation = 2;
-    } else {
       oledDisplay->setRotation(0);
       oledRotation = 0;
+    } else {
+      oledDisplay->setRotation(2);
+      oledRotation = 2;
     }
 
     oledDisplay->println("Initializing...");
@@ -1369,8 +1368,7 @@ void printDisplayRawCard() {
       snprintf(padBuf, sizeof(padBuf), "%d", lastPadCount);
     lcdDisplay->setCursor(5, 3);
     lcdDisplay->print(padBuf);
-  } else if (activeDisplayType == DISPLAY_OLED_32 &&
-             oledDisplay != nullptr) {
+  } else if (activeDisplayType == DISPLAY_OLED_32 && oledDisplay != nullptr) {
     oledDisplay->clearDisplay();
     oledDisplay->setTextSize(1);
     oledDisplay->setTextColor(SSD1306_WHITE);
@@ -1776,7 +1774,8 @@ void webServer() {
       // Serial.printf("[DEBUG] Sending screen buffer: %d bytes, Display Type:
       // %d\n", bufferSize, activeDisplayType);
 
-      // Expose the hardware rotation so the browser can always render the virtual screen upright
+      // Expose the hardware rotation so the browser can always render the
+      // virtual screen upright
       AsyncWebServerResponse *response = request->beginResponse(
           200, "application/octet-stream",
           (const uint8_t *)oledDisplay->getBuffer(), bufferSize);
