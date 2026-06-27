@@ -37,7 +37,7 @@ function checkDirty() {
     const currSsid = document.getElementById('ap_ssid').value;
     const currPwd = document.getElementById('ap_pwd').value;
     const currHidden = document.getElementById('ssid_hidden').checked;
-    
+
     const currMode = document.getElementById('modeSelect').value;
     const currTimeout = document.getElementById('timeoutSelect').value;
     const currMsg = document.getElementById('customMessage').value;
@@ -52,7 +52,7 @@ function checkDirty() {
     if (currSsid !== originalSsid) isDirty = true;
     if (currPwd !== originalPwd) isDirty = true;
     if (currHidden !== originalHidden) isDirty = true;
-    
+
     if (currMode !== originalMode) isDirty = true;
     if (currTimeout != originalTimeout) isDirty = true;
     if (currMsg !== originalCustomMessage) isDirty = true;
@@ -69,18 +69,18 @@ function checkDirty() {
     if (saveBtn) {
         // Ensure the button text is clean (no accidental duplication)
         if (saveBtn.childNodes.length === 0 || (saveBtn.firstChild.nodeType === 3 && saveBtn.firstChild.nodeValue !== "Save Settings")) {
-             saveBtn.firstChild.nodeValue = "Save Settings";
+            saveBtn.firstChild.nodeValue = "Save Settings";
         }
 
         let badge = document.getElementById('unsavedBadge');
-        
+
         // Create badge if it doesn't exist
         if (!badge) {
             badge = document.createElement('span');
             badge.id = 'unsavedBadge';
             // We do NOT use the generic .badge class here to avoid style conflicts.
             // The ID selector in CSS handles all the styling.
-            badge.className = 'collapsed'; 
+            badge.className = 'collapsed';
             badge.textContent = 'UNSAVED';
             saveBtn.appendChild(badge);
         }
@@ -109,13 +109,13 @@ function updateScreen() {
         .then(buffer => {
             const data = new Uint8Array(buffer);
             const ctx = canvas.getContext('2d');
-            
+
             // Force attributes to match 512-byte expectation
             canvas.width = 128;
             canvas.height = 32;
 
             const imageData = ctx.createImageData(128, 32);
-            const r = 0, g = 209, b = 255; 
+            const r = 0, g = 209, b = 255;
 
             for (let page = 0; page < 4; page++) {
                 for (let x = 0; x < 128; x++) {
@@ -124,8 +124,8 @@ function updateScreen() {
                         const y = page * 8 + bit;
                         const index = (y * 128 + x) * 4;
                         const pixelOn = (byte >> bit) & 1;
-                        
-                        imageData.data[index]     = pixelOn ? r : 0;
+
+                        imageData.data[index] = pixelOn ? r : 0;
                         imageData.data[index + 1] = pixelOn ? g : 0;
                         imageData.data[index + 2] = pixelOn ? b : 0;
                         imageData.data[index + 3] = 255;
@@ -161,7 +161,7 @@ function updateTable() {
                 let cellHexData = row.insertCell(5);
                 let cellPadCount = row.insertCell(6);
                 cellIndex.innerHTML = index + 1;
-                
+
                 cellBitLength.innerHTML = card.bitCount;
                 cellFacilityCode.innerHTML = card.facilityCode;
                 cellCardNumber.innerHTML = card.cardNumber;
@@ -314,7 +314,7 @@ function showSection(section) {
     document.getElementById('monitor').classList.add('hidden');
     document.getElementById('settings').classList.add('hidden');
     document.getElementById('screen').classList.add('hidden'); // Add this
-    
+
     document.getElementById(section).classList.remove('hidden');
 
     // Manage the Polling Interval
@@ -344,11 +344,11 @@ function toggleFlipOption() {
     const displayType = document.getElementById('activeDisplayType').value;
     const container = document.getElementById('flipOledContainer');
     const flipCheckbox = document.getElementById('flipOled');
-    
+
     if (displayType === "1") {
         // LCD Mode selected
         container.style.display = 'none';
-        
+
         // Logic: If user clicks LCD, force Flip to FALSE
         if (flipCheckbox.checked) {
             flipCheckbox.checked = false;
@@ -420,9 +420,9 @@ function saveSettings() {
     if (pwdInput.length > 0 && pwdInput.length < 8) {
         alert("Cannot Save: Password must be empty (Open Network) or at least 8 characters.");
         document.getElementById('ap_pwd').focus();
-        return; 
+        return;
     }
-    
+
     const pwdChanged = (pwdInput !== originalPwd);
     const ssidChanged = (ssidInput !== originalSsid);
     const hiddenChanged = (hiddenInput !== originalHidden);
@@ -430,19 +430,19 @@ function saveSettings() {
 
     const currentDisplay = parseInt(document.getElementById('activeDisplayType').value, 10);
     const currentFlip = document.getElementById('flipOled').checked;
-    
+
     const displayChanged = (currentDisplay !== originalDisplayType) || (currentFlip !== originalFlipOled);
     const rebootRequired = wifiChanged || displayChanged;
 
     if (wifiChanged) {
         if (pwdChanged) {
             const userConfirmed = prompt("Wifi password has been changed. Please re-type the new password to confirm:");
-            if (userConfirmed === null) return; 
+            if (userConfirmed === null) return;
             if (userConfirmed !== pwdInput) {
                 alert("Passwords do not match. Settings NOT saved.");
                 return;
             }
-        } 
+        }
         else if (!confirm("WiFi settings have changed. The device will reboot. Continue?")) {
             return;
         }
@@ -475,22 +475,22 @@ function saveSettings() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings)
     })
-    .then(response => {
-        if (response.ok) {
-            if (rebootRequired) {
-                alert('Settings saved! Device is REBOOTING now. Please reconnect.');
+        .then(response => {
+            if (response.ok) {
+                if (rebootRequired) {
+                    alert('Settings saved! Device is REBOOTING now. Please reconnect.');
+                } else {
+                    alert('Settings saved successfully.');
+                    // RESET DIRTY FLAG ON SUCCESSFUL SAVE
+                    unsavedChanges = false;
+                    fetchSettings(true);
+                }
+                document.getElementById('rebootWarning').style.display = 'none';
             } else {
-                alert('Settings saved successfully.');
-                // RESET DIRTY FLAG ON SUCCESSFUL SAVE
-                unsavedChanges = false;
-                fetchSettings(true); 
+                alert('Failed to save settings');
             }
-            document.getElementById('rebootWarning').style.display = 'none';
-        } else {
-            alert('Failed to save settings');
-        }
-    })
-    .catch(error => console.error('Error saving settings:', error));
+        })
+        .catch(error => console.error('Error saving settings:', error));
 }
 
 
@@ -508,7 +508,7 @@ function fetchSettings(forceUpdateUI = false) {
                 console.log("Skipping UI update: Unsaved changes present.");
                 return;
             }
-            
+
             updateSettingsUI(data);
         })
         .catch(error => console.error('Error fetching settings:', error));
@@ -518,14 +518,14 @@ function fetchSettings(forceUpdateUI = false) {
 
 function updateSettingsUI(settings) {
     const mode = settings.device_mode || settings.mode || '';
-    
+
     // FIX: Falsey 0 logic included here
-    const displayTimeout = (settings.display_timeout !== undefined) 
-        ? settings.display_timeout 
+    const displayTimeout = (settings.display_timeout !== undefined)
+        ? settings.display_timeout
         : (settings.displayTimeout !== undefined ? settings.displayTimeout : '');
 
-    const ledValid = (settings.led_valid !== undefined) 
-        ? settings.led_valid 
+    const ledValid = (settings.led_valid !== undefined)
+        ? settings.led_valid
         : (settings.ledValid !== undefined ? settings.ledValid : 1);
 
     const apSsid = settings.ap_ssid || settings.apSsid || '';
@@ -536,13 +536,13 @@ function updateSettingsUI(settings) {
     const enableTamperDetect = (settings.enable_tamper_detect !== undefined) ? settings.enable_tamper_detect : settings.enableTamperDetect;
     const version = settings.version || settings.version || '';
     const disableEncoder = (settings.disable_encoder !== undefined) ? settings.disable_encoder : false;
-    
+
     // Get Pause State
     const isPaused = (settings.is_paused === true);
 
     // 1. Populate UI Inputs
     if (document.getElementById('modeSelect')) document.getElementById('modeSelect').value = (mode || '').toString().toLowerCase();
-    
+
     if (document.getElementById('timeoutSelect')) document.getElementById('timeoutSelect').value = displayTimeout;
     if (document.getElementById('ap_ssid')) document.getElementById('ap_ssid').value = apSsid;
     if (document.getElementById('ap_pwd')) document.getElementById('ap_pwd').value = apPass;
@@ -552,7 +552,7 @@ function updateSettingsUI(settings) {
     if (document.getElementById('activeDisplayType')) document.getElementById('activeDisplayType').value = activeDisplayType;
     if (document.getElementById('enable_tamper_detect')) document.getElementById('enable_tamper_detect').checked = enableTamperDetect;
     if (document.getElementById('versionValue')) document.getElementById('versionValue').textContent = version;
-    if (document.getElementById('flipOled')) document.getElementById('flipOled').checked = settings.flip_oled_display; 
+    if (document.getElementById('flipOled')) document.getElementById('flipOled').checked = settings.flip_oled_display;
     if (document.getElementById('disable_encoder')) document.getElementById('disable_encoder').checked = disableEncoder;
 
     // 2. [NEW] Update Mode Banner (Top Right)
@@ -586,7 +586,7 @@ function updateSettingsUI(settings) {
     originalHidden = (ssidHidden == 1 || ssidHidden === true);
     originalDisplayType = activeDisplayType;
     originalFlipOled = settings.flip_oled_display;
-    
+
     // New globals
     originalMode = (mode || '').toString().toLowerCase();
     originalTimeout = displayTimeout;
@@ -602,17 +602,17 @@ function updateSettingsUI(settings) {
     }
 
     toggleFlipOption();
-    checkDirty(); 
+    checkDirty();
 }
 
 function togglePause() {
     fetch('/togglePause', { method: 'POST' })
-    .then(response => response.text())
-    .then(status => {
-        // Trigger a settings fetch to update the UI button state immediately
-        fetchSettings(true);
-    })
-    .catch(err => alert("Error toggling pause state."));
+        .then(response => response.text())
+        .then(status => {
+            // Trigger a settings fetch to update the UI button state immediately
+            fetchSettings(true);
+        })
+        .catch(err => alert("Error toggling pause state."));
 }
 
 
@@ -655,7 +655,7 @@ function uploadUserFile() {
     const file = fileInput.files[0];
     const reader = new FileReader();
 
-    reader.onload = function(e) {
+    reader.onload = function (e) {
         try {
             const json = JSON.parse(e.target.result);
             let count = 0;
@@ -667,7 +667,7 @@ function uploadUserFile() {
             }
 
             const message = `Import ${count} users?\n\nWARNING: This will overwrite all current users!`;
-            if (!confirm(message)) return; 
+            if (!confirm(message)) return;
 
             const formData = new FormData();
             formData.append("file", file);
@@ -680,28 +680,28 @@ function uploadUserFile() {
                 method: 'POST',
                 body: formData
             })
-            .then(async response => {
-                const text = await response.text(); 
-                if (response.ok) {
-                    statusDiv.style.color = "#236b2b"; 
-                    statusDiv.textContent = "Success!";
-                    alert(text); 
-                    fileInput.value = ""; 
-                    updateUserTable(); 
-                } else {
-                    throw new Error(text);
-                }
-            })
-            .catch(error => {
-                console.error('Upload Error:', error);
-                statusDiv.style.color = "#8b1f1f"; 
-                statusDiv.textContent = "Failed";
-                alert("Import Failed:\n" + error.message);
-            })
-            .finally(() => {
-                btn.disabled = false;
-                btn.textContent = "Import";
-            });
+                .then(async response => {
+                    const text = await response.text();
+                    if (response.ok) {
+                        statusDiv.style.color = "#236b2b";
+                        statusDiv.textContent = "Success!";
+                        alert(text);
+                        fileInput.value = "";
+                        updateUserTable();
+                    } else {
+                        throw new Error(text);
+                    }
+                })
+                .catch(error => {
+                    console.error('Upload Error:', error);
+                    statusDiv.style.color = "#8b1f1f";
+                    statusDiv.textContent = "Failed";
+                    alert("Import Failed:\n" + error.message);
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    btn.textContent = "Import";
+                });
 
         } catch (err) {
             alert("Failed to parse JSON file for verification.\nCheck file format.");
@@ -744,25 +744,25 @@ function copyToClipboard(text) {
 function rebootDevice() {
     if (confirm("Are you sure you want to reboot the device?")) {
         fetch('/rebootDevice', { method: 'POST' })
-        .then(() => {
-            alert("Device is rebooting. Please reconnect in ~10 seconds.");
-            setTimeout(() => window.location.reload(), 5000);
-        })
-        .catch(err => alert("Error sending reboot command."));
+            .then(() => {
+                alert("Device is rebooting. Please reconnect in ~10 seconds.");
+                setTimeout(() => window.location.reload(), 5000);
+            })
+            .catch(err => alert("Error sending reboot command."));
     }
 }
 
 function checkChanges() {
     const warningEl = document.getElementById('rebootWarning');
-    const pwdHintEl = document.getElementById('pwdHint'); 
-    
+    const pwdHintEl = document.getElementById('pwdHint');
+
     const currentPwd = document.getElementById('ap_pwd').value;
     const currentSsid = document.getElementById('ap_ssid').value;
     const currentHidden = document.getElementById('ssid_hidden').checked;
-    
+
     const displayEl = document.getElementById('activeDisplayType');
     const flipEl = document.getElementById('flipOled');
-    
+
     const currentDisplay = displayEl ? parseInt(displayEl.value, 10) : originalDisplayType;
     const currentFlip = flipEl ? flipEl.checked : originalFlipOled;
 
@@ -774,11 +774,11 @@ function checkChanges() {
 
     const wifiChanged = (currentPwd !== originalPwd) || (currentSsid !== originalSsid) || (currentHidden !== originalHidden);
     const displayChanged = (currentDisplay !== originalDisplayType) || (currentFlip !== originalFlipOled);
-    
+
     if (wifiChanged || displayChanged) {
         warningEl.textContent = "Important settings have been changed! Device will reboot after saving.";
         warningEl.classList.remove('hidden');
-        warningEl.style.display = ''; 
+        warningEl.style.display = '';
     } else {
         warningEl.classList.add('hidden');
         warningEl.style.display = '';
@@ -799,7 +799,7 @@ function editUser(index) {
             const cancelBtn = document.getElementById('cancelEditButton');
             if (saveBtn) {
                 saveBtn.textContent = 'Update';
-                saveBtn.onclick = function() { saveEditedUser(index); };
+                saveBtn.onclick = function () { saveEditedUser(index); };
             }
             if (cancelBtn) cancelBtn.style.display = 'inline-block';
         })
@@ -844,7 +844,7 @@ function cancelEdit() {
 function togglePasswordVisibility() {
     const pwdInput = document.getElementById('ap_pwd');
     const btn = document.getElementById('togglePwdBtn');
-    
+
     if (pwdInput.type === 'password') {
         pwdInput.type = 'text';
         btn.innerHTML = `
@@ -879,7 +879,7 @@ setInterval(updateTable, 5000);
 setInterval(updateLastReadCardsTable, 5000);
 setInterval(fetchSettings, 5000);
 
-window.onload = function() {
+window.onload = function () {
     fetchSettings();
     updateTable();
     updateUserTable();

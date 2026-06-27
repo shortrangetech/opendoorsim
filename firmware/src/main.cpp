@@ -1,16 +1,16 @@
-#include <Arduino.h>
-#include <LiquidCrystal_I2C.h>
-#include <DNSServer.h>
-#include <WiFi.h>
-#include <AsyncTCP.h>
+#include "ArduinoJson.h"
+#include "AsyncJson.h"
 #include "ESPAsyncWebServer.h"
 #include "nvs_flash.h"
-#include "AsyncJson.h"
-#include "ArduinoJson.h"
-#include <LittleFS.h>
-#include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <Arduino.h>
+#include <AsyncTCP.h>
+#include <DNSServer.h>
+#include <LiquidCrystal_I2C.h>
+#include <LittleFS.h>
+#include <WiFi.h>
+#include <Wire.h>
 
 #include "doorsim.h"
 
@@ -30,36 +30,35 @@ enum MenuState {
 
 // Types of menu items to determine how they are handled
 enum MenuItemType {
-  ITEM_SUBMENU,     // Enters a new menu level
-  ITEM_ACTION,      // Triggers a function (e.g., Reboot, Back)
-  ITEM_TOGGLE,      // ON/OFF (bool)
-  ITEM_SELECT,      // Cycle through predefined options (int/enum)
-  ITEM_EXIT         // Returns to Standby
+  ITEM_SUBMENU, // Enters a new menu level
+  ITEM_ACTION,  // Triggers a function (e.g., Reboot, Back)
+  ITEM_TOGGLE,  // ON/OFF (bool)
+  ITEM_SELECT,  // Cycle through predefined options (int/enum)
+  ITEM_EXIT     // Returns to Standby
 };
 
 struct MenuItem {
-  const char* label;    // Text to display
-  MenuItemType type;    
-  void* variable;       // Pointer to the variable being modified (optional)
-  int minVal;           // For integer/select types
-  int maxVal;           // For integer/select types
-  MenuItem* submenu;    // Pointer to child menu array (if SUBMENU)
-  int submenuSize;      // Size of child menu array
+  const char *label; // Text to display
+  MenuItemType type;
+  void *variable;    // Pointer to the variable being modified (optional)
+  int minVal;        // For integer/select types
+  int maxVal;        // For integer/select types
+  MenuItem *submenu; // Pointer to child menu array (if SUBMENU)
+  int submenuSize;   // Size of child menu array
 };
 
 // Global Menu State Variables
 MenuState currentMenuState = STATE_STANDBY;
-MenuItem* currentMenuLevel = nullptr; // Pointer to the current array of menu items
-int currentMenuSize = 0;              // Number of items in current level
-int selectedIndex = 0;                // Currently highlighted row
-int scrollOffset = 0;                 // For scrolling on small screens
-int editTempIndex = 0;                // Temporary value holder during editing
-int viewingCardIndex = -1;            // Which card from the log we are viewing
+MenuItem *currentMenuLevel =
+    nullptr;                 // Pointer to the current array of menu items
+int currentMenuSize = 0;     // Number of items in current level
+int selectedIndex = 0;       // Currently highlighted row
+int scrollOffset = 0;        // For scrolling on small screens
+int editTempIndex = 0;       // Temporary value holder during editing
+int viewingCardIndex = -1;   // Which card from the log we are viewing
 bool forceMenuUpdate = true; // Flag to force a redraw of the menu
 bool origApMode = true;
 int origSsidHidden = 0;
-
-
 
 AsyncWebServer server(80);
 
@@ -71,24 +70,22 @@ const char *settingsFile = "/settings.json";
 const char *usersFile = "/users.json";
 const char *wiegandFormatsFile = "/wiegand_formats.json";
 
-// I2C Screen Pins 
+// I2C Screen Pins
 #define SCN_SDA 32
 #define SCN_CLK 33
-
 
 // Rotary Encoder Pins
 #define ENC_SW 25
 #define ENC_DT 26
 #define ENC_CLK 27
 
-
-// Reader input pins 
+// Reader input pins
 #define DATA0_PIN 34
 #define DATA1_PIN 35
-  // optional, tamper detection relay
+// optional, tamper detection relay
 #define TMPR_PIN 21
 
-// Reader output pins 
+// Reader output pins
 #define LED_PIN 15
 
 // System Command I2C (unused currently, reserved for future use)
@@ -128,6 +125,8 @@ Adafruit_SSD1306 *oledDisplay = nullptr;
 // 1 for LCD, 2 for OLED 128x32, 3 for OLED 128x64
 int activeDisplayType = DISPLAY_LCD;
 bool flipOledDisplay = false;
+int oledRotation =
+    0; // Tracks the active hardware OLED rotation (0, 1, 2, or 3)
 
 // general device settings
 bool isCapturing = true;
@@ -152,14 +151,9 @@ volatile bool encoderPressedFlag = false;
 bool disableEncoder = false;
 
 // State Machine Table
-static const int8_t enc_states[] = {
-    0, -1,  1,  0,
-    1,  0,  0, -1,
-   -1,  0,  0,  1,
-    0,  1, -1,  0
-};
+static const int8_t enc_states[] = {0,  -1, 1, 0, 1, 0, 0,  -1,
+                                    -1, 0,  0, 1, 0, 1, -1, 0};
 volatile uint8_t old_AB = 0; // Stores the previous pin state (0..3)
-
 
 // Reader config and variables
 
@@ -168,7 +162,7 @@ const int MAX_BITS_CONST = 100;
 // runtime-configurable max bits (loaded from settings.json)
 volatile unsigned int maxBits = MAX_BITS_CONST;
 // time to wait for another weigand pulse (runtime-configurable)
-volatile unsigned int weigandWaitTime = 30000; //orig 3000
+volatile unsigned int weigandWaitTime = 30000; // orig 3000
 
 // stores all of the data bits (sized to compile-time const)
 volatile unsigned char databits[MAX_BITS_CONST];
@@ -200,7 +194,7 @@ String apPwd;
 int apChannel = 1;
 int ssidHidden;
 
-// LED Flash Green on Valid Setting 0 (None), 1 (Rapid Flash), 2 (Long Flash) 
+// LED Flash Green on Valid Setting 0 (None), 1 (Rapid Flash), 2 (Long Flash)
 int ledValid = 1;
 
 // Custom Display Message
@@ -218,7 +212,6 @@ char status[STATUS_MAX];
 char details[DETAILS_MAX];
 char lastHexData[HEX_DATA_MAX];
 int lastPadCount = 0;
-
 
 const int MAX_USERS = 100;
 User users[MAX_USERS];
@@ -241,43 +234,43 @@ int tempTimeoutIndex = 0;
 
 // 1. CTF Submenu
 MenuItem menuItems_CTF[] = {
-  { "Back",           ITEM_ACTION, nullptr, 0, 0, nullptr, 0 },
-  { "Valid LED",   ITEM_SELECT, &ledValid, 0, 2, nullptr, 0 } // 0=None, 1=Rapid, 2=Long
+    {"Back", ITEM_ACTION, nullptr, 0, 0, nullptr, 0},
+    {"Valid LED", ITEM_SELECT, &ledValid, 0, 2, nullptr,
+     0} // 0=None, 1=Rapid, 2=Long
 };
 
 // 2. Wifi Submenu
 MenuItem menuItems_Wifi[] = {
-  { "Back",           ITEM_ACTION, nullptr, 0, 0, nullptr, 0 },
-  { "Access Point",   ITEM_TOGGLE, &apMode, 0, 1, nullptr, 0 }, 
-  { "Hidden",         ITEM_TOGGLE, &ssidHidden, 0, 1, nullptr, 0 },
-  { "View Info",      ITEM_ACTION, nullptr, 0, 0, nullptr, 0 }
-};
+    {"Back", ITEM_ACTION, nullptr, 0, 0, nullptr, 0},
+    {"Access Point", ITEM_TOGGLE, &apMode, 0, 1, nullptr, 0},
+    {"Hidden", ITEM_TOGGLE, &ssidHidden, 0, 1, nullptr, 0},
+    {"View Info", ITEM_ACTION, nullptr, 0, 0, nullptr, 0}};
 
 // 3. General Submenu
 MenuItem menuItems_General[] = {
-  { "Back",           ITEM_ACTION, nullptr, 0, 0, nullptr, 0 },
-  { "Mode",           ITEM_SELECT, &tempDeviceModeInt, 0, 1, nullptr, 0 },
-  { "Timeout",        ITEM_SELECT, &tempTimeoutIndex, 0, 5, nullptr, 0 }, 
-  { "Tamper",         ITEM_TOGGLE, &enableTamperDetect, 0, 1, nullptr, 0 }
-};
+    {"Back", ITEM_ACTION, nullptr, 0, 0, nullptr, 0},
+    {"Mode", ITEM_SELECT, &tempDeviceModeInt, 0, 1, nullptr, 0},
+    {"Timeout", ITEM_SELECT, &tempTimeoutIndex, 0, 5, nullptr, 0},
+    {"Tamper", ITEM_TOGGLE, &enableTamperDetect, 0, 1, nullptr, 0}};
 
 // 4. Main Menu
 MenuItem menuItems_Main[] = {
-  { "Return to Doorsim", ITEM_EXIT,    nullptr, 0, 0, nullptr, 0 },
-  { "VIEW DATA",         ITEM_ACTION,  nullptr, 0, 0, nullptr, 0 }, 
-  { "GENERAL",          ITEM_SUBMENU, nullptr, 0, 0, menuItems_General, 0 }, 
-  { "WIFI",              ITEM_SUBMENU, nullptr, 0, 0, menuItems_Wifi, 0 },
-  { "CTF",               ITEM_SUBMENU, nullptr, 0, 0, menuItems_CTF, 0 },
-  { "REBOOT",            ITEM_ACTION,  nullptr, 0, 0, nullptr, 0 }
-};
+    {"Return to Doorsim", ITEM_EXIT, nullptr, 0, 0, nullptr, 0},
+    {"VIEW DATA", ITEM_ACTION, nullptr, 0, 0, nullptr, 0},
+    {"GENERAL", ITEM_SUBMENU, nullptr, 0, 0, menuItems_General, 0},
+    {"WIFI", ITEM_SUBMENU, nullptr, 0, 0, menuItems_Wifi, 0},
+    {"CTF", ITEM_SUBMENU, nullptr, 0, 0, menuItems_CTF, 0},
+    {"REBOOT", ITEM_ACTION, nullptr, 0, 0, nullptr, 0}};
 
 void IRAM_ATTR isr_rotary() {
-  if (isSystemPaused) return;
+  if (isSystemPaused)
+    return;
   uint8_t new_AB = (digitalRead(ENC_CLK) << 1) | digitalRead(ENC_DT);
 
   // Combine old state and new state to create the index for our table
   // Index = (old_AB * 4) + new_AB
-  // We mask with 0x0f (15) just to be safe, though logically unnecessary if old_AB is 2 bits.
+  // We mask with 0x0f (15) just to be safe, though logically unnecessary if
+  // old_AB is 2 bits.
   old_AB &= 0x03; // ensure old_AB is only 2 bits
   int stateIndex = (old_AB << 2) | new_AB;
 
@@ -289,15 +282,17 @@ void IRAM_ATTR isr_rotary() {
 }
 
 void IRAM_ATTR isr_button() {
-  if (isSystemPaused) return;
-  if (encoderPressedFlag) return;
-  
-  if(digitalRead(ENC_SW) == LOW) {
+  if (isSystemPaused)
+    return;
+  if (encoderPressedFlag)
+    return;
+
+  if (digitalRead(ENC_SW) == LOW) {
     if (millis() - lastEncoderPress > DEBOUNCE_DELAY) {
-    encoderPressedFlag = true;
-    lastEncoderPress = millis();
+      encoderPressedFlag = true;
+      lastEncoderPress = millis();
     }
-  }  
+  }
 }
 
 void setupEncoder() {
@@ -312,23 +307,23 @@ void setupEncoder() {
   // Attach interrupts to BOTH pins on CHANGE
   attachInterrupt(digitalPinToInterrupt(ENC_CLK), isr_rotary, CHANGE);
   attachInterrupt(digitalPinToInterrupt(ENC_DT), isr_rotary, CHANGE);
-  
+
   // Button remains the same
   attachInterrupt(digitalPinToInterrupt(ENC_SW), isr_button, FALLING);
 }
 
 // FORWARD DECLARATION (Fixes the error)
-void processMenuAction(); 
+void processMenuAction();
 void updateDisplay(); // Ensure this is also known if not already
 
 void handleMenuInput() {
 
   // check for encoder disabled
   if (disableEncoder && currentMenuState == STATE_STANDBY) {
-      // Reset flags so they don't pile up
-      encoderCount = 0;
-      encoderPressedFlag = false;
-      return; 
+    // Reset flags so they don't pile up
+    encoderCount = 0;
+    encoderPressedFlag = false;
+    return;
   }
 
   if (encoderCount != 0) {
@@ -336,102 +331,118 @@ void handleMenuInput() {
     // Most encoders have 4 "steps" per physical detent/click.
     // We only move the menu if we have accumulated enough steps.
     // Try dividing by 4 first. If it feels too slow, change to 2.
-    int steps = encoderCount / 4; 
+    int steps = encoderCount / 4;
 
     if (steps != 0) {
 
       displayingCard = false;
-      encoderCount -= (steps * 4); 
+      encoderCount -= (steps * 4);
 
       if (currentMenuState == STATE_MENU_EDIT) {
         editTempIndex += steps;
-        MenuItem* item = &currentMenuLevel[selectedIndex];
-        if (editTempIndex < item->minVal) editTempIndex = item->minVal;
-        if (editTempIndex > item->maxVal) editTempIndex = item->maxVal;
+        MenuItem *item = &currentMenuLevel[selectedIndex];
+        if (editTempIndex < item->minVal)
+          editTempIndex = item->minVal;
+        if (editTempIndex > item->maxVal)
+          editTempIndex = item->maxVal;
         forceMenuUpdate = true;
-      } 
-      else if (currentMenuState == STATE_MENU_NAV || currentMenuState == STATE_VIEW_LOG_LIST) {
+      } else if (currentMenuState == STATE_MENU_NAV ||
+                 currentMenuState == STATE_VIEW_LOG_LIST) {
         selectedIndex += steps;
-        int maxIndex = (currentMenuState == STATE_VIEW_LOG_LIST) ? cardDataIndex : (currentMenuSize - 1);
-        
+        int maxIndex = (currentMenuState == STATE_VIEW_LOG_LIST)
+                           ? cardDataIndex
+                           : (currentMenuSize - 1);
+
         // Wrap-around or Clamp logic?
         // Currently clamping:
-        if (maxIndex < 0) maxIndex = 0;
-        if (selectedIndex < 0) selectedIndex = 0;
-        if (selectedIndex > maxIndex) selectedIndex = maxIndex;
-        
-        forceMenuUpdate = true; 
-      }
-      else if (currentMenuState == STATE_CONFIRM_REBOOT) {
+        if (maxIndex < 0)
+          maxIndex = 0;
+        if (selectedIndex < 0)
+          selectedIndex = 0;
+        if (selectedIndex > maxIndex)
+          selectedIndex = maxIndex;
+
+        forceMenuUpdate = true;
+      } else if (currentMenuState == STATE_CONFIRM_REBOOT) {
         currentMenuState = STATE_MENU_NAV;
-        forceMenuUpdate = true; 
-      }
-      else if (currentMenuState == STATE_CONFIRM_WIFI_REBOOT) {
+        forceMenuUpdate = true;
+      } else if (currentMenuState == STATE_CONFIRM_WIFI_REBOOT) {
         apMode = origApMode;
         ssidHidden = origSsidHidden;
         currentMenuState = STATE_MENU_NAV;
         currentMenuLevel = menuItems_Main;
         currentMenuSize = sizeof(menuItems_Main) / sizeof(menuItems_Main[0]);
-        selectedIndex = 3; 
+        selectedIndex = 3;
         scrollOffset = 0;
         forceMenuUpdate = true;
       }
 
-      updateDisplay(); 
+      updateDisplay();
     }
   }
 
   if (encoderPressedFlag) {
     // Check if the button is released
     if (digitalRead(ENC_SW) == HIGH) {
-      
-      processMenuAction(); 
+
+      processMenuAction();
       forceMenuUpdate = true;
 
       // Unlock ISR
-      encoderPressedFlag = false; 
+      encoderPressedFlag = false;
     }
   }
 }
 
 int getVisibleRows() {
-  if (activeDisplayType == DISPLAY_LCD) return 4;
-  if (activeDisplayType == DISPLAY_OLED_32) return 4; // Small text fits ~4 lines
-  if (activeDisplayType == DISPLAY_OLED_64) return 8; // Small text fits ~8 lines
+  if (activeDisplayType == DISPLAY_LCD)
+    return 4;
+  if (activeDisplayType == DISPLAY_OLED_32)
+    return 4; // Small text fits ~4 lines
+  if (activeDisplayType == DISPLAY_OLED_64)
+    return 8; // Small text fits ~8 lines
   return 4;
 }
 
 void drawTextLine(int row, String text, bool inverted = false) {
   int yPos = 0;
-  
+
   if (activeDisplayType == DISPLAY_LCD && lcdDisplay != nullptr) {
-    if (row >= 4) return; // LCD only has 4 rows
+    if (row >= 4)
+      return; // LCD only has 4 rows
     lcdDisplay->setCursor(0, row);
-    // LCD can't really "invert" text easily without custom chars, 
+    // LCD can't really "invert" text easily without custom chars,
     // so we mark selected lines with a ">" character instead.
-    if (inverted) lcdDisplay->print(">"); 
-    else lcdDisplay->print(" ");
-    
+    if (inverted)
+      lcdDisplay->print(">");
+    else
+      lcdDisplay->print(" ");
+
     // Print text, trimming if too long
-    if (text.length() > 19) text = text.substring(0, 19);
+    if (text.length() > 19)
+      text = text.substring(0, 19);
     lcdDisplay->print(text);
-    
+
     // Clear rest of line
-    for(int i=text.length()+1; i<20; i++) lcdDisplay->print(" ");
-  } 
-  
-  else if ((activeDisplayType == DISPLAY_OLED_32 || activeDisplayType == DISPLAY_OLED_64) && oledDisplay != nullptr) {
+    for (int i = text.length() + 1; i < 20; i++)
+      lcdDisplay->print(" ");
+  }
+
+  else if ((activeDisplayType == DISPLAY_OLED_32 ||
+            activeDisplayType == DISPLAY_OLED_64) &&
+           oledDisplay != nullptr) {
     int rowHeight = 8; // standard 5x7 font + spacing
     yPos = row * rowHeight;
-    
+
     if (inverted) {
-      oledDisplay->setTextColor(SSD1306_BLACK, SSD1306_WHITE); // Draw black text on white bg
+      oledDisplay->setTextColor(SSD1306_BLACK,
+                                SSD1306_WHITE); // Draw black text on white bg
       // Draw background bar
       oledDisplay->fillRect(0, yPos, OLED_WIDTH, 8, SSD1306_WHITE);
     } else {
       oledDisplay->setTextColor(SSD1306_WHITE);
     }
-    
+
     oledDisplay->setCursor(0, yPos);
     oledDisplay->println(text);
   }
@@ -439,169 +450,188 @@ void drawTextLine(int row, String text, bool inverted = false) {
 
 void renderMenu() {
   // OLEDs clear the whole buffer first, so they don't have this issue.
-  if (activeDisplayType != DISPLAY_LCD) oledDisplay->clearDisplay();
-  
+  if (activeDisplayType != DISPLAY_LCD)
+    oledDisplay->clearDisplay();
+
   int visibleRows = getVisibleRows();
-  
+
   // Calculate Scroll Offset
   if (selectedIndex < scrollOffset) {
     scrollOffset = selectedIndex;
-  } 
-  else if (selectedIndex >= scrollOffset + visibleRows) {
+  } else if (selectedIndex >= scrollOffset + visibleRows) {
     scrollOffset = selectedIndex - visibleRows + 1;
   }
-  
+
   // Draw Items
   for (int i = 0; i < visibleRows; i++) {
     int itemIndex = scrollOffset + i;
-    
+
     // --- FIX START: CLEAR UNUSED ROWS ---
     // Instead of 'break', we explicitly draw a blank line to wipe old text.
     if (itemIndex >= currentMenuSize) {
-        drawTextLine(i, ""); 
-        continue;
+      drawTextLine(i, "");
+      continue;
     }
     // --- FIX END ---
-    
-    MenuItem* item = &currentMenuLevel[itemIndex];
+
+    MenuItem *item = &currentMenuLevel[itemIndex];
     String label = String(item->label);
-    
+
     // Helper to show current values for Select/Toggle items
     if (item->type == ITEM_TOGGLE && item->variable != nullptr) {
-      bool val = *(bool*)item->variable;
+      bool val = *(bool *)item->variable;
       label += ": " + String(val ? "ON" : "OFF");
-    }
-    else if (item->type == ITEM_SELECT && item->variable != nullptr) {
-      int val = *(int*)item->variable;
+    } else if (item->type == ITEM_SELECT && item->variable != nullptr) {
+      int val = *(int *)item->variable;
       // Special handling for editing state
       if (currentMenuState == STATE_MENU_EDIT && itemIndex == selectedIndex) {
-         val = editTempIndex; // Show the temporary value we are scrolling
+        val = editTempIndex; // Show the temporary value we are scrolling
       }
       if (String(item->label) == "Mode") {
         label += ": " + String(val == 0 ? "RAW" : "CTF");
-      } 
-      else if (String(item->label) == "Timeout") {
+      } else if (String(item->label) == "Timeout") {
         String tStr;
-        switch(val) {
-            case 0: tStr = "None"; break;
-            case 1: tStr = "5s"; break;
-            case 2: tStr = "7s"; break;
-            case 3: tStr = "15s"; break;
-            case 4: tStr = "20s"; break;
-            case 5: tStr = "30s"; break;
-            default: tStr = String(val);
+        switch (val) {
+        case 0:
+          tStr = "None";
+          break;
+        case 1:
+          tStr = "5s";
+          break;
+        case 2:
+          tStr = "7s";
+          break;
+        case 3:
+          tStr = "15s";
+          break;
+        case 4:
+          tStr = "20s";
+          break;
+        case 5:
+          tStr = "30s";
+          break;
+        default:
+          tStr = String(val);
         }
         label += ": " + tStr;
-      } 
-      else if (String(item->label) == "Valid LED") {
+      } else if (String(item->label) == "Valid LED") {
         String lStr;
-        switch(val) {
-            case 0: lStr = "None"; break;
-            case 1: lStr = "Rapid"; break;
-            case 2: lStr = "Long"; break;
-            default: lStr = String(val);
+        switch (val) {
+        case 0:
+          lStr = "None";
+          break;
+        case 1:
+          lStr = "Rapid";
+          break;
+        case 2:
+          lStr = "Long";
+          break;
+        default:
+          lStr = String(val);
         }
         label += ": " + lStr;
-      }
-      else {
+      } else {
         label += ": " + String(val);
       }
     }
 
     // Draw the line
     bool isSelected = (itemIndex == selectedIndex);
-    
+
     // LCD Specific: Add indicator chars to the string
     if (activeDisplayType == DISPLAY_LCD) {
-       if (currentMenuState == STATE_MENU_EDIT && isSelected) {
-         // visual cue for editing
-         if (isSelected) label = (currentMenuState == STATE_MENU_EDIT) ? "*" + label : label; 
-       }
+      if (currentMenuState == STATE_MENU_EDIT && isSelected) {
+        // visual cue for editing
+        if (isSelected)
+          label = (currentMenuState == STATE_MENU_EDIT) ? "*" + label : label;
+      }
     } else {
-       // OLED visual cue
-       if (currentMenuState == STATE_MENU_EDIT && isSelected) label = "*" + label;
+      // OLED visual cue
+      if (currentMenuState == STATE_MENU_EDIT && isSelected)
+        label = "*" + label;
     }
 
     drawTextLine(i, label, isSelected);
   }
-  
-  if (activeDisplayType != DISPLAY_LCD) oledDisplay->display();
+
+  if (activeDisplayType != DISPLAY_LCD)
+    oledDisplay->display();
 }
 
 void renderCardLogList() {
   // OLEDs use a buffer, so we can clear the whole thing first.
-  if (activeDisplayType != DISPLAY_LCD) oledDisplay->clearDisplay();
-  
+  if (activeDisplayType != DISPLAY_LCD)
+    oledDisplay->clearDisplay();
+
   int visibleRows = getVisibleRows();
   // Total rows = All cards + 1 for the "Back" button at top
-  int totalRows = cardDataIndex + 1; 
+  int totalRows = cardDataIndex + 1;
 
   // Calculate Scroll Offset
   if (selectedIndex < scrollOffset) {
     scrollOffset = selectedIndex;
-  } 
-  else if (selectedIndex >= scrollOffset + visibleRows) {
+  } else if (selectedIndex >= scrollOffset + visibleRows) {
     scrollOffset = selectedIndex - visibleRows + 1;
   }
 
   for (int i = 0; i < visibleRows; i++) {
-    int actualIndex = scrollOffset + i; 
-    
+    int actualIndex = scrollOffset + i;
+
     // --- CHANGED HERE ---
-    // Instead of breaking if we run out of data, we explicitly draw a blank line.
-    // This wipes any "ghost" text from the previous menu screen on LCDs.
+    // Instead of breaking if we run out of data, we explicitly draw a blank
+    // line. This wipes any "ghost" text from the previous menu screen on LCDs.
     if (actualIndex >= totalRows) {
-        drawTextLine(i, "");
-        continue;
+      drawTextLine(i, "");
+      continue;
     }
 
     // --- TOP ITEM IS BACK BUTTON ---
     if (actualIndex == 0) {
-        drawTextLine(i, "Back", (actualIndex == selectedIndex));
-    } 
+      drawTextLine(i, "Back", (actualIndex == selectedIndex));
+    }
     // --- ALL OTHER ITEMS ARE CARDS ---
     else {
-        // Map list index to array index. 
-        // List Index 1 = Newest Card (cardDataArray[cardDataIndex - 1])
-        int dataIdx = cardDataIndex - actualIndex; 
-        
-        // 1. Build Prefix
-        String prefix = String(cardDataArray[dataIdx].bitCount) + "b ";
-        
-        // 2. Get Hex
-        String hex = String(cardDataArray[dataIdx].hexData);
-        
-        // 3. Dynamic Fit Calculation
-        // LCD Width (20) - Selection Cursor (1) = 19 Max Content Width
-        int maxContentWidth = 19; 
-        int availableSpace = maxContentWidth - prefix.length();
+      // Map list index to array index.
+      // List Index 1 = Newest Card (cardDataArray[cardDataIndex - 1])
+      int dataIdx = cardDataIndex - actualIndex;
 
-        // 4. Truncate if needed
-        if (hex.length() > availableSpace) {
-            // Cut string to fit, reserving room for ".."
-            hex = hex.substring(0, availableSpace - 2) + "..";
-        }
-        
-        // 5. Combine and Draw
-        String rowText = prefix + hex;
-        drawTextLine(i, rowText, (actualIndex == selectedIndex));
+      // 1. Build Prefix
+      String prefix = String(cardDataArray[dataIdx].bitCount) + "b ";
+
+      // 2. Get Hex
+      String hex = String(cardDataArray[dataIdx].hexData);
+
+      // 3. Dynamic Fit Calculation
+      // LCD Width (20) - Selection Cursor (1) = 19 Max Content Width
+      int maxContentWidth = 19;
+      int availableSpace = maxContentWidth - prefix.length();
+
+      // 4. Truncate if needed
+      if (hex.length() > availableSpace) {
+        // Cut string to fit, reserving room for ".."
+        hex = hex.substring(0, availableSpace - 2) + "..";
+      }
+
+      // 5. Combine and Draw
+      String rowText = prefix + hex;
+      drawTextLine(i, rowText, (actualIndex == selectedIndex));
     }
   }
-  
-  if (activeDisplayType != DISPLAY_LCD) oledDisplay->display();
+
+  if (activeDisplayType != DISPLAY_LCD)
+    oledDisplay->display();
 }
-
-
 
 // Interrupts for card reader
 void IRAM_ATTR ISR_INT0() {
-  if (isSystemPaused) return;
+  if (isSystemPaused)
+    return;
   // FIX: Ignore interrupts if we are not in standby (e.g. using menu)
-  if (currentMenuState != STATE_STANDBY) return;
+  if (currentMenuState != STATE_STANDBY)
+    return;
 
   // DATA0 pulse represents a 0 bit
-  if (bitCount < maxBits)
-  {
+  if (bitCount < maxBits) {
     databits[bitCount] = 0;
     bitCount++;
   }
@@ -612,13 +642,14 @@ void IRAM_ATTR ISR_INT0() {
 
 // interrupt that happens when INT1 goes low (1 bit)
 void IRAM_ATTR ISR_INT1() {
-  if (isSystemPaused) return;
+  if (isSystemPaused)
+    return;
   // FIX: Ignore interrupts if we are not in standby
-  if (currentMenuState != STATE_STANDBY) return;
+  if (currentMenuState != STATE_STANDBY)
+    return;
 
   // DATA1 pulse represents a 1 bit
-  if (bitCount < maxBits)
-  {
+  if (bitCount < maxBits) {
     databits[bitCount] = 1;
     bitCount++;
   }
@@ -627,13 +658,11 @@ void IRAM_ATTR ISR_INT1() {
   weigandCounter = weigandWaitTime;
 }
 
-void saveSettingsToPreferences()
-{
+void saveSettingsToPreferences() {
   Serial.println("[SYSTEM] Saving settings to Preferences...");
 
   File file = LittleFS.open(settingsFile, "w");
-  if (!file)
-  {
+  if (!file) {
     Serial.println("[SYSTEM] ERROR: Failed to open settings file for writing.");
     return;
   }
@@ -651,17 +680,15 @@ void saveSettingsToPreferences()
   doc["custom_message"] = customMessage;
   doc["max_bits"] = maxBits;
   doc["wiegand_wait_time"] = weigandWaitTime;
-  doc["active_display_type"] = activeDisplayType; // 1 for LCD, 2 for OLED 128x32, 3 for OLED 128x64
+  doc["active_display_type"] =
+      activeDisplayType; // 1 for LCD, 2 for OLED 128x32, 3 for OLED 128x64
   doc["flip_oled_display"] = flipOledDisplay;
   doc["enable_tamper_detect"] = enableTamperDetect;
   doc["disable_encoder"] = disableEncoder;
 
-  if (serializeJson(doc, file) == 0)
-  {
+  if (serializeJson(doc, file) == 0) {
     Serial.println("[SYSTEM] ERROR: Failed to write settings to file.");
-  }
-  else
-  {
+  } else {
     Serial.println("custom_message: " + customMessage);
     Serial.println("[SYSTEM] Settings saved successfully.");
   }
@@ -669,28 +696,25 @@ void saveSettingsToPreferences()
   Serial.println("[SYSTEM] Settings saved!");
 }
 
-void loadSettingsFromPreferences()
-{
-  if (!LittleFS.exists(settingsFile))
-  {
-    Serial.println("[SYSTEM] ALERT: Settings file does not exist. Creating with defaults...");
+void loadSettingsFromPreferences() {
+  if (!LittleFS.exists(settingsFile)) {
+    Serial.println("[SYSTEM] ALERT: Settings file does not exist. Creating "
+                   "with defaults...");
     saveSettingsToPreferences();
     return;
   }
 
   File file = LittleFS.open(settingsFile, "r");
-  if (!file)
-  {
+  if (!file) {
     Serial.println("[SYSTEM] ERROR: Failed to open settings file for reading.");
     return;
- } 
+  }
 
   JsonDocument doc;
   DeserializationError error = deserializeJson(doc, file);
   file.close();
 
-  if (error)
-  {
+  if (error) {
     Serial.print("[SYSTEM] ERROR: Failed to parse settings file: ");
     Serial.println(error.c_str());
     // If parsing fails, we keep the global defaults (e.g. "doorsim")
@@ -701,12 +725,13 @@ void loadSettingsFromPreferences()
   deviceMode = doc["device_mode"] | "ctf";
   displayTimeout = doc["display_timeout"] | 30000;
   apMode = doc["ap_mode"] | true;
-  
+
   // FIX: Load SSID, then check if it's empty
   apSsid = doc["ap_ssid"] | "doorsim";
   if (apSsid.length() == 0) {
-      Serial.println("[SYSTEM] WARNING: Loaded empty SSID. Resetting to default.");
-      apSsid = "doorsim";
+    Serial.println(
+        "[SYSTEM] WARNING: Loaded empty SSID. Resetting to default.");
+    apSsid = "doorsim";
   }
 
   apPwd = doc["ap_pwd"] | "";
@@ -720,28 +745,35 @@ void loadSettingsFromPreferences()
   disableEncoder = doc["disable_encoder"] | false;
 
   unsigned int loadedMaxBits = doc["max_bits"] | (unsigned int)MAX_BITS_CONST;
-  if (loadedMaxBits == 0) loadedMaxBits = MAX_BITS_CONST;
-  if (loadedMaxBits > MAX_BITS_CONST) maxBits = MAX_BITS_CONST;
-  else maxBits = loadedMaxBits;
+  if (loadedMaxBits == 0)
+    loadedMaxBits = MAX_BITS_CONST;
+  if (loadedMaxBits > MAX_BITS_CONST)
+    maxBits = MAX_BITS_CONST;
+  else
+    maxBits = loadedMaxBits;
 
   weigandWaitTime = doc["wiegand_wait_time"] | weigandWaitTime;
 
   // 2. Sync Timeout (Millis -> Index 0-5)
-  if (displayTimeout == 0) tempTimeoutIndex = 0;       // None
-  else if (displayTimeout <= 5000) tempTimeoutIndex = 1; // 5s
-  else if (displayTimeout <= 7000) tempTimeoutIndex = 2; // 7s
-  else if (displayTimeout <= 15000) tempTimeoutIndex = 3;// 15s
-  else if (displayTimeout <= 20000) tempTimeoutIndex = 4;// 20s
-  else tempTimeoutIndex = 5;                             // 30s
+  if (displayTimeout == 0)
+    tempTimeoutIndex = 0; // None
+  else if (displayTimeout <= 5000)
+    tempTimeoutIndex = 1; // 5s
+  else if (displayTimeout <= 7000)
+    tempTimeoutIndex = 2; // 7s
+  else if (displayTimeout <= 15000)
+    tempTimeoutIndex = 3; // 15s
+  else if (displayTimeout <= 20000)
+    tempTimeoutIndex = 4; // 20s
+  else
+    tempTimeoutIndex = 5; // 30s
 
   Serial.println("[SYSTEM] Settings loaded successfully.");
 }
 
-void saveUsersToPreferences()
-{
+void saveUsersToPreferences() {
   File file = LittleFS.open(usersFile, "w");
-  if (!file)
-  {
+  if (!file) {
     Serial.println("[SYSTEM] ERROR: Failed to open users file for writing.");
     return;
   }
@@ -752,8 +784,7 @@ void saveUsersToPreferences()
 
   JsonArray usersArray = doc["users"].to<JsonArray>();
 
-  for (int i = 0; i < userCount; i++)
-  {
+  for (int i = 0; i < userCount; i++) {
     JsonObject user = usersArray.add<JsonObject>();
     user["facilityCode"] = users[i].facilityCode;
     user["cardNumber"] = users[i].cardNumber;
@@ -761,18 +792,14 @@ void saveUsersToPreferences()
     user["flag"] = users[i].flag;
   }
 
-  if (serializeJson(doc, file) == 0)
-  {
+  if (serializeJson(doc, file) == 0) {
     Serial.println("[SYSTEM] ERROR: Failed to write users to file.");
-  }
-  else
-  {
+  } else {
     Serial.println("[SYSTEM] Users saved successfully.");
   }
   file.close();
 
-  for (int i = 0; i < userCount; i++)
-  {
+  for (int i = 0; i < userCount; i++) {
     Serial.print("User ");
     Serial.print(i);
     Serial.print(": FC=");
@@ -788,20 +815,18 @@ void saveUsersToPreferences()
   Serial.println(userCount);
 }
 
-void loadWiegandFormats()
-{
+void loadWiegandFormats() {
   Serial.println("[SYSTEM] Loading Wiegand formats from JSON...");
 
-  if (!LittleFS.exists(wiegandFormatsFile))
-  {
+  if (!LittleFS.exists(wiegandFormatsFile)) {
     Serial.println("[SYSTEM] ALERT: Wiegand formats file does not exist.");
     return;
   }
 
   File file = LittleFS.open(wiegandFormatsFile, "r");
-  if (!file)
-  {
-    Serial.println("[SYSTEM] ERROR: Failed to open wiegand formats file for reading.");
+  if (!file) {
+    Serial.println(
+        "[SYSTEM] ERROR: Failed to open wiegand formats file for reading.");
     return;
   }
 
@@ -809,9 +834,9 @@ void loadWiegandFormats()
   DeserializationError error = deserializeJson(doc, file);
   file.close();
 
-  if (error)
-  {
-    Serial.print("[SYSTEM] ERROR: Failed to parse wiegand formats .json file: ");
+  if (error) {
+    Serial.print(
+        "[SYSTEM] ERROR: Failed to parse wiegand formats .json file: ");
     Serial.println(error.c_str());
     return;
   }
@@ -819,19 +844,21 @@ void loadWiegandFormats()
   JsonArray formatsArray = doc["wiegandFormats"].as<JsonArray>();
   wiegandFormatCounter = 0;
 
-  for (JsonObject format : formatsArray)
-  {
-    if (wiegandFormatCounter >= MAX_WIEGAND_FORMATS)
-    {
+  for (JsonObject format : formatsArray) {
+    if (wiegandFormatCounter >= MAX_WIEGAND_FORMATS) {
       Serial.println("[SYSTEM] ALERT: Maximum Wiegand formats reached.");
       break;
     }
 
     wiegandFormats[wiegandFormatCounter].bitCount = format["bitCount"] | 0;
-    wiegandFormats[wiegandFormatCounter].facilityCodeStart = format["facilityCodeStart"] | 0;
-    wiegandFormats[wiegandFormatCounter].facilityCodeEnd = format["facilityCodeEnd"] | 0;
-    wiegandFormats[wiegandFormatCounter].cardNumberStart = format["cardNumberStart"] | 0;
-    wiegandFormats[wiegandFormatCounter].cardNumberEnd = format["cardNumberEnd"] | 0;
+    wiegandFormats[wiegandFormatCounter].facilityCodeStart =
+        format["facilityCodeStart"] | 0;
+    wiegandFormats[wiegandFormatCounter].facilityCodeEnd =
+        format["facilityCodeEnd"] | 0;
+    wiegandFormats[wiegandFormatCounter].cardNumberStart =
+        format["cardNumberStart"] | 0;
+    wiegandFormats[wiegandFormatCounter].cardNumberEnd =
+        format["cardNumberEnd"] | 0;
 
     Serial.print("Loaded format: bitCount=");
     Serial.println(wiegandFormats[wiegandFormatCounter].bitCount);
@@ -842,20 +869,18 @@ void loadWiegandFormats()
   Serial.println(wiegandFormatCounter);
 }
 
-void loadUsersFromPreferences()
-{
+void loadUsersFromPreferences() {
   Serial.println("[SYSTEM] Loading users from Preferences...");
 
-  if (!LittleFS.exists(usersFile))
-  {
-    Serial.println("[SYSTEM] ALERT: Users file does not exist. Creating with defaults...");
+  if (!LittleFS.exists(usersFile)) {
+    Serial.println(
+        "[SYSTEM] ALERT: Users file does not exist. Creating with defaults...");
     saveUsersToPreferences();
     return;
   }
 
   File file = LittleFS.open(usersFile, "r");
-  if (!file)
-  {
+  if (!file) {
     Serial.println("[SYSTEM] ERROR: Failed to open users file for reading.");
     return;
   }
@@ -865,15 +890,13 @@ void loadUsersFromPreferences()
   DeserializationError error = deserializeJson(doc, file);
   Serial.println("File Content:");
   file.seek(0);
-  while (file.available())
-  {
+  while (file.available()) {
     Serial.write(file.read());
   }
   file.close();
   Serial.println();
 
-  if (error)
-  {
+  if (error) {
     Serial.print("[SYSTEM] ERROR: Failed to parse users file: ");
     Serial.println(error.c_str());
     return;
@@ -881,11 +904,9 @@ void loadUsersFromPreferences()
 
   // Load users
   userCount = doc["userCount"] | 0;
-  if (userCount > 0)
-  {
+  if (userCount > 0) {
     JsonArray usersArray = doc["users"].as<JsonArray>();
-    for (int i = 0; i < userCount; i++)
-    {
+    for (int i = 0; i < userCount; i++) {
       Serial.println("Loading user " + String(i));
       JsonObject user = usersArray[i].as<JsonObject>();
       users[i].facilityCode = user["facilityCode"] | 0;
@@ -897,14 +918,11 @@ void loadUsersFromPreferences()
       strncpy(users[i].flag, flag.c_str(), sizeof(users[i].flag) - 1);
       users[i].flag[sizeof(users[i].flag) - 1] = '\0';
     }
-  }
-  else
-  {
+  } else {
     Serial.println("[SYSTEM] ALERT: No valid users found.");
   }
   Serial.println("[SYSTEM] Users loaded from Preferences:");
-  for (int i = 0; i < userCount; i++)
-  {
+  for (int i = 0; i < userCount; i++) {
     Serial.print("User ");
     Serial.print(i);
     Serial.print(": FC=");
@@ -921,22 +939,17 @@ void loadUsersFromPreferences()
 }
 
 // Check if user is valid
-const User *checkUser(unsigned long fc, unsigned long cn)
-{
-  for (unsigned int i = 0; i < (unsigned int)userCount; i++)
-  {
-    if (users[i].facilityCode == fc && users[i].cardNumber == cn)
-    {
+const User *checkUser(unsigned long fc, unsigned long cn) {
+  for (unsigned int i = 0; i < (unsigned int)userCount; i++) {
+    if (users[i].facilityCode == fc && users[i].cardNumber == cn) {
       return &users[i];
     }
   }
   return nullptr;
 }
 
-void ledOnValid()
-{
-  switch (ledValid)
-  {
+void ledOnValid() {
+  switch (ledValid) {
   case 0:
     // No Flash
     break;
@@ -960,7 +973,7 @@ void ledOnValid()
     break;
 
   case 2:
-  // Long Flash
+    // Long Flash
     digitalWrite(LED_PIN, HIGH);
     delay(2000);
     digitalWrite(LED_PIN, LOW);
@@ -968,19 +981,20 @@ void ledOnValid()
   }
 }
 
-void printCardData()
-{
-  if (deviceMode == "ctf")
-  {
+void printCardData() {
+  if (deviceMode == "ctf") {
     const User *result = checkUser(facilityCode, cardNumber);
-    if (result != nullptr)
-    {
+    if (result != nullptr) {
       // Valid user found - serial console
       Serial.println("Valid user found:");
-      Serial.println("FC: " + String(result->facilityCode) + ", CN: " + String(result->cardNumber) + ", Name: " + result->name);
+      Serial.println("FC: " + String(result->facilityCode) + ", CN: " +
+                     String(result->cardNumber) + ", Name: " + result->name);
 
       // LCD Printing
-      printDisplayText("   ACCESS GRANTED   ","",centerText("Welcome, " + String(result->name), 20).c_str(),result->flag);
+      printDisplayText(
+          "   ACCESS GRANTED   ", "",
+          centerText("Welcome, " + String(result->name), 20).c_str(),
+          result->flag);
 
       ledOnValid();
 
@@ -989,26 +1003,23 @@ void printCardData()
       status[STATUS_MAX - 1] = '\0';
       strncpy(details, result->name, DETAILS_MAX - 1);
       details[DETAILS_MAX - 1] = '\0';
-    }
-    else
-    {
+    } else {
       // No valid user found - serial console
       Serial.println("Error: No valid user found.");
 
-      // LCD Printing 
-      printDisplayText("   ACCESS DENIED    ", ""," THIS INCIDENT WILL ","    BE REPORTED!    ");
+      // LCD Printing
+      printDisplayText("   ACCESS DENIED    ", "", " THIS INCIDENT WILL ",
+                       "    BE REPORTED!    ");
 
       // Update card data status and details (use fixed buffers)
       strncpy(status, "Unauthorized", STATUS_MAX - 1);
       status[STATUS_MAX - 1] = '\0';
-      snprintf(details, DETAILS_MAX, "FC: %lu, CN: %lu", facilityCode, cardNumber);
+      snprintf(details, DETAILS_MAX, "FC: %lu, CN: %lu", facilityCode,
+               cardNumber);
     }
-  }
-  else
-  {
+  } else {
     // ranges for "valid" bitCount are a bit larger for debugging
-    if (bitCount > 20 && bitCount < 120)
-    {
+    if (bitCount > 20 && bitCount < 120) {
       // ignore data caused by noise
       Serial.print("[*] Bit length: ");
       Serial.println(bitCount);
@@ -1019,7 +1030,8 @@ void printCardData()
       Serial.print("[*] Raw: ");
       Serial.println(rawCardData);
 
-      // Use the hex and pad calculated in processCardData(); delegate to display helper
+      // Use the hex and pad calculated in processCardData(); delegate to
+      // display helper
       printDisplayRawCard();
 
       // Update card data status and details (use fixed buffers)
@@ -1030,15 +1042,16 @@ void printCardData()
   }
 
   // Store card data
-  if (cardDataIndex < MAX_CARDS)
-  {
+  if (cardDataIndex < MAX_CARDS) {
     cardDataArray[cardDataIndex].bitCount = bitCount;
     cardDataArray[cardDataIndex].facilityCode = facilityCode;
     cardDataArray[cardDataIndex].cardNumber = cardNumber;
-    strncpy(cardDataArray[cardDataIndex].rawCardData, rawCardData, RAW_DATA_MAX - 1);
+    strncpy(cardDataArray[cardDataIndex].rawCardData, rawCardData,
+            RAW_DATA_MAX - 1);
     cardDataArray[cardDataIndex].rawCardData[RAW_DATA_MAX - 1] = '\0';
     // Store previously-calculated hex and padding from processCardData()
-    strncpy(cardDataArray[cardDataIndex].hexData, lastHexData, HEX_DATA_MAX - 1);
+    strncpy(cardDataArray[cardDataIndex].hexData, lastHexData,
+            HEX_DATA_MAX - 1);
     cardDataArray[cardDataIndex].hexData[HEX_DATA_MAX - 1] = '\0';
     cardDataArray[cardDataIndex].padCount = lastPadCount;
 
@@ -1056,21 +1069,17 @@ void printCardData()
 }
 
 // Process hid cards
-unsigned long decodeFacilityCode(unsigned int start, unsigned int end)
-{
+unsigned long decodeFacilityCode(unsigned int start, unsigned int end) {
   unsigned long HIDFacilityCode = 0;
-  for (unsigned int i = start; i < end; i++)
-  {
+  for (unsigned int i = start; i < end; i++) {
     HIDFacilityCode = (HIDFacilityCode << 1) | databits[i];
   }
   return HIDFacilityCode;
 }
 
-unsigned long decodeCardNumber(unsigned int start, unsigned int end)
-{
+unsigned long decodeCardNumber(unsigned int start, unsigned int end) {
   unsigned long HIDCardNumber = 0;
-  for (unsigned int i = start; i < end; i++)
-  {
+  for (unsigned int i = start; i < end; i++) {
     HIDCardNumber = (HIDCardNumber << 1) | databits[i];
   }
   return HIDCardNumber;
@@ -1078,29 +1087,26 @@ unsigned long decodeCardNumber(unsigned int start, unsigned int end)
 
 // Card chunking logic removed for Pure Binary mode
 
-String prefixPad(const String &in, const char c, const size_t len)
-{
+String prefixPad(const String &in, const char c, const size_t len) {
   String out = in;
-  while (out.length() < len)
-  {
+  while (out.length() < len) {
     out = c + out;
   }
   return out;
 }
 
-String convertBinaryToHex(const String &binaryString, int &outPadCount)
-{
+String convertBinaryToHex(const String &binaryString, int &outPadCount) {
   // Calculate padding needed to reach nearest multiple of 4
   int remainder = binaryString.length() % 4;
   outPadCount = (remainder == 0) ? 0 : (4 - remainder);
-  
+
   // Create padded binary string
   String paddedBinary = "";
   for (int i = 0; i < outPadCount; i++) {
     paddedBinary += "0";
   }
   paddedBinary += binaryString;
-  
+
   // Convert to hexadecimal
   String hexString = "";
   for (int i = 0; i < paddedBinary.length(); i += 4) {
@@ -1116,14 +1122,15 @@ String convertBinaryToHex(const String &binaryString, int &outPadCount)
       hexString += (char)('A' + nibble - 10);
     }
   }
-  
+
   return hexString;
 }
 
-// C-style converter: accepts a null-terminated binary string of '0'/'1' characters
-// and writes an uppercase hex string into outHex (ensures null-termination).
-void convertBinaryToHexC(const char *binaryString, int &outPadCount, char *outHex, size_t outHexSize)
-{
+// C-style converter: accepts a null-terminated binary string of '0'/'1'
+// characters and writes an uppercase hex string into outHex (ensures
+// null-termination).
+void convertBinaryToHexC(const char *binaryString, int &outPadCount,
+                         char *outHex, size_t outHexSize) {
   size_t len = strlen(binaryString);
   int remainder = len % 4;
   outPadCount = (remainder == 0) ? 0 : (4 - remainder);
@@ -1134,17 +1141,16 @@ void convertBinaryToHexC(const char *binaryString, int &outPadCount, char *outHe
   size_t neededHex = (paddedLen / 4) + 1; // +1 for null
   if (outHexSize < neededHex) {
     // not enough space; write empty string
-    if (outHexSize > 0) outHex[0] = '\0';
+    if (outHexSize > 0)
+      outHex[0] = '\0';
     return;
   }
 
   // process nibbles from padded binary (pad with leading zeros)
   size_t outPos = 0;
-  for (size_t i = 0; i < paddedLen; i += 4)
-  {
+  for (size_t i = 0; i < paddedLen; i += 4) {
     int nibble = 0;
-    for (int j = 0; j < 4; j++)
-    {
+    for (int j = 0; j < 4; j++) {
       size_t idx = i + j;
       char bitChar;
       if (idx < (size_t)outPadCount) {
@@ -1155,52 +1161,50 @@ void convertBinaryToHexC(const char *binaryString, int &outPadCount, char *outHe
       }
       nibble = (nibble << 1) | (bitChar - '0');
     }
-    if (nibble < 10) outHex[outPos++] = '0' + nibble;
-    else outHex[outPos++] = 'A' + (nibble - 10);
+    if (nibble < 10)
+      outHex[outPos++] = '0' + nibble;
+    else
+      outHex[outPos++] = 'A' + (nibble - 10);
   }
   outHex[outPos] = '\0';
 }
 
-void processHIDCard()
-{
+void processHIDCard() {
   // bits to be decoded differently depending on card format length
-  // see http://www.pagemac.com/projects/rfid/hid_data_formats 
+  // see http://www.pagemac.com/projects/rfid/hid_data_formats
 
   Serial.print("[*] Bit length: ");
   Serial.println(bitCount);
 
   // Find the matching Wiegand format
   WiegandFormat *format = nullptr;
-  for (int i = 0; i < wiegandFormatCounter; i++)
-  {
-    if (wiegandFormats[i].bitCount == bitCount)
-    {
+  for (int i = 0; i < wiegandFormatCounter; i++) {
+    if (wiegandFormats[i].bitCount == bitCount) {
       format = &wiegandFormats[i];
       break;
     }
   }
 
-  if (format == nullptr)
-  {
+  if (format == nullptr) {
     Serial.println("[-] Unsupported bitCount for HID card");
     return;
   }
 
   // Extract facility code and card number using the format
-  facilityCode = decodeFacilityCode(format->facilityCodeStart, format->facilityCodeEnd);
+  facilityCode =
+      decodeFacilityCode(format->facilityCodeStart, format->facilityCodeEnd);
   cardNumber = decodeCardNumber(format->cardNumberStart, format->cardNumberEnd);
 
   // Pure-binary mode: facilityCode and cardNumber are derived directly
   // from databits[]. No hex/card chunk generation is performed.
 }
 
-void processCardData()
-{
+void processCardData() {
   Serial.println("[SYSTEM] Processing card data...");
   // Build C-style raw binary string into fixed buffer
-  if (bitCount >= RAW_DATA_MAX) bitCount = RAW_DATA_MAX - 1;
-  for (unsigned int i = 0; i < bitCount; i++)
-  {
+  if (bitCount >= RAW_DATA_MAX)
+    bitCount = RAW_DATA_MAX - 1;
+  for (unsigned int i = 0; i < bitCount; i++) {
     rawCardData[i] = databits[i] ? '1' : '0';
   }
   rawCardData[bitCount] = '\0';
@@ -1210,32 +1214,29 @@ void processCardData()
   Serial.print("[*] bitCount: ");
   Serial.println(bitCount);
 
-  // Convert to HEX once here and store pad count for display/storage using safe C routine
+  // Convert to HEX once here and store pad count for display/storage using safe
+  // C routine
   convertBinaryToHexC(rawCardData, lastPadCount, lastHexData, HEX_DATA_MAX);
   Serial.print("[*] Hex: ");
   Serial.println(lastHexData);
   Serial.print("[*] Pad: ");
   Serial.println(lastPadCount);
 
-  if (bitCount >= 26 && bitCount <= 96)
-  {
+  if (bitCount >= 26 && bitCount <= 96) {
     processHIDCard();
   }
 }
 
-void clearDatabits()
-{
+void clearDatabits() {
   Serial.println("[SYSTEM] Clearing databits...");
   // clear the databits array
-  for (unsigned char i = 0; i < MAX_BITS_CONST; i++)
-  {
+  for (unsigned char i = 0; i < MAX_BITS_CONST; i++) {
     databits[i] = 0;
   }
 }
 
 // reset variables and prepare for the next card read
-void cleanupCardData()
-{
+void cleanupCardData() {
   rawCardData[0] = '\0';
   bitCount = 0;
   facilityCode = 0;
@@ -1246,55 +1247,43 @@ void cleanupCardData()
   lastPadCount = 0;
 }
 
-bool allBitsAreOnes()
-{
-  for (int i = 0; i < MAX_BITS_CONST; i++)
-  {
-    if (databits[i] != 0xFF)
-    {               // Check if each byte is not equal to 0xFF
-      return false; // If any byte is not 0xFF, not all bits are ones
+bool allBitsAreOnes() {
+  for (int i = 0; i < MAX_BITS_CONST; i++) {
+    if (databits[i] != 0xFF) { // Check if each byte is not equal to 0xFF
+      return false;            // If any byte is not 0xFF, not all bits are ones
     }
   }
   return true; // All bytes were 0xFF, so all bits are ones
 }
 
-bool allBitsAreZeros()
-{
-  for (int i = 0; i < MAX_BITS_CONST; i++)
-  {
-    if (databits[i] != 0x00)
-    {               // Check if each byte is not equal to 0x00
+bool allBitsAreZeros() {
+  for (int i = 0; i < MAX_BITS_CONST; i++) {
+    if (databits[i] != 0x00) { // Check if each byte is not equal to 0x00
       return false; // If any byte is not 0x00, not all bits are zeroes
     }
   }
   return true; // All bytes were 0x00, so all bits are zeroes
 }
 
-
-String centerText(const String &text, int width)
-{
+String centerText(const String &text, int width) {
   int len = text.length();
-  if (len >= width)
-  {
+  if (len >= width) {
     return text;
   }
   int padding = (width - len) / 2;
   String spaces = "";
-  for (int i = 0; i < padding; i++)
-  {
+  for (int i = 0; i < padding; i++) {
     spaces += " ";
   }
   return spaces + text;
 }
 
-void initializeDisplay()
-{
+void initializeDisplay() {
   Serial.println("[SYSTEM] Initializing Display...");
 
   Wire.begin(SCN_SDA, SCN_CLK);
-  
-  if (activeDisplayType == DISPLAY_LCD)
-  {
+
+  if (activeDisplayType == DISPLAY_LCD) {
     lcdDisplay = new LiquidCrystal_I2C(LCD_ADDRESS, LCD_COLUMNS, LCD_ROWS);
     lcdDisplay->init(SCN_SDA, SCN_CLK);
     lcdDisplay->backlight();
@@ -1302,12 +1291,10 @@ void initializeDisplay()
     lcdDisplay->setCursor(0, 0);
     lcdDisplay->print("Initializing...");
     Serial.println("[SYSTEM] LCD 20x4 initialized");
-  }
-  else if (activeDisplayType == DISPLAY_OLED_32)
-  {
-    oledDisplay = new Adafruit_SSD1306(OLED_WIDTH, OLED_32_HEIGHT, &Wire, OLED_RESET);
-    if (!oledDisplay->begin(SSD1306_SWITCHCAPVCC, OLED_32_ADDRESS))
-    {
+  } else if (activeDisplayType == DISPLAY_OLED_32) {
+    oledDisplay =
+        new Adafruit_SSD1306(OLED_WIDTH, OLED_32_HEIGHT, &Wire, OLED_RESET);
+    if (!oledDisplay->begin(SSD1306_SWITCHCAPVCC, OLED_32_ADDRESS)) {
       Serial.println("[SYSTEM] ERROR: OLED 128x32 initialization failed!");
       delete oledDisplay;
       oledDisplay = nullptr;
@@ -1319,20 +1306,18 @@ void initializeDisplay()
     oledDisplay->setCursor(0, 0);
 
     if (flipOledDisplay) {
-        oledDisplay->setRotation(2);
+      oledDisplay->setRotation(2);
     } else {
-        oledDisplay->setRotation(0);
+      oledDisplay->setRotation(0);
     }
 
     oledDisplay->println("Initializing...");
     oledDisplay->display();
     Serial.println("[SYSTEM] OLED 128x32 initialized");
-  }
-  else if (activeDisplayType == DISPLAY_OLED_64)
-  {
-    oledDisplay = new Adafruit_SSD1306(OLED_WIDTH, OLED_64_HEIGHT, &Wire, OLED_RESET);
-    if (!oledDisplay->begin(SSD1306_SWITCHCAPVCC, OLED_64_ADDRESS))
-    {
+  } else if (activeDisplayType == DISPLAY_OLED_64) {
+    oledDisplay =
+        new Adafruit_SSD1306(OLED_WIDTH, OLED_64_HEIGHT, &Wire, OLED_RESET);
+    if (!oledDisplay->begin(SSD1306_SWITCHCAPVCC, OLED_64_ADDRESS)) {
       Serial.println("[SYSTEM] ERROR: OLED 128x64 initialization failed!");
       delete oledDisplay;
       oledDisplay = nullptr;
@@ -1344,9 +1329,9 @@ void initializeDisplay()
     oledDisplay->setCursor(0, 0);
 
     if (flipOledDisplay) {
-        oledDisplay->setRotation(2);
+      oledDisplay->setRotation(2);
     } else {
-        oledDisplay->setRotation(0);
+      oledDisplay->setRotation(0);
     }
 
     oledDisplay->println("Initializing...");
@@ -1356,10 +1341,9 @@ void initializeDisplay()
 }
 
 // Prints four lines of text to the activeDisplayType
-void printDisplayText(const char *msg1, const char *msg2, const char *msg3, const char *msg4)
-{
-  if (activeDisplayType == DISPLAY_LCD && lcdDisplay != nullptr)
-  {
+void printDisplayText(const char *msg1, const char *msg2, const char *msg3,
+                      const char *msg4) {
+  if (activeDisplayType == DISPLAY_LCD && lcdDisplay != nullptr) {
     lcdDisplay->clear();
     lcdDisplay->setCursor(0, 0);
     lcdDisplay->print(msg1);
@@ -1369,9 +1353,7 @@ void printDisplayText(const char *msg1, const char *msg2, const char *msg3, cons
     lcdDisplay->print(msg3);
     lcdDisplay->setCursor(0, 3);
     lcdDisplay->print(msg4);
-  }
-  else if (activeDisplayType == DISPLAY_OLED_32 && oledDisplay != nullptr)
-  {
+  } else if (activeDisplayType == DISPLAY_OLED_32 && oledDisplay != nullptr) {
     oledDisplay->clearDisplay();
     oledDisplay->setTextSize(1);
     oledDisplay->setTextColor(SSD1306_WHITE);
@@ -1381,9 +1363,7 @@ void printDisplayText(const char *msg1, const char *msg2, const char *msg3, cons
     oledDisplay->println(msg3);
     oledDisplay->println(msg4);
     oledDisplay->display();
-  }
-  else if (activeDisplayType == DISPLAY_OLED_64 && oledDisplay != nullptr)
-  {
+  } else if (activeDisplayType == DISPLAY_OLED_64 && oledDisplay != nullptr) {
     oledDisplay->clearDisplay();
     oledDisplay->setTextSize(1);
     oledDisplay->setTextColor(SSD1306_WHITE);
@@ -1396,10 +1376,8 @@ void printDisplayText(const char *msg1, const char *msg2, const char *msg3, cons
   }
 }
 
-void printDisplayRawCard()
-{
-  if (activeDisplayType == DISPLAY_LCD && lcdDisplay != nullptr)
-  {
+void printDisplayRawCard() {
+  if (activeDisplayType == DISPLAY_LCD && lcdDisplay != nullptr) {
     lcdDisplay->clear();
     lcdDisplay->setCursor(0, 0);
     lcdDisplay->print("CARD READ: ");
@@ -1422,12 +1400,15 @@ void printDisplayRawCard()
     lcdDisplay->setCursor(0, 3);
     lcdDisplay->print("PAD: ");
     char padBuf[8];
-    if (lastPadCount == 0) strncpy(padBuf, "None", sizeof(padBuf)); else snprintf(padBuf, sizeof(padBuf), "%d", lastPadCount);
+    if (lastPadCount == 0)
+      strncpy(padBuf, "None", sizeof(padBuf));
+    else
+      snprintf(padBuf, sizeof(padBuf), "%d", lastPadCount);
     lcdDisplay->setCursor(5, 3);
     lcdDisplay->print(padBuf);
-  }
-  else if ((activeDisplayType == DISPLAY_OLED_32 || activeDisplayType == DISPLAY_OLED_64) && oledDisplay != nullptr)
-  {
+  } else if ((activeDisplayType == DISPLAY_OLED_32 ||
+              activeDisplayType == DISPLAY_OLED_64) &&
+             oledDisplay != nullptr) {
     oledDisplay->clearDisplay();
     oledDisplay->setTextSize(1);
     oledDisplay->setTextColor(SSD1306_WHITE);
@@ -1442,26 +1423,25 @@ void printDisplayRawCard()
     oledDisplay->println("HEX:");
     oledDisplay->println(lastHexData);
     oledDisplay->print("PAD: ");
-    if (lastPadCount == 0) oledDisplay->println("None"); else oledDisplay->println(lastPadCount);
+    if (lastPadCount == 0)
+      oledDisplay->println("None");
+    else
+      oledDisplay->println(lastPadCount);
     oledDisplay->display();
   }
 }
 
-
-void printStandbyMessage()
-{
-  if (enableTamperDetect && tamperState)
-  {
-    printDisplayText("   TAMPER ALERT!   ", "", "   THIS INCIDENT    ", "  WILL BE REPORTED! ");
+void printStandbyMessage() {
+  if (enableTamperDetect && tamperState) {
+    printDisplayText("   TAMPER ALERT!   ", "", "   THIS INCIDENT    ",
+                     "  WILL BE REPORTED! ");
     return;
   }
-  
-  if (deviceMode == "ctf")
-  {
-    printDisplayText(centerText(customMessage, 20).c_str(), "", "    Present Card    ", ""); 
-  }
-  else
-  {
+
+  if (deviceMode == "ctf") {
+    printDisplayText(centerText(customMessage, 20).c_str(), "",
+                     "    Present Card    ", "");
+  } else {
     printDisplayText("      RAW MODE      ", "", "    Present Card    ", "");
   }
 }
@@ -1469,13 +1449,14 @@ void printStandbyMessage()
 void updateDisplay() {
   // 1. Handle Automatic Timeout
   if (displayingCard) {
-    // Determine duration: 2000ms for system messages, otherwise use User Setting
+    // Determine duration: 2000ms for system messages, otherwise use User
+    // Setting
     unsigned long duration = isSystemMessage ? 2000 : displayTimeout;
 
     // If duration is 0 (None) and it's NOT a system message, stay forever
     if (duration == 0 && !isSystemMessage) {
-        // Wait for user input (handled in handleMenuInput)
-        return; 
+      // Wait for user input (handled in handleMenuInput)
+      return;
     }
 
     if (millis() - lastCardTime >= duration) {
@@ -1483,79 +1464,76 @@ void updateDisplay() {
       isSystemMessage = false;
       // [FIX] Always force update to clear the message and show previous state
       // (This fixes the bug where it wouldn't clear if you were in a menu)
-      forceMenuUpdate = true; 
+      forceMenuUpdate = true;
     } else {
       // While waiting for timeout, do nothing
-      return; 
+      return;
     }
   }
 
   // 2. High Priority: Pause Screen
   if (isSystemPaused && currentMenuState != STATE_SYSTEM_PAUSED) {
-      currentMenuState = STATE_SYSTEM_PAUSED;
-      forceMenuUpdate = true;
-  }
-  else if (!isSystemPaused && currentMenuState == STATE_SYSTEM_PAUSED) {
-      currentMenuState = STATE_STANDBY;
-      forceMenuUpdate = true;
+    currentMenuState = STATE_SYSTEM_PAUSED;
+    forceMenuUpdate = true;
+  } else if (!isSystemPaused && currentMenuState == STATE_SYSTEM_PAUSED) {
+    currentMenuState = STATE_STANDBY;
+    forceMenuUpdate = true;
   }
 
   // 3. Only redraw if something changed!
   if (!forceMenuUpdate) {
-      return;
+    return;
   }
 
   // 4. Render
   switch (currentMenuState) {
-    case STATE_STANDBY:
-      printStandbyMessage();
-      break;
+  case STATE_STANDBY:
+    printStandbyMessage();
+    break;
 
-    case STATE_SYSTEM_PAUSED:
-       printDisplayText("","   OPENDOORSIM IS   ", "      PAUSED      ", "");
-       break;
+  case STATE_SYSTEM_PAUSED:
+    printDisplayText("", "   OPENDOORSIM IS   ", "      PAUSED      ", "");
+    break;
 
-    case STATE_MENU_NAV:
-    case STATE_MENU_EDIT:
-      renderMenu();
-      break;
+  case STATE_MENU_NAV:
+  case STATE_MENU_EDIT:
+    renderMenu();
+    break;
 
-    case STATE_VIEW_LOG_LIST:
-      renderCardLogList();
-      break;
-      
-    case STATE_VIEW_LOG_DETAIL:
-       printDisplayRawCard();
-       break;
+  case STATE_VIEW_LOG_LIST:
+    renderCardLogList();
+    break;
 
-    case STATE_VIEW_WIFI_INFO:
-      {
-         String ipLine = "IP: " + WiFi.softAPIP().toString();
-         String passLine = (apPwd.length() > 0) ? "Pwd: " + apPwd : "Pwd: [OPEN]";
-         printDisplayText("   WIFI AP INFO    ", ("SSID: " + apSsid).c_str(), ipLine.c_str(), passLine.c_str());
-      }
-      break;
-      
-    case STATE_CONFIRM_REBOOT:
-       printDisplayText("  CONFIRM REBOOT?   ", "", "  Click to Confirm  ", "  Rotate to Cancel  ");
-       break;
+  case STATE_VIEW_LOG_DETAIL:
+    printDisplayRawCard();
+    break;
 
-    case STATE_CONFIRM_WIFI_REBOOT:
-       printDisplayText("  CONFIRM REBOOT?   ", " New Wifi Settings: ", "  Click to Confirm   ", "  Rotate to Cancel  ");
-       break;
+  case STATE_VIEW_WIFI_INFO: {
+    String ipLine = "IP: " + WiFi.softAPIP().toString();
+    String passLine = (apPwd.length() > 0) ? "Pwd: " + apPwd : "Pwd: [OPEN]";
+    printDisplayText("   WIFI AP INFO    ", ("SSID: " + apSsid).c_str(),
+                     ipLine.c_str(), passLine.c_str());
+  } break;
+
+  case STATE_CONFIRM_REBOOT:
+    printDisplayText("  CONFIRM REBOOT?   ", "", "  Click to Confirm  ",
+                     "  Rotate to Cancel  ");
+    break;
+
+  case STATE_CONFIRM_WIFI_REBOOT:
+    printDisplayText("  CONFIRM REBOOT?   ",
+                     " New Wifi Settings: ", "  Click to Confirm   ",
+                     "  Rotate to Cancel  ");
+    break;
   }
 
   // 5. Reset the flag
   forceMenuUpdate = false;
 }
 
-
-
-void printCardDataSerial()
-{
+void printCardDataSerial() {
   Serial.println("Previously read card data:");
-  for (int i = 0; i < cardDataIndex; i++)
-  {
+  for (int i = 0; i < cardDataIndex; i++) {
     Serial.print(i + 1);
     Serial.print(": Bit length: ");
     Serial.print(cardDataArray[i].bitCount);
@@ -1572,52 +1550,49 @@ void printCardDataSerial()
   }
 }
 
-void showSettingsSaved()
-{
+void showSettingsSaved() {
   Serial.println("[DISPLAY] Showing Settings Saved message");
-  
-  printDisplayText("   CONFIGURATION    ", "","  Settings saved.   ", "");
+
+  printDisplayText("   CONFIGURATION    ", "", "  Settings saved.   ", "");
 
   lastCardTime = millis();
   isSystemMessage = true;
-  displayingCard = true; 
+  displayingCard = true;
 }
 
-void setupWifi()
-{
+void setupWifi() {
 
   if (!WiFi.softAPConfig(local_IP, gateway, subnet)) {
     Serial.println("[ERROR] AP Custom Config Failed");
   }
 
   Serial.println("[SYSTEM] Configuring Access Point...");
-  
-  const char* ssid = apSsid.c_str();
-  const char* pwd = nullptr; 
+
+  const char *ssid = apSsid.c_str();
+  const char *pwd = nullptr;
 
   if (apPwd.length() >= 8) {
-      pwd = apPwd.c_str();
-      Serial.println("[SYSTEM] Security: WPA2-PSK (Password set)");
+    pwd = apPwd.c_str();
+    Serial.println("[SYSTEM] Security: WPA2-PSK (Password set)");
   } else if (apPwd.length() > 0) {
-      Serial.println("[SYSTEM] WARNING: Password too short. Fallback to OPEN.");
-      pwd = nullptr; 
+    Serial.println("[SYSTEM] WARNING: Password too short. Fallback to OPEN.");
+    pwd = nullptr;
   } else {
-      Serial.println("[SYSTEM] Security: OPEN (No password set)");
+    Serial.println("[SYSTEM] Security: OPEN (No password set)");
   }
 
   if (WiFi.softAP(ssid, pwd, apChannel, ssidHidden)) {
-      Serial.println("[SYSTEM] SoftAP started successfully.");
-      Serial.print("[SYSTEM] IP Address: ");
-      Serial.println(WiFi.softAPIP());
+    Serial.println("[SYSTEM] SoftAP started successfully.");
+    Serial.print("[SYSTEM] IP Address: ");
+    Serial.println(WiFi.softAPIP());
   } else {
-      Serial.println("[SYSTEM] CRITICAL ERROR: Failed to start SoftAP!");
+    Serial.println("[SYSTEM] CRITICAL ERROR: Failed to start SoftAP!");
   }
 }
 
-void webServer()
-{
+void webServer() {
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-    // request->send(200, "text/html", FPSTR(index_html)); 
+    // request->send(200, "text/html", FPSTR(index_html));
     request->send(LittleFS, "/index.html", String());
   });
 
@@ -1680,115 +1655,137 @@ void webServer()
   });
 
   server.on("/togglePause", HTTP_POST, [](AsyncWebServerRequest *request) {
-      isSystemPaused = !isSystemPaused;
-      
-      if (isSystemPaused) {
-          Serial.println("[SYSTEM] System PAUSED via WebUI");
-          currentMenuState = STATE_SYSTEM_PAUSED;
-      } else {
-          Serial.println("[SYSTEM] System UN-PAUSED via WebUI");
-          currentMenuState = STATE_STANDBY;
-      }
-      
-      forceMenuUpdate = true;
-      request->send(200, "text/plain", isSystemPaused ? "PAUSED" : "ACTIVE");
+    isSystemPaused = !isSystemPaused;
+
+    if (isSystemPaused) {
+      Serial.println("[SYSTEM] System PAUSED via WebUI");
+      currentMenuState = STATE_SYSTEM_PAUSED;
+    } else {
+      Serial.println("[SYSTEM] System UN-PAUSED via WebUI");
+      currentMenuState = STATE_STANDBY;
+    }
+
+    forceMenuUpdate = true;
+    request->send(200, "text/plain", isSystemPaused ? "PAUSED" : "ACTIVE");
   });
 
-  AsyncCallbackJsonWebHandler *handler = new AsyncCallbackJsonWebHandler("/saveSettings", [](AsyncWebServerRequest *request, JsonVariant &json) {
-    JsonObject jsonObj = json.as<JsonObject>();
+  AsyncCallbackJsonWebHandler *handler = new AsyncCallbackJsonWebHandler(
+      "/saveSettings", [](AsyncWebServerRequest *request, JsonVariant &json) {
+        JsonObject jsonObj = json.as<JsonObject>();
 
-    // validation
-    String reqSsid = jsonObj["ap_ssid"] | "";
-    String reqPwd = jsonObj["ap_pwd"] | "";
+        // validation
+        String reqSsid = jsonObj["ap_ssid"] | "";
+        String reqPwd = jsonObj["ap_pwd"] | "";
 
-    // non empty ssid check
-    if (reqSsid.length() == 0) {
-        request->send(400, "application/json", "{\"status\":\"error\", \"message\":\"SSID cannot be empty\"}");
-        return;
-    }
+        // non empty ssid check
+        if (reqSsid.length() == 0) {
+          request->send(
+              400, "application/json",
+              "{\"status\":\"error\", \"message\":\"SSID cannot be empty\"}");
+          return;
+        }
 
-    // no spaces in password
-    if (reqPwd.indexOf(' ') >= 0) {
-        request->send(400, "application/json", "{\"status\":\"error\", \"message\":\"Password cannot contain spaces\"}");
-        return;
-    }
+        // no spaces in password
+        if (reqPwd.indexOf(' ') >= 0) {
+          request->send(400, "application/json",
+                        "{\"status\":\"error\", \"message\":\"Password cannot "
+                        "contain spaces\"}");
+          return;
+        }
 
-    // update settings
-    apSsid = reqSsid;
-    apPwd = reqPwd;
+        // update settings
+        apSsid = reqSsid;
+        apPwd = reqPwd;
 
-    deviceMode = jsonObj["device_mode"] | "ctf";
-    displayTimeout = jsonObj["display_timeout"] | 30000;
-    
-    ssidHidden = jsonObj["ssid_hidden"] | 0;
-    customMessage = jsonObj["custom_message"] | "OPENDOORSIM";
-    ledValid = jsonObj["led_valid"] | 1;
-    activeDisplayType = jsonObj["active_display_type"] | activeDisplayType;
-    flipOledDisplay = jsonObj["flip_oled_display"] | flipOledDisplay;
-    enableTamperDetect = jsonObj["enable_tamper_detect"] | enableTamperDetect;
-    disableEncoder = jsonObj["disable_encoder"] | false;
-    
+        deviceMode = jsonObj["device_mode"] | "ctf";
+        displayTimeout = jsonObj["display_timeout"] | 30000;
 
-    // sync encoder menu variables
-    tempDeviceModeInt = (deviceMode == "ctf") ? 1 : 0;
+        ssidHidden = jsonObj["ssid_hidden"] | 0;
+        customMessage = jsonObj["custom_message"] | "OPENDOORSIM";
+        ledValid = jsonObj["led_valid"] | 1;
+        activeDisplayType = jsonObj["active_display_type"] | activeDisplayType;
+        flipOledDisplay = jsonObj["flip_oled_display"] | flipOledDisplay;
+        enableTamperDetect =
+            jsonObj["enable_tamper_detect"] | enableTamperDetect;
+        disableEncoder = jsonObj["disable_encoder"] | false;
 
-    if (displayTimeout == 0) tempTimeoutIndex = 0;       // None
-    else if (displayTimeout <= 5000) tempTimeoutIndex = 1; // 5s
-    else if (displayTimeout <= 7000) tempTimeoutIndex = 2; // 7s
-    else if (displayTimeout <= 15000) tempTimeoutIndex = 3;// 15s
-    else if (displayTimeout <= 20000) tempTimeoutIndex = 4;// 20s
-    else tempTimeoutIndex = 5;                             // 30s
+        // sync encoder menu variables
+        tempDeviceModeInt = (deviceMode == "ctf") ? 1 : 0;
 
-    // --- Check Reboot Flag from Client ---
-    bool clientSaysReboot = jsonObj["should_reboot"] | false;
+        if (displayTimeout == 0)
+          tempTimeoutIndex = 0; // None
+        else if (displayTimeout <= 5000)
+          tempTimeoutIndex = 1; // 5s
+        else if (displayTimeout <= 7000)
+          tempTimeoutIndex = 2; // 7s
+        else if (displayTimeout <= 15000)
+          tempTimeoutIndex = 3; // 15s
+        else if (displayTimeout <= 20000)
+          tempTimeoutIndex = 4; // 20s
+        else
+          tempTimeoutIndex = 5; // 30s
 
-    saveSettingsToPreferences();
-    showSettingsSaved();
+        // --- Check Reboot Flag from Client ---
+        bool clientSaysReboot = jsonObj["should_reboot"] | false;
 
-    // --- Send Response ---
-    request->send(200, "application/json", "{\"status\":\"success\"}");
+        saveSettingsToPreferences();
+        showSettingsSaved();
 
-    // --- Trigger Reboot Sequence if needed ---
-    if (clientSaysReboot) {
-      Serial.println("[SYSTEM] Configuration changed. Reboot requested.");
-      rebootRequested = true;
-      rebootTimer = millis(); // Start the countdown clock
-    }
-  });
+        // --- Send Response ---
+        request->send(200, "application/json", "{\"status\":\"success\"}");
+
+        // --- Trigger Reboot Sequence if needed ---
+        if (clientSaysReboot) {
+          Serial.println("[SYSTEM] Configuration changed. Reboot requested.");
+          rebootRequested = true;
+          rebootTimer = millis(); // Start the countdown clock
+        }
+      });
   server.addHandler(handler);
 
   server.on("/addUser", HTTP_GET, [](AsyncWebServerRequest *request) {
-    if (userCount >= MAX_USERS) return request->send(500, "text/plain", "Max users reached");
-    
-    if (request->hasParam("facilityCode") && request->hasParam("cardNumber") && request->hasParam("name")) {
-        String fcStr = request->getParam("facilityCode")->value();
-        String cnStr = request->getParam("cardNumber")->value();
-        String name = request->getParam("name")->value();
-        String flag = request->hasParam("flag") ? request->getParam("flag")->value() : "";
+    if (userCount >= MAX_USERS)
+      return request->send(500, "text/plain", "Max users reached");
 
-        // SANITIZATION CHECKS
-        if (fcStr.length() < 1 || fcStr.length() > 12 || !std::all_of(fcStr.begin(), fcStr.end(), ::isdigit)) 
-            return request->send(400, "text/plain", "Invalid FC: Must be 1-12 digits");
-        
-        if (cnStr.length() < 1 || cnStr.length() > 12 || !std::all_of(cnStr.begin(), cnStr.end(), ::isdigit)) 
-            return request->send(400, "text/plain", "Invalid CN: Must be 1-12 digits");
+    if (request->hasParam("facilityCode") && request->hasParam("cardNumber") &&
+        request->hasParam("name")) {
+      String fcStr = request->getParam("facilityCode")->value();
+      String cnStr = request->getParam("cardNumber")->value();
+      String name = request->getParam("name")->value();
+      String flag =
+          request->hasParam("flag") ? request->getParam("flag")->value() : "";
 
-        if (name.length() > 20) return request->send(400, "text/plain", "Name too long (max 20)");
-        if (flag.length() > 20) return request->send(400, "text/plain", "Flag too long (max 20)");
+      // SANITIZATION CHECKS
+      if (fcStr.length() < 1 || fcStr.length() > 12 ||
+          !std::all_of(fcStr.begin(), fcStr.end(), ::isdigit))
+        return request->send(400, "text/plain",
+                             "Invalid FC: Must be 1-12 digits");
 
-        // Save
-        users[userCount].facilityCode = fcStr.toInt();
-        users[userCount].cardNumber = cnStr.toInt();
-        strncpy(users[userCount].name, name.c_str(), sizeof(users[userCount].name) - 1);
-        users[userCount].name[sizeof(users[userCount].name) - 1] = '\0';
-        strncpy(users[userCount].flag, flag.c_str(), sizeof(users[userCount].flag) - 1);
-        users[userCount].flag[sizeof(users[userCount].flag) - 1] = '\0';
-        userCount++;
-        saveUsersToPreferences();
-        request->send(200, "text/plain", "User added");
+      if (cnStr.length() < 1 || cnStr.length() > 12 ||
+          !std::all_of(cnStr.begin(), cnStr.end(), ::isdigit))
+        return request->send(400, "text/plain",
+                             "Invalid CN: Must be 1-12 digits");
+
+      if (name.length() > 20)
+        return request->send(400, "text/plain", "Name too long (max 20)");
+      if (flag.length() > 20)
+        return request->send(400, "text/plain", "Flag too long (max 20)");
+
+      // Save
+      users[userCount].facilityCode = fcStr.toInt();
+      users[userCount].cardNumber = cnStr.toInt();
+      strncpy(users[userCount].name, name.c_str(),
+              sizeof(users[userCount].name) - 1);
+      users[userCount].name[sizeof(users[userCount].name) - 1] = '\0';
+      strncpy(users[userCount].flag, flag.c_str(),
+              sizeof(users[userCount].flag) - 1);
+      users[userCount].flag[sizeof(users[userCount].flag) - 1] = '\0';
+      userCount++;
+      saveUsersToPreferences();
+      request->send(200, "text/plain", "User added");
     } else {
-        request->send(400, "text/plain", "Missing parameters");
-    } 
+      request->send(400, "text/plain", "Missing parameters");
+    }
   });
 
   server.on("/deleteUser", HTTP_GET, [](AsyncWebServerRequest *request) {
@@ -1812,14 +1809,16 @@ void webServer()
   // Virtual Screen for Iceman's Demons
   server.on("/screen", HTTP_GET, [](AsyncWebServerRequest *request) {
     if (oledDisplay != nullptr) {
-        // Confirm buffer size and type in Serial Monitor
-        size_t bufferSize = (activeDisplayType == DISPLAY_OLED_64) ? 1024 : 512;
-        // Serial.printf("[DEBUG] Sending screen buffer: %d bytes, Display Type: %d\n", bufferSize, activeDisplayType);
-        
-        request->send(200, "application/octet-stream", (const uint8_t*)oledDisplay->getBuffer(), bufferSize);
+      // Confirm buffer size and type in Serial Monitor
+      size_t bufferSize = (activeDisplayType == DISPLAY_OLED_64) ? 1024 : 512;
+      // Serial.printf("[DEBUG] Sending screen buffer: %d bytes, Display Type:
+      // %d\n", bufferSize, activeDisplayType);
+
+      request->send(200, "application/octet-stream",
+                    (const uint8_t *)oledDisplay->getBuffer(), bufferSize);
     } else {
-        // Serial.println("[DEBUG] Screen request failed: oledDisplay is null");
-        request->send(404, "text/plain", "OLED Not Active");
+      // Serial.println("[DEBUG] Screen request failed: oledDisplay is null");
+      request->send(404, "text/plain", "OLED Not Active");
     }
   });
 
@@ -1830,17 +1829,22 @@ void webServer()
         String fcStr = request->getParam("facilityCode")->value();
         String cnStr = request->getParam("cardNumber")->value();
         String name = request->getParam("name")->value();
-        String flag = request->hasParam("flag") ? request->getParam("flag")->value() : "";
+        String flag =
+            request->hasParam("flag") ? request->getParam("flag")->value() : "";
 
         // SANITIZATION CHECKS
-        if (fcStr.length() < 1 || fcStr.length() > 12 || !std::all_of(fcStr.begin(), fcStr.end(), ::isdigit)) 
-            return request->send(400, "text/plain", "Invalid FC");
-        
-        if (cnStr.length() < 1 || cnStr.length() > 12 || !std::all_of(cnStr.begin(), cnStr.end(), ::isdigit)) 
-            return request->send(400, "text/plain", "Invalid CN");
+        if (fcStr.length() < 1 || fcStr.length() > 12 ||
+            !std::all_of(fcStr.begin(), fcStr.end(), ::isdigit))
+          return request->send(400, "text/plain", "Invalid FC");
 
-        if (name.length() > 20) return request->send(400, "text/plain", "Name too long");
-        if (flag.length() > 20) return request->send(400, "text/plain", "Flag too long");
+        if (cnStr.length() < 1 || cnStr.length() > 12 ||
+            !std::all_of(cnStr.begin(), cnStr.end(), ::isdigit))
+          return request->send(400, "text/plain", "Invalid CN");
+
+        if (name.length() > 20)
+          return request->send(400, "text/plain", "Name too long");
+        if (flag.length() > 20)
+          return request->send(400, "text/plain", "Flag too long");
 
         // Update
         users[index].facilityCode = fcStr.toInt();
@@ -1896,122 +1900,145 @@ void webServer()
   // 2. Download Sample (File-based with Fallback)
   server.on("/downloadSample", HTTP_GET, [](AsyncWebServerRequest *request) {
     if (LittleFS.exists("/users.json.sample")) {
-        // Option A: Serve the file directly from storage
-        // This will download as "users.json.sample"
-        request->send(LittleFS, "/users.json.sample", "application/json", true);
+      // Option A: Serve the file directly from storage
+      // This will download as "users.json.sample"
+      request->send(LittleFS, "/users.json.sample", "application/json", true);
     } else {
-        // Option B: Fallback if the file is missing (Safety net)
-        AsyncResponseStream *response = request->beginResponseStream("application/json");
-        response->addHeader("Content-Disposition", "attachment; filename=\"users_sample.json\"");
-        response->print("{\n  \"userCount\": 1,\n  \"users\": [\n    {\n      \"facilityCode\": 100,\n      \"cardNumber\": 12345,\n      \"name\": \"Test User\",\n      \"flag\": \"{flag_here}\"\n    }\n  ]\n}");
-        request->send(response);
+      // Option B: Fallback if the file is missing (Safety net)
+      AsyncResponseStream *response =
+          request->beginResponseStream("application/json");
+      response->addHeader("Content-Disposition",
+                          "attachment; filename=\"users_sample.json\"");
+      response->print("{\n  \"userCount\": 1,\n  \"users\": [\n    {\n      "
+                      "\"facilityCode\": 100,\n      \"cardNumber\": 12345,\n  "
+                      "    \"name\": \"Test User\",\n      \"flag\": "
+                      "\"{flag_here}\"\n    }\n  ]\n}");
+      request->send(response);
     }
   });
 
-  server.on("/uploadUsers", HTTP_POST, [](AsyncWebServerRequest *request) {
-    // handler runs after upload is complete. 
+  server.on(
+      "/uploadUsers", HTTP_POST,
+      [](AsyncWebServerRequest *request) {
+        // handler runs after upload is complete.
 
-    // temp file validation
-    File file = LittleFS.open("/users.json.tmp", "r");
-    if (!file) {
-      return request->send(500, "text/plain", "Upload failed: Temp file missing");
-    }
+        // temp file validation
+        File file = LittleFS.open("/users.json.tmp", "r");
+        if (!file) {
+          return request->send(500, "text/plain",
+                               "Upload failed: Temp file missing");
+        }
 
-    // Allocate a temporary JsonDocument for validation
-    // Adjust size if needed, but 16KB is usually plenty for 100 users
-    JsonDocument doc; 
-    DeserializationError error = deserializeJson(doc, file);
-    file.close();
+        // Allocate a temporary JsonDocument for validation
+        // Adjust size if needed, but 16KB is usually plenty for 100 users
+        JsonDocument doc;
+        DeserializationError error = deserializeJson(doc, file);
+        file.close();
 
-    if (error) {
-      LittleFS.remove("/users.json.tmp");
-      Serial.print("[BATCH] JSON Error: ");
-      Serial.println(error.c_str());
-      return request->send(400, "text/plain", "Invalid JSON format");
-    }
+        if (error) {
+          LittleFS.remove("/users.json.tmp");
+          Serial.print("[BATCH] JSON Error: ");
+          Serial.println(error.c_str());
+          return request->send(400, "text/plain", "Invalid JSON format");
+        }
 
-    // VALIDATION LOGIC
-    int declaredCount = doc["userCount"] | -1;
-    JsonArray usersArr = doc["users"].as<JsonArray>();
+        // VALIDATION LOGIC
+        int declaredCount = doc["userCount"] | -1;
+        JsonArray usersArr = doc["users"].as<JsonArray>();
 
-    // Check 1: userCount exists and matches array size
-    if (declaredCount == -1 || declaredCount != usersArr.size()) {
-      LittleFS.remove("/users.json.tmp");
-      return request->send(400, "text/plain", "Error: userCount does not match users array size");
-    }
+        // Check 1: userCount exists and matches array size
+        if (declaredCount == -1 || declaredCount != usersArr.size()) {
+          LittleFS.remove("/users.json.tmp");
+          return request->send(
+              400, "text/plain",
+              "Error: userCount does not match users array size");
+        }
 
-    // Check 2: Max Users Cap
-    if (usersArr.size() > MAX_USERS) {
-      LittleFS.remove("/users.json.tmp");
-      return request->send(400, "text/plain", "Error: Too many users (Max " + String(MAX_USERS) + ")");
-    }
+        // Check 2: Max Users Cap
+        if (usersArr.size() > MAX_USERS) {
+          LittleFS.remove("/users.json.tmp");
+          return request->send(400, "text/plain",
+                               "Error: Too many users (Max " +
+                                   String(MAX_USERS) + ")");
+        }
 
-    // Check 3: Data Integrity for each user
-    int row = 1;
-    for (JsonObject user : usersArr) {
-      if (user["facilityCode"].isNull() || user["cardNumber"].isNull()) {
-         LittleFS.remove("/users.json.tmp");
-         return request->send(400, "text/plain", "Error Row " + String(row) + ": Missing FC or CN");
-      }
-      
-      // Strict Sanitization match frontend rules
-      String fc = user["facilityCode"].as<String>();
-      String cn = user["cardNumber"].as<String>();
-      String name = user["name"] | "";
-      String flag = user["flag"] | "";
+        // Check 3: Data Integrity for each user
+        int row = 1;
+        for (JsonObject user : usersArr) {
+          if (user["facilityCode"].isNull() || user["cardNumber"].isNull()) {
+            LittleFS.remove("/users.json.tmp");
+            return request->send(400, "text/plain",
+                                 "Error Row " + String(row) +
+                                     ": Missing FC or CN");
+          }
 
-      if (fc.length() < 1 || fc.length() > 12) {
-        LittleFS.remove("/users.json.tmp");
-        return request->send(400, "text/plain", "Error Row " + String(row) + ": FC length invalid");
-      }
-      if (cn.length() < 1 || cn.length() > 12) {
-        LittleFS.remove("/users.json.tmp");
-        return request->send(400, "text/plain", "Error Row " + String(row) + ": CN length invalid");
-      }
-      if (name.length() > 20) {
-        LittleFS.remove("/users.json.tmp");
-        return request->send(400, "text/plain", "Error Row " + String(row) + ": Name too long");
-      }
-      row++;
-    }
-    // All validation passed
-    Serial.println("[BATCH] Validation Passed. Swapping files.");
-    LittleFS.remove(usersFile);
-    LittleFS.rename("/users.json.tmp", usersFile);
-    
-    // Reload memory
-    loadUsersFromPreferences(); 
-    request->send(200, "text/plain", "Import Successful: " + String(declaredCount) + " users loaded.");
+          // Strict Sanitization match frontend rules
+          String fc = user["facilityCode"].as<String>();
+          String cn = user["cardNumber"].as<String>();
+          String name = user["name"] | "";
+          String flag = user["flag"] | "";
 
-  }, 
-  [](AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
-    // This part handles the incoming data stream
-    static File uploadFile;
+          if (fc.length() < 1 || fc.length() > 12) {
+            LittleFS.remove("/users.json.tmp");
+            return request->send(400, "text/plain",
+                                 "Error Row " + String(row) +
+                                     ": FC length invalid");
+          }
+          if (cn.length() < 1 || cn.length() > 12) {
+            LittleFS.remove("/users.json.tmp");
+            return request->send(400, "text/plain",
+                                 "Error Row " + String(row) +
+                                     ": CN length invalid");
+          }
+          if (name.length() > 20) {
+            LittleFS.remove("/users.json.tmp");
+            return request->send(400, "text/plain",
+                                 "Error Row " + String(row) +
+                                     ": Name too long");
+          }
+          row++;
+        }
+        // All validation passed
+        Serial.println("[BATCH] Validation Passed. Swapping files.");
+        LittleFS.remove(usersFile);
+        LittleFS.rename("/users.json.tmp", usersFile);
 
-    if (!index) {
-      Serial.printf("[BATCH] Upload Start: %s\n", filename.c_str());
-      // Write to TEMP file first
-      uploadFile = LittleFS.open("/users.json.tmp", "w");
-    }
+        // Reload memory
+        loadUsersFromPreferences();
+        request->send(200, "text/plain",
+                      "Import Successful: " + String(declaredCount) +
+                          " users loaded.");
+      },
+      [](AsyncWebServerRequest *request, String filename, size_t index,
+         uint8_t *data, size_t len, bool final) {
+        // This part handles the incoming data stream
+        static File uploadFile;
 
-    if (uploadFile) {
-      uploadFile.write(data, len);
-    }
+        if (!index) {
+          Serial.printf("[BATCH] Upload Start: %s\n", filename.c_str());
+          // Write to TEMP file first
+          uploadFile = LittleFS.open("/users.json.tmp", "w");
+        }
 
-    if (final) {
-      if (uploadFile) {
-        uploadFile.close();
-        Serial.printf("[BATCH] Upload Complete (Temp): %u B\n", index + len);
-      }
-    }
-  });
+        if (uploadFile) {
+          uploadFile.write(data, len);
+        }
+
+        if (final) {
+          if (uploadFile) {
+            uploadFile.close();
+            Serial.printf("[BATCH] Upload Complete (Temp): %u B\n",
+                          index + len);
+          }
+        }
+      });
 
   // Remote Reboot Endpoint
   server.on("/rebootDevice", HTTP_POST, [](AsyncWebServerRequest *request) {
-      request->send(200, "text/plain", "Rebooting...");
-      Serial.println("[SYSTEM] Remote reboot requested.");
-      rebootRequested = true;
-      rebootTimer = millis();
+    request->send(200, "text/plain", "Rebooting...");
+    Serial.println("[SYSTEM] Remote reboot requested.");
+    rebootRequested = true;
+    rebootTimer = millis();
   });
 
   // Route to load style.css file, and script.js file
@@ -2037,7 +2064,7 @@ void checkTamper() {
       if (tamperState) {
         Serial.println("[SYSTEM] ALERT! TAMPER DETECTED!");
         // Immediately update display to show alarm
-        printStandbyMessage(); 
+        printStandbyMessage();
       } else {
         Serial.println("[SYSTEM] Tamper Restored (Safe).");
         // Restore the standby screen
@@ -2072,11 +2099,11 @@ void processMenuAction() {
   // --- FIX: WIFI REBOOT CONFIRMATION ---
   if (currentMenuState == STATE_CONFIRM_WIFI_REBOOT) {
     printDisplayText("    SAVING...       ", "    REBOOTING...    ", "", "");
-    
+
     // 1. Actually Save the settings!
     saveSettingsToPreferences();
     delay(1000);
-    
+
     // 2. Then Reboot
     ESP.restart();
     return;
@@ -2088,55 +2115,67 @@ void processMenuAction() {
     updateDisplay();
     return;
   }
-  
+
   // 4. VIEW LOG LOGIC
   if (currentMenuState == STATE_VIEW_LOG_LIST) {
-     if (selectedIndex == 0) { // Back Button
-         currentMenuState = STATE_MENU_NAV;
-         currentMenuLevel = menuItems_Main;
-         currentMenuSize = sizeof(menuItems_Main) / sizeof(menuItems_Main[0]);
-         selectedIndex = 1; 
-         scrollOffset = 0;
-         updateDisplay();
-         return;
-     }
-     int dataIdx = cardDataIndex - selectedIndex;
-     if (dataIdx >= 0 && dataIdx < MAX_CARDS) {
-         bitCount = cardDataArray[dataIdx].bitCount;
-         facilityCode = cardDataArray[dataIdx].facilityCode;
-         cardNumber = cardDataArray[dataIdx].cardNumber;
-         strncpy(lastHexData, cardDataArray[dataIdx].hexData, HEX_DATA_MAX);
-         lastPadCount = cardDataArray[dataIdx].padCount;
-         currentMenuState = STATE_VIEW_LOG_DETAIL;
-         forceMenuUpdate = true;
-         updateDisplay();
-     }
-     return;
-  }
-  
-  if (currentMenuState == STATE_VIEW_LOG_DETAIL) {
-      currentMenuState = STATE_VIEW_LOG_LIST;
+    if (selectedIndex == 0) { // Back Button
+      currentMenuState = STATE_MENU_NAV;
+      currentMenuLevel = menuItems_Main;
+      currentMenuSize = sizeof(menuItems_Main) / sizeof(menuItems_Main[0]);
+      selectedIndex = 1;
+      scrollOffset = 0;
       updateDisplay();
       return;
+    }
+    int dataIdx = cardDataIndex - selectedIndex;
+    if (dataIdx >= 0 && dataIdx < MAX_CARDS) {
+      bitCount = cardDataArray[dataIdx].bitCount;
+      facilityCode = cardDataArray[dataIdx].facilityCode;
+      cardNumber = cardDataArray[dataIdx].cardNumber;
+      strncpy(lastHexData, cardDataArray[dataIdx].hexData, HEX_DATA_MAX);
+      lastPadCount = cardDataArray[dataIdx].padCount;
+      currentMenuState = STATE_VIEW_LOG_DETAIL;
+      forceMenuUpdate = true;
+      updateDisplay();
+    }
+    return;
   }
 
-  // 5. EDIT MODE 
+  if (currentMenuState == STATE_VIEW_LOG_DETAIL) {
+    currentMenuState = STATE_VIEW_LOG_LIST;
+    updateDisplay();
+    return;
+  }
+
+  // 5. EDIT MODE
   if (currentMenuState == STATE_MENU_EDIT) {
-    MenuItem* item = &currentMenuLevel[selectedIndex];
+    MenuItem *item = &currentMenuLevel[selectedIndex];
     if (item->variable != nullptr) {
-      *(int*)item->variable = editTempIndex;
+      *(int *)item->variable = editTempIndex;
       if (String(item->label) == "Mode") {
         deviceMode = (editTempIndex == 0) ? "raw" : "ctf";
       }
       if (String(item->label) == "Timeout") {
-         switch(editTempIndex) {
-             case 0: displayTimeout = 0; break;
-             case 1: displayTimeout = 5000; break;
-             case 2: displayTimeout = 7000; break;
-             case 3: displayTimeout = 15000; break;
-             case 4: displayTimeout = 20000; break;
-             case 5: displayTimeout = 30000; break;
-         }
+        switch (editTempIndex) {
+        case 0:
+          displayTimeout = 0;
+          break;
+        case 1:
+          displayTimeout = 5000;
+          break;
+        case 2:
+          displayTimeout = 7000;
+          break;
+        case 3:
+          displayTimeout = 15000;
+          break;
+        case 4:
+          displayTimeout = 20000;
+          break;
+        case 5:
+          displayTimeout = 30000;
+          break;
+        }
       }
       saveSettingsToPreferences();
     }
@@ -2147,79 +2186,80 @@ void processMenuAction() {
 
   // 6. NAVIGATION MODE
   if (currentMenuState == STATE_MENU_NAV) {
-    MenuItem* item = &currentMenuLevel[selectedIndex];
+    MenuItem *item = &currentMenuLevel[selectedIndex];
 
     switch (item->type) {
-      case ITEM_EXIT:
-        currentMenuState = STATE_STANDBY;
-        printStandbyMessage();
-        break;
+    case ITEM_EXIT:
+      currentMenuState = STATE_STANDBY;
+      printStandbyMessage();
+      break;
 
-      case ITEM_SUBMENU:
-        currentMenuLevel = item->submenu;
-        if (String(item->label) == "GENERAL") currentMenuSize = 4;
-        else if (String(item->label) == "WIFI") {
-            currentMenuSize = 4;
-            // Capture Settings on Entry
-            origApMode = apMode;
-            origSsidHidden = ssidHidden;
+    case ITEM_SUBMENU:
+      currentMenuLevel = item->submenu;
+      if (String(item->label) == "GENERAL")
+        currentMenuSize = 4;
+      else if (String(item->label) == "WIFI") {
+        currentMenuSize = 4;
+        // Capture Settings on Entry
+        origApMode = apMode;
+        origSsidHidden = ssidHidden;
+      } else if (String(item->label) == "CTF")
+        currentMenuSize = 2;
+      selectedIndex = 0;
+      scrollOffset = 0;
+      break;
+
+    case ITEM_ACTION:
+      if (String(item->label) == "Back") {
+
+        // --- WIFI CHANGE DETECTION ---
+        if (currentMenuLevel == menuItems_Wifi) {
+          // Only trigger if settings ACTUALLY changed
+          if (apMode != origApMode || ssidHidden != origSsidHidden) {
+            currentMenuState = STATE_CONFIRM_WIFI_REBOOT;
+            forceMenuUpdate = true;
+            updateDisplay();
+            return; // Stop here! Do not go back yet.
+          }
         }
-        else if (String(item->label) == "CTF") currentMenuSize = 2;
+
+        // Normal Back Behavior (No changes, or not Wifi menu)
+        currentMenuLevel = menuItems_Main;
+        currentMenuSize = sizeof(menuItems_Main) / sizeof(menuItems_Main[0]);
         selectedIndex = 0;
         scrollOffset = 0;
-        break;
-        
-      case ITEM_ACTION:
-        if (String(item->label) == "Back") {
-          
-          // --- WIFI CHANGE DETECTION ---
-          if (currentMenuLevel == menuItems_Wifi) {
-              // Only trigger if settings ACTUALLY changed
-              if (apMode != origApMode || ssidHidden != origSsidHidden) {
-                  currentMenuState = STATE_CONFIRM_WIFI_REBOOT;
-                  forceMenuUpdate = true;
-                  updateDisplay();
-                  return; // Stop here! Do not go back yet.
-              }
-          }
+      } else if (String(item->label) == "REBOOT")
+        currentMenuState = STATE_CONFIRM_REBOOT;
+      else if (String(item->label) == "View Info")
+        currentMenuState = STATE_VIEW_WIFI_INFO;
+      else if (String(item->label) == "VIEW DATA") {
+        currentMenuState = STATE_VIEW_LOG_LIST;
+        selectedIndex = 0;
+        scrollOffset = 0;
+      }
+      break;
 
-          // Normal Back Behavior (No changes, or not Wifi menu)
-          currentMenuLevel = menuItems_Main;
-          currentMenuSize = sizeof(menuItems_Main) / sizeof(menuItems_Main[0]);
-          selectedIndex = 0;
-          scrollOffset = 0;
-        }
-        else if (String(item->label) == "REBOOT") currentMenuState = STATE_CONFIRM_REBOOT;
-        else if (String(item->label) == "View Info") currentMenuState = STATE_VIEW_WIFI_INFO;
-        else if (String(item->label) == "VIEW DATA") {
-            currentMenuState = STATE_VIEW_LOG_LIST;
-            selectedIndex = 0;
-            scrollOffset = 0;
-        }
-        break;
-
-      case ITEM_TOGGLE:
-        if (item->variable != nullptr) {
-          bool* val = (bool*)item->variable;
-          *val = !(*val);
+    case ITEM_TOGGLE:
+      if (item->variable != nullptr) {
+        bool *val = (bool *)item->variable;
+        *val = !(*val);
 
         saveSettingsToPreferences();
-        }
-        break;
+      }
+      break;
 
-      case ITEM_SELECT:
-        if (item->variable != nullptr) {
-          currentMenuState = STATE_MENU_EDIT;
-          editTempIndex = *(int*)item->variable;
-        }
-        break;
+    case ITEM_SELECT:
+      if (item->variable != nullptr) {
+        currentMenuState = STATE_MENU_EDIT;
+        editTempIndex = *(int *)item->variable;
+      }
+      break;
     }
     updateDisplay();
   }
 }
 
-void setup()
-{
+void setup() {
   pinMode(DATA0_PIN, INPUT);
   pinMode(DATA1_PIN, INPUT);
   pinMode(LED_PIN, OUTPUT);
@@ -2233,19 +2273,20 @@ void setup()
 
   Serial.println("[SYSTEM] Loading File System and Settings...");
 
-    Serial.println("[SYSTEM] Checking for LittleFS...");
-  if (!LittleFS.begin(true))
-  {
-    Serial.println("[SYSTEM] ERROR: An Error has occurred while mounting LittleFS!");
+  Serial.println("[SYSTEM] Checking for LittleFS...");
+  if (!LittleFS.begin(true)) {
+    Serial.println(
+        "[SYSTEM] ERROR: An Error has occurred while mounting LittleFS!");
     return;
   }
   loadWiegandFormats();
   loadSettingsFromPreferences();
   loadUsersFromPreferences();
 
-  setupEncoder(); 
+  setupEncoder();
   Serial.println("[SYSTEM] Encoder initialized");
-  tempDeviceModeInt = (deviceMode == "ctf") ? 1 : 0; // TODO: make all of them import
+  tempDeviceModeInt =
+      (deviceMode == "ctf") ? 1 : 0; // TODO: make all of them import
 
   if (enableTamperDetect) {
     Serial.println("[SYSTEM] Tamper Detection is ENABLED");
@@ -2253,30 +2294,30 @@ void setup()
     Serial.println("[SYSTEM] Tamper Detection is DISABLED");
   }
   Serial.println("[SYSTEM] Mode is set to: " + deviceMode);
-  // INITIALIZE DISPLAY 
+  // INITIALIZE DISPLAY
   initializeDisplay();
 
-  printDisplayText("    OPENDOORSIM     ", "         by         ", "  SHORTRANGE.TECH   ", "");
+  printDisplayText("    OPENDOORSIM     ", "         by         ",
+                   "  SHORTRANGE.TECH   ", "");
   attachInterrupt(DATA0_PIN, ISR_INT0, FALLING);
   attachInterrupt(DATA1_PIN, ISR_INT1, FALLING);
 
   weigandCounter = weigandWaitTime;
-  for (unsigned char i = 0; i < MAX_BITS_CONST; i++)
-  {
+  for (unsigned char i = 0; i < MAX_BITS_CONST; i++) {
     lastWrittenDatabits[i] = 0;
   }
 
   if (apMode) {
-      Serial.println("[SYSTEM] Setting up Wifi...");
-      setupWifi();
-      
-      Serial.println("[SYSTEM] Starting web server...");
-      webServer();
-      
-      Serial.println("[SYSTEM] Wifi & Server Started.");
+    Serial.println("[SYSTEM] Setting up Wifi...");
+    setupWifi();
+
+    Serial.println("[SYSTEM] Starting web server...");
+    webServer();
+
+    Serial.println("[SYSTEM] Wifi & Server Started.");
   } else {
-      Serial.println("[SYSTEM] AP Mode is OFF. Disabling WiFi.");
-      WiFi.mode(WIFI_OFF);
+    Serial.println("[SYSTEM] AP Mode is OFF. Disabling WiFi.");
+    WiFi.mode(WIFI_OFF);
   }
 
   Serial.println("[SYSTEM] DoorSim Ready!");
@@ -2290,11 +2331,11 @@ void loop() {
   handleMenuInput();
 
   if (rebootRequested) {
-      if (millis() - rebootTimer > 1000) {
-          Serial.println("[SYSTEM] Rebooting now...");
-          ESP.restart();
-      }
-      return; 
+    if (millis() - rebootTimer > 1000) {
+      Serial.println("[SYSTEM] Rebooting now...");
+      ESP.restart();
+    }
+    return;
   }
 
   if (enableTamperDetect) {
@@ -2305,33 +2346,33 @@ void loop() {
 
   // FIX: strictly wrap ALL card processing logic inside STATE_STANDBY check
   if (currentMenuState == STATE_STANDBY) {
-      
-      // Countdown timer logic
-      if (!flagDone) {
-        if (--weigandCounter == 0) {
-          flagDone = 1;  // No more data expected
-          Serial.println("[LOOP] Weigand transmission complete.");
+
+    // Countdown timer logic
+    if (!flagDone) {
+      if (--weigandCounter == 0) {
+        flagDone = 1; // No more data expected
+        Serial.println("[LOOP] Weigand transmission complete.");
+      }
+    }
+
+    // Check if the card reader has finished reading data
+    if (bitCount > 0 && flagDone) {
+      // Indicate that a card is being displayed
+      displayingCard = true;
+
+      // Ensure the data is valid (not all bits are 1s)
+      if (!allBitsAreOnes() && !allBitsAreZeros()) {
+        // Process the card data
+        processCardData();
+
+        forceMenuUpdate = false;
+        if (bitCount >= 26 && bitCount <= (MAX_BITS_CONST - 4)) {
+          printCardData();
+          printCardDataSerial();
         }
       }
-
-      // Check if the card reader has finished reading data
-      if (bitCount > 0 && flagDone) {
-        // Indicate that a card is being displayed
-        displayingCard = true;
-
-        // Ensure the data is valid (not all bits are 1s)
-        if (!allBitsAreOnes() && !allBitsAreZeros()) { 
-          // Process the card data     
-          processCardData();
-          
-          forceMenuUpdate = false;
-          if (bitCount >= 26 && bitCount <= (MAX_BITS_CONST - 4)) {
-            printCardData();
-            printCardDataSerial();
-          }
-        }
-        cleanupCardData();
-        clearDatabits();
-      }
+      cleanupCardData();
+      clearDatabits();
+    }
   }
 }
