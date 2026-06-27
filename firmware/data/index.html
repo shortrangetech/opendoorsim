@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Card Data</title>
-    <link rel="stylesheet" href="style.css">    
+    <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="logo512_big.png">
     <link rel="apple-touch-icon" href="logo512_big.png">
 </head>
@@ -31,8 +31,10 @@
             <h1>
                 Raw Log
                 <span style="font-size: 0.5em; vertical-align: middle; margin-left: 15px;">
-                    <span id="badgeSortNew" class="badge badge-purple badge-clickable" onclick="setSort('new')">Newest Cards First</span>
-                    <span id="badgeSortOld" class="badge badge-gray badge-clickable" onclick="setSort('old')">Oldest Cards First</span>
+                    <span id="badgeSortNew" class="badge badge-purple badge-clickable" onclick="setSort('new')">Newest
+                        Cards First</span>
+                    <span id="badgeSortOld" class="badge badge-gray badge-clickable" onclick="setSort('old')">Oldest
+                        Cards First</span>
                 </span>
             </h1>
             <table id="cardTable">
@@ -66,7 +68,7 @@
                     Tamper Status: <strong id="tamperStatus">CHECKING...</strong>
                 </div>
             </div>
-            
+
             <h2><br>Last Read Cards</h2>
             <table id="lastReadCardsTable">
                 <thead>
@@ -80,7 +82,7 @@
                 </tbody>
             </table>
             <h2 class="collapsible" onclick="toggleCollapsible()">
-                User Management 
+                User Management
                 <span class="badge badge-purple badge-clickable"> click to expand / collapse</span>
             </h2>
             <div class="contentCollapsible">
@@ -100,9 +102,10 @@
                 </table>
                 <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;">
                     <h3>Batch Tool</h3>
-                    
-                    <div style="background: #1b1b1b; padding: 15px; border-radius: 8px; display:flex; flex-wrap:wrap; gap: 15px; align-items: center;">
-                        
+
+                    <div
+                        style="background: #1b1b1b; padding: 15px; border-radius: 8px; display:flex; flex-wrap:wrap; gap: 15px; align-items: center;">
+
                         <div>
                             <input type="file" id="usersUpload" accept=".json" style="max-width:200px;">
                         </div>
@@ -116,7 +119,7 @@
                         <div style="width:1px; height:30px; background:#444; margin:0 5px;"></div>
 
                         <button class="button-secondary" onclick="confirmSampleDownload()">Download Sample File</button>
-                        
+
                         <span id="uploadStatus" style="font-weight:bold; margin-left:5px; align-self: center;"></span>
                     </div>
                 </div>
@@ -144,17 +147,14 @@
                 <label for="activeDisplayType">Display Type:</label>
                 <select id="activeDisplayType">
                     <option value="1">LCD 20x4</option>
-                    <option value="2">OLED 128x32</option>
-                    <option value="2">OLED 128x64 Large Text</option>
-                    <!-- TODO: Implement tall OLED with status bar --> 
-                    <!-- <option value="3">OLED 128x64 w / Status Bar</option> --> 
+                    <option value="2">OLED 128x32/64</option>
                 </select>
 
                 <span id="flipOledContainer" style="margin-left:20px; display:none; vertical-align: middle;">
                     <label for="flipOled">Flip OLED Screen:</label>
                     <input type="checkbox" id="flipOled" style="vertical-align: middle;">
                 </span>
-                
+
                 <br><br>
                 <label for="timeoutSelect">Display Timeout:</label>
                 <select id="timeoutSelect">
@@ -186,8 +186,11 @@
                     <div class="password-wrapper">
                         <input type="password" id="ap_pwd" style="padding-right: 35px;">
                         <span id="togglePwdBtn" onclick="togglePasswordVisibility()">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M1 1l22 22"></path>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                stroke-linecap="round" stroke-linejoin="round">
+                                <path
+                                    d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M1 1l22 22">
+                                </path>
                                 <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path>
                             </svg>
                         </span>
@@ -195,7 +198,7 @@
                     <div id="pwdHint" class="hidden">
                         Password must be 8+ chars (or empty for open network)
                     </div>
-                    
+
                 </div>
 
                 <div style="margin-top: 30px;">
@@ -224,7 +227,7 @@
                 <button onclick="saveSettings()">Save Settings</button>
                 <div id="rebootWarning" class="hidden"></div>
             </div>
-            
+
             <div style="height:1px; background:#333; margin: 25px 0 15px 0;"></div>
 
             <div style="display:flex; justify-content:space-between; align-items:flex-end;">
@@ -232,7 +235,7 @@
                     Version: <span id="versionValue"></span><br>
                     by shortrange.tech
                 </div>
-                
+
                 <div style="display:flex; gap: 15px;">
                     <button id="btnPause" class="button-purple" onclick="togglePause()">Pause DoorSim</button>
                     <button class="button-danger" onclick="rebootDevice()">Remote Reboot</button>
@@ -240,7 +243,7 @@
             </div>
         </div>
     </div>
-<script src="script.js"></script>
+    <script src="script.js"></script>
 </body>
 
 </html>

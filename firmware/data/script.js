@@ -117,11 +117,10 @@ function updateScreen() {
         .then(buffer => {
             const data = new Uint8Array(buffer);
 
-            // Determine native buffer dimensions from payload size
-            const is64 = data.length === 1024;
+            // Determine native buffer dimensions (always 128x32 / 512 bytes)
             const bufW = 128;
-            const bufH = is64 ? 64 : 32;
-            const pages = is64 ? 8 : 4;
+            const bufH = 32;
+            const pages = 4;
 
             // Decode raw SSD1306 GDDRAM bytes into an ImageData at native size
             const offscreen = document.createElement('canvas');

@@ -103,7 +103,6 @@ const char *wiegandFormatsFile = "/wiegand_formats.json";
 // Display type constants
 #define DISPLAY_LCD 1
 #define DISPLAY_OLED_32 2
-#define DISPLAY_OLED_64 3
 
 // Display configuration constants
 #define LCD_ADDRESS 0x27
@@ -112,10 +111,8 @@ const char *wiegandFormatsFile = "/wiegand_formats.json";
 
 #define OLED_RESET -1
 #define OLED_32_ADDRESS 0x3C
-#define OLED_64_ADDRESS 0x3C
 #define OLED_WIDTH 128
 #define OLED_32_HEIGHT 32
-#define OLED_64_HEIGHT 64
 
 // Display objects - allocated at runtime based on active_display_type
 LiquidCrystal_I2C *lcdDisplay = nullptr;
@@ -399,8 +396,6 @@ int getVisibleRows() {
     return 4;
   if (activeDisplayType == DISPLAY_OLED_32)
     return 4; // Small text fits ~4 lines
-  if (activeDisplayType == DISPLAY_OLED_64)
-    return 8; // Small text fits ~8 lines
   return 4;
 }
 
@@ -428,8 +423,7 @@ void drawTextLine(int row, String text, bool inverted = false) {
       lcdDisplay->print(" ");
   }
 
-  else if ((activeDisplayType == DISPLAY_OLED_32 ||
-            activeDisplayType == DISPLAY_OLED_64) &&
+  else if (activeDisplayType == DISPLAY_OLED_32 &&
            oledDisplay != nullptr) {
     int rowHeight = 8; // standard 5x7 font + spacing
     yPos = row * rowHeight;
@@ -1316,31 +1310,6 @@ void initializeDisplay() {
     oledDisplay->println("Initializing...");
     oledDisplay->display();
     Serial.println("[SYSTEM] OLED 128x32 initialized");
-  } else if (activeDisplayType == DISPLAY_OLED_64) {
-    oledDisplay =
-        new Adafruit_SSD1306(OLED_WIDTH, OLED_64_HEIGHT, &Wire, OLED_RESET);
-    if (!oledDisplay->begin(SSD1306_SWITCHCAPVCC, OLED_64_ADDRESS)) {
-      Serial.println("[SYSTEM] ERROR: OLED 128x64 initialization failed!");
-      delete oledDisplay;
-      oledDisplay = nullptr;
-      return;
-    }
-    oledDisplay->clearDisplay();
-    oledDisplay->setTextSize(1);
-    oledDisplay->setTextColor(SSD1306_WHITE);
-    oledDisplay->setCursor(0, 0);
-
-    if (flipOledDisplay) {
-      oledDisplay->setRotation(2);
-      oledRotation = 2;
-    } else {
-      oledDisplay->setRotation(0);
-      oledRotation = 0;
-    }
-
-    oledDisplay->println("Initializing...");
-    oledDisplay->display();
-    Serial.println("[SYSTEM] OLED 128x64 initialized");
   }
 }
 
@@ -1358,16 +1327,6 @@ void printDisplayText(const char *msg1, const char *msg2, const char *msg3,
     lcdDisplay->setCursor(0, 3);
     lcdDisplay->print(msg4);
   } else if (activeDisplayType == DISPLAY_OLED_32 && oledDisplay != nullptr) {
-    oledDisplay->clearDisplay();
-    oledDisplay->setTextSize(1);
-    oledDisplay->setTextColor(SSD1306_WHITE);
-    oledDisplay->setCursor(0, 0);
-    oledDisplay->println(msg1);
-    oledDisplay->println(msg2);
-    oledDisplay->println(msg3);
-    oledDisplay->println(msg4);
-    oledDisplay->display();
-  } else if (activeDisplayType == DISPLAY_OLED_64 && oledDisplay != nullptr) {
     oledDisplay->clearDisplay();
     oledDisplay->setTextSize(1);
     oledDisplay->setTextColor(SSD1306_WHITE);
@@ -1410,8 +1369,7 @@ void printDisplayRawCard() {
       snprintf(padBuf, sizeof(padBuf), "%d", lastPadCount);
     lcdDisplay->setCursor(5, 3);
     lcdDisplay->print(padBuf);
-  } else if ((activeDisplayType == DISPLAY_OLED_32 ||
-              activeDisplayType == DISPLAY_OLED_64) &&
+  } else if (activeDisplayType == DISPLAY_OLED_32 &&
              oledDisplay != nullptr) {
     oledDisplay->clearDisplay();
     oledDisplay->setTextSize(1);
@@ -1814,7 +1772,7 @@ void webServer() {
   server.on("/screen", HTTP_GET, [](AsyncWebServerRequest *request) {
     if (oledDisplay != nullptr) {
       // Confirm buffer size and type in Serial Monitor
-      size_t bufferSize = (activeDisplayType == DISPLAY_OLED_64) ? 1024 : 512;
+      size_t bufferSize = 512;
       // Serial.printf("[DEBUG] Sending screen buffer: %d bytes, Display Type:
       // %d\n", bufferSize, activeDisplayType);
 
