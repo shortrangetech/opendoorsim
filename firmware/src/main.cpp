@@ -1307,8 +1307,10 @@ void initializeDisplay() {
 
     if (flipOledDisplay) {
       oledDisplay->setRotation(2);
+      oledRotation = 2;
     } else {
       oledDisplay->setRotation(0);
+      oledRotation = 0;
     }
 
     oledDisplay->println("Initializing...");
@@ -1330,8 +1332,10 @@ void initializeDisplay() {
 
     if (flipOledDisplay) {
       oledDisplay->setRotation(2);
+      oledRotation = 2;
     } else {
       oledDisplay->setRotation(0);
+      oledRotation = 0;
     }
 
     oledDisplay->println("Initializing...");
@@ -1814,8 +1818,13 @@ void webServer() {
       // Serial.printf("[DEBUG] Sending screen buffer: %d bytes, Display Type:
       // %d\n", bufferSize, activeDisplayType);
 
-      request->send(200, "application/octet-stream",
-                    (const uint8_t *)oledDisplay->getBuffer(), bufferSize);
+      // Expose the hardware rotation so the browser can always render the virtual screen upright
+      AsyncWebServerResponse *response = request->beginResponse(
+          200, "application/octet-stream",
+          (const uint8_t *)oledDisplay->getBuffer(), bufferSize);
+      response->addHeader("X-Oled-Rotation", String(oledRotation));
+      response->addHeader("Access-Control-Expose-Headers", "X-Oled-Rotation");
+      request->send(response);
     } else {
       // Serial.println("[DEBUG] Screen request failed: oledDisplay is null");
       request->send(404, "text/plain", "OLED Not Active");

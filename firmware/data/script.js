@@ -104,38 +104,100 @@ function updateScreen() {
         return;
     }
 
+    let hwRotation = 0; // will be populated from response header
+
     fetch('/screen?t=' + Date.now())
-        .then(response => response.arrayBuffer())
+        .then(response => {
+            // Read the hardware rotation the firmware reported.
+            // Header is "X-Oled-Rotation: 0|1|2|3"
+            const rotHeader = response.headers.get('X-Oled-Rotation');
+            hwRotation = rotHeader !== null ? parseInt(rotHeader, 10) : 0;
+            return response.arrayBuffer();
+        })
         .then(buffer => {
             const data = new Uint8Array(buffer);
-            const ctx = canvas.getContext('2d');
 
-            // Force attributes to match 512-byte expectation
-            canvas.width = 128;
-            canvas.height = 32;
+            // Determine native buffer dimensions from payload size
+            const is64 = data.length === 1024;
+            const bufW = 128;
+            const bufH = is64 ? 64 : 32;
+            const pages = is64 ? 8 : 4;
 
-            const imageData = ctx.createImageData(128, 32);
+            // Decode raw SSD1306 GDDRAM bytes into an ImageData at native size
+            const offscreen = document.createElement('canvas');
+            offscreen.width  = bufW;
+            offscreen.height = bufH;
+            const offCtx = offscreen.getContext('2d');
+            const imageData = offCtx.createImageData(bufW, bufH);
             const r = 0, g = 209, b = 255;
 
-            for (let page = 0; page < 4; page++) {
-                for (let x = 0; x < 128; x++) {
-                    const byte = data[page * 128 + x];
+            for (let page = 0; page < pages; page++) {
+                for (let x = 0; x < bufW; x++) {
+                    const byte = data[page * bufW + x];
                     for (let bit = 0; bit < 8; bit++) {
                         const y = page * 8 + bit;
-                        const index = (y * 128 + x) * 4;
+                        const index = (y * bufW + x) * 4;
                         const pixelOn = (byte >> bit) & 1;
-
-                        imageData.data[index] = pixelOn ? r : 0;
+                        imageData.data[index]     = pixelOn ? r : 0;
                         imageData.data[index + 1] = pixelOn ? g : 0;
                         imageData.data[index + 2] = pixelOn ? b : 0;
                         imageData.data[index + 3] = 255;
                     }
                 }
             }
-            ctx.putImageData(imageData, 0, 0);
+            offCtx.putImageData(imageData, 0, 0);
+
+            // Apply un-rotation transform so the virtual screen is always upright.
+            //
+            // SSD1306 GDDRAM layout vs. hardware rotation:
+            //   rot 0  → buffer is upright in the browser → no transform needed.
+            //   rot 2  → buffer is stored upside-down → rotate 180° to correct.
+            //   rot 1  → 90° CW hardware (future) → rotate 90° CCW to correct.
+            //   rot 3  → 90° CCW hardware (future) → rotate 90° CW to correct.
+            //
+            // For rotations 0 & 2 the canvas stays bufW × bufH.
+            // For rotations 1 & 3 (future) width and height swap.
+            let displayW = bufW;
+            let displayH = bufH;
+            if (hwRotation === 1 || hwRotation === 3) {
+                displayW = bufH;
+                displayH = bufW;
+            }
+
+            const ctx = canvas.getContext('2d');
+            canvas.width  = displayW;
+            canvas.height = displayH;
+            ctx.save();
+
+            switch (hwRotation) {
+                case 0:
+                    // Buffer is upright — no transform needed
+                    break;
+                case 2:
+                    // Buffer stored upside-down → rotate 180° around canvas centre
+                    ctx.translate(displayW, displayH);
+                    ctx.rotate(Math.PI);
+                    break;
+                case 1:
+                    // 90° CW hardware → rotate 90° CCW to correct (future)
+                    ctx.translate(0, displayH);
+                    ctx.rotate(-Math.PI / 2);
+                    break;
+                case 3:
+                    // 90° CCW hardware → rotate 90° CW to correct (future)
+                    ctx.translate(displayW, 0);
+                    ctx.rotate(Math.PI / 2);
+                    break;
+                default:
+                    break;
+            }
+
+            ctx.drawImage(offscreen, 0, 0);
+            ctx.restore();
         })
         .catch(err => console.error("Firefox Fetch Error:", err));
 }
+
 
 
 function updateTable() {
