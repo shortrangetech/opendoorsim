@@ -83,13 +83,13 @@ const char *wiegandFormatsFile = "/wiegand_formats.json";
 
 
 // Reader input pins 
-#define DATA0_PIN 34
-#define DATA1_PIN 35
+#define DATA0_PIN 18
+#define DATA1_PIN 19
   // optional, tamper detection relay
-#define TMPR_PIN 21
+#define TMPR_PIN 4
 
 // Reader output pins 
-#define LED_PIN 15
+#define LED_PIN 16
 
 // System Command I2C (unused currently, reserved for future use)
 #define SYS_I2C_SDA 21
@@ -314,7 +314,7 @@ void setupEncoder() {
   attachInterrupt(digitalPinToInterrupt(ENC_DT), isr_rotary, CHANGE);
   
   // Button remains the same
-  attachInterrupt(digitalPinToInterrupt(ENC_SW), isr_button, FALLING);
+  attachInterrupt(digitalPinToInterrupt(ENC_SW), isr_button, CHANGE);
 }
 
 // FORWARD DECLARATION (Fixes the error)
@@ -955,15 +955,14 @@ void ledOnValid()
     delay(250);
     digitalWrite(LED_PIN, HIGH);
     delay(250);
-    digitalWrite(LED_PIN, LOW);
-    delay(250);
+  
     break;
 
   case 2:
   // Long Flash
-    digitalWrite(LED_PIN, HIGH);
-    delay(2000);
     digitalWrite(LED_PIN, LOW);
+    delay(2000);
+    digitalWrite(LED_PIN, HIGH);
     break;
   }
 }
@@ -2226,7 +2225,7 @@ void setup()
   pinMode(TMPR_PIN, INPUT_PULLUP);
 
   // turn off led
-  digitalWrite(LED_PIN, LOW);
+  digitalWrite(LED_PIN, HIGH);
 
   Serial.begin(115200);
   delay(100);
