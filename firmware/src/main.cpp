@@ -25,6 +25,7 @@ enum MenuState {
   STATE_VIEW_WIFI_INFO,
   STATE_CONFIRM_REBOOT,
   STATE_CONFIRM_WIFI_REBOOT,
+  STATE_CONFIRM_SCREEN_REBOOT,
   STATE_SYSTEM_PAUSED
 };
 
@@ -225,6 +226,7 @@ int wiegandFormatCounter = 0;
 
 int tempDeviceModeInt = 0;
 int tempTimeoutIndex = 0;
+bool origFlipOled = false; // Captures flipOledDisplay on GENERAL submenu entry
 
 // --- MENU ARRAYS ---
 
@@ -247,7 +249,8 @@ MenuItem menuItems_General[] = {
     {"Back", ITEM_ACTION, nullptr, 0, 0, nullptr, 0},
     {"Mode", ITEM_SELECT, &tempDeviceModeInt, 0, 1, nullptr, 0},
     {"Timeout", ITEM_SELECT, &tempTimeoutIndex, 0, 5, nullptr, 0},
-    {"Tamper", ITEM_TOGGLE, &enableTamperDetect, 0, 1, nullptr, 0}};
+    {"Tamper", ITEM_TOGGLE, &enableTamperDetect, 0, 1, nullptr, 0},
+    {"Flip Screen", ITEM_TOGGLE, &flipOledDisplay, 0, 1, nullptr, 0}};
 
 // 4. Main Menu
 MenuItem menuItems_Main[] = {
@@ -369,6 +372,14 @@ void handleMenuInput() {
         currentMenuLevel = menuItems_Main;
         currentMenuSize = sizeof(menuItems_Main) / sizeof(menuItems_Main[0]);
         selectedIndex = 3;
+        scrollOffset = 0;
+        forceMenuUpdate = true;
+      } else if (currentMenuState == STATE_CONFIRM_SCREEN_REBOOT) {
+        flipOledDisplay = origFlipOled; // Revert the toggle
+        currentMenuState = STATE_MENU_NAV;
+        currentMenuLevel = menuItems_Main;
+        currentMenuSize = sizeof(menuItems_Main) / sizeof(menuItems_Main[0]);
+        selectedIndex = 2;
         scrollOffset = 0;
         forceMenuUpdate = true;
       }
@@ -1484,6 +1495,12 @@ void updateDisplay() {
                      " New Wifi Settings: ", "  Click to Confirm   ",
                      "  Rotate to Cancel  ");
     break;
+
+  case STATE_CONFIRM_SCREEN_REBOOT:
+    printDisplayText("  CONFIRM REBOOT?   ",
+                     " Screen Settings    ", "  Click to Confirm  ",
+                     "  Rotate to Cancel  ");
+    break;
   }
 
   // 5. Reset the flag
@@ -2064,12 +2081,17 @@ void processMenuAction() {
   // --- FIX: WIFI REBOOT CONFIRMATION ---
   if (currentMenuState == STATE_CONFIRM_WIFI_REBOOT) {
     printDisplayText("    SAVING...       ", "    REBOOTING...    ", "", "");
-
-    // 1. Actually Save the settings!
     saveSettingsToPreferences();
     delay(1000);
+    ESP.restart();
+    return;
+  }
 
-    // 2. Then Reboot
+  // --- SCREEN FLIP REBOOT CONFIRMATION ---
+  if (currentMenuState == STATE_CONFIRM_SCREEN_REBOOT) {
+    printDisplayText("    SAVING...       ", "    REBOOTING...    ", "", "");
+    saveSettingsToPreferences();
+    delay(1000);
     ESP.restart();
     return;
   }
@@ -2161,9 +2183,11 @@ void processMenuAction() {
 
     case ITEM_SUBMENU:
       currentMenuLevel = item->submenu;
-      if (String(item->label) == "GENERAL")
-        currentMenuSize = 4;
-      else if (String(item->label) == "WIFI") {
+      if (String(item->label) == "GENERAL") {
+        currentMenuSize = 5;
+        // Capture flip setting on entry (mirrors Wifi origApMode pattern)
+        origFlipOled = flipOledDisplay;
+      } else if (String(item->label) == "WIFI") {
         currentMenuSize = 4;
         // Capture Settings on Entry
         origApMode = apMode;
@@ -2176,6 +2200,16 @@ void processMenuAction() {
 
     case ITEM_ACTION:
       if (String(item->label) == "Back") {
+
+        // --- GENERAL CHANGE DETECTION (Flip Screen) ---
+        if (currentMenuLevel == menuItems_General) {
+          if (flipOledDisplay != origFlipOled) {
+            currentMenuState = STATE_CONFIRM_SCREEN_REBOOT;
+            forceMenuUpdate = true;
+            updateDisplay();
+            return;
+          }
+        }
 
         // --- WIFI CHANGE DETECTION ---
         if (currentMenuLevel == menuItems_Wifi) {
@@ -2208,7 +2242,6 @@ void processMenuAction() {
       if (item->variable != nullptr) {
         bool *val = (bool *)item->variable;
         *val = !(*val);
-
         saveSettingsToPreferences();
       }
       break;
