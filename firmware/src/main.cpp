@@ -144,7 +144,9 @@ bool isSystemPaused = false; // Tracks if the scanner is paused
 // --- ROTARY ENCODER VARIABLES ---
 volatile int encoderCount = 0;
 volatile unsigned long lastEncoderPress = 0;
-const unsigned long DEBOUNCE_DELAY = 50; // ms
+const unsigned long DEBOUNCE_DELAY = 150; // ms — covers mechanical bounce up to ~150ms
+volatile unsigned long buttonPressStartTime = 0; // records when button was first pressed
+const unsigned long MIN_PRESS_DURATION = 20; // ms — filters ghost pulses shorter than this
 volatile bool encoderPressedFlag = false;
 bool disableEncoder = false;
 
@@ -286,10 +288,12 @@ void IRAM_ATTR isr_button() {
   if (encoderPressedFlag)
     return;
 
+  unsigned long now = millis();
   if (digitalRead(ENC_SW) == LOW) {
-    if (millis() - lastEncoderPress > DEBOUNCE_DELAY) {
+    if (now - lastEncoderPress > DEBOUNCE_DELAY) {
       encoderPressedFlag = true;
-      lastEncoderPress = millis();
+      lastEncoderPress = now;
+      buttonPressStartTime = now; // record when the press began
     }
   }
 }
@@ -391,6 +395,13 @@ void handleMenuInput() {
   if (encoderPressedFlag) {
     // Check if the button is released
     if (digitalRead(ENC_SW) == HIGH) {
+
+      // Minimum press duration guard: discard ghost pulses that were never
+      // really held (e.g. a bounce that briefly pulled the pin LOW).
+      if (millis() - buttonPressStartTime < MIN_PRESS_DURATION) {
+        encoderPressedFlag = false; // Discard — not a real press
+        return;
+      }
 
       processMenuAction();
       forceMenuUpdate = true;
