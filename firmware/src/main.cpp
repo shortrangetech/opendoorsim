@@ -201,8 +201,8 @@ int ssidHidden;
 int ledValid = 1;
 
 // Custom Display Message
-String customMessage = "00000OPENDOORSIM00000";
-String firmwareVersion = "v0.8.8";
+String customMessage = "     OPENDOORSIM     ";
+String firmwareVersion = "v0.9.0";
 
 // decoded facility code and card code
 unsigned long facilityCode = 0;
@@ -402,7 +402,7 @@ void handleMenuInput() {
       // Minimum press duration guard: discard ghost pulses that were never
       // really held (e.g. a bounce that briefly pulled the pin LOW).
       if (millis() - buttonPressStartTime < MIN_PRESS_DURATION) {
-        encoderPressedFlag = false; // Discard — not a real press
+        encoderPressedFlag = false;  // Discard — not a real press
         lastEncoderPress = millis(); // reset debounce timer from release point
         return;
       }
@@ -417,7 +417,6 @@ void handleMenuInput() {
       encoderPressedFlag = false;
     }
   }
-
 }
 
 int getVisibleRows() {
