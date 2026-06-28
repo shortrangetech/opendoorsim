@@ -403,16 +403,21 @@ void handleMenuInput() {
       // really held (e.g. a bounce that briefly pulled the pin LOW).
       if (millis() - buttonPressStartTime < MIN_PRESS_DURATION) {
         encoderPressedFlag = false; // Discard — not a real press
+        lastEncoderPress = millis(); // reset debounce timer from release point
         return;
       }
 
       processMenuAction();
       forceMenuUpdate = true;
 
-      // Unlock ISR
+      // Unlock ISR — reset debounce timer from release moment so that
+      // release-bounce FALLING edges (which occur > 150ms after press start
+      // on a long hold) don't slip through as a second click.
+      lastEncoderPress = millis();
       encoderPressedFlag = false;
     }
   }
+
 }
 
 int getVisibleRows() {
