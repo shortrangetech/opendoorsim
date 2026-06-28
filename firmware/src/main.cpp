@@ -196,8 +196,7 @@ int ledValid = 1;
 
 // Custom Display Message
 String customMessage = "OPENDOORSIM";
-// settings file version (read from settings.json)
-String firmwareVersion = "0.8.8";
+String firmwareVersion = "v0.8.8";
 
 // decoded facility code and card code
 unsigned long facilityCode = 0;
@@ -2263,8 +2262,11 @@ void setup() {
   // INITIALIZE DISPLAY
   initializeDisplay();
 
+  // Build version line right-aligned to the 20-char splash width
+  char verLine[21];
+  snprintf(verLine, sizeof(verLine), "%20s", firmwareVersion.c_str());
   printDisplayText("    OPENDOORSIM     ", "         by         ",
-                   "  SHORTRANGE.TECH   ", "");
+                   "  SHORTRANGE.TECH   ", verLine);
   attachInterrupt(DATA0_PIN, ISR_INT0, FALLING);
   attachInterrupt(DATA1_PIN, ISR_INT1, FALLING);
 
