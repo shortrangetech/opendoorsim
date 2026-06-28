@@ -103,7 +103,7 @@ const char *wiegandFormatsFile = "/wiegand_formats.json";
 
 // Display type constants
 #define DISPLAY_LCD 1
-#define DISPLAY_OLED_32 2
+#define DISPLAY_OLED_64 2
 
 // Display configuration constants
 #define LCD_ADDRESS 0x27
@@ -111,16 +111,16 @@ const char *wiegandFormatsFile = "/wiegand_formats.json";
 #define LCD_ROWS 4
 
 #define OLED_RESET -1
-#define OLED_32_ADDRESS 0x3C
+#define OLED_ADDRESS 0x3C
 #define OLED_WIDTH 128
-#define OLED_32_HEIGHT 32
+#define OLED_HEIGHT 64
 
 // Display objects - allocated at runtime based on active_display_type
 LiquidCrystal_I2C *lcdDisplay = nullptr;
 Adafruit_SSD1306 *oledDisplay = nullptr;
 
 // Active display variable
-// 1 for LCD, 2 for OLED 128x32, 3 for OLED 128x64
+// 1 for LCD, 2 for OLED 128x64
 int activeDisplayType = DISPLAY_LCD;
 bool flipOledDisplay = false;
 int oledRotation =
@@ -144,9 +144,12 @@ bool isSystemPaused = false; // Tracks if the scanner is paused
 // --- ROTARY ENCODER VARIABLES ---
 volatile int encoderCount = 0;
 volatile unsigned long lastEncoderPress = 0;
-const unsigned long DEBOUNCE_DELAY = 150; // ms — covers mechanical bounce up to ~150ms
-volatile unsigned long buttonPressStartTime = 0; // records when button was first pressed
-const unsigned long MIN_PRESS_DURATION = 20; // ms — filters ghost pulses shorter than this
+const unsigned long DEBOUNCE_DELAY =
+    150; // ms — covers mechanical bounce up to ~150ms
+volatile unsigned long buttonPressStartTime =
+    0; // records when button was first pressed
+const unsigned long MIN_PRESS_DURATION =
+    20; // ms — filters ghost pulses shorter than this
 volatile bool encoderPressedFlag = false;
 bool disableEncoder = false;
 
@@ -198,7 +201,7 @@ int ssidHidden;
 int ledValid = 1;
 
 // Custom Display Message
-String customMessage = "OPENDOORSIM";
+String customMessage = "00000OPENDOORSIM00000";
 String firmwareVersion = "v0.8.8";
 
 // decoded facility code and card code
@@ -415,8 +418,8 @@ void handleMenuInput() {
 int getVisibleRows() {
   if (activeDisplayType == DISPLAY_LCD)
     return 4;
-  if (activeDisplayType == DISPLAY_OLED_32)
-    return 4; // Small text fits ~4 lines
+  if (activeDisplayType == DISPLAY_OLED_64)
+    return 4; // setTextSize(1,2) = 16px tall chars, 4 lines fill 64px
   return 4;
 }
 
@@ -444,19 +447,19 @@ void drawTextLine(int row, String text, bool inverted = false) {
       lcdDisplay->print(" ");
   }
 
-  else if (activeDisplayType == DISPLAY_OLED_32 && oledDisplay != nullptr) {
-    int rowHeight = 8; // standard 5x7 font + spacing
-    yPos = row * rowHeight;
+  else if (activeDisplayType == DISPLAY_OLED_64 && oledDisplay != nullptr) {
+    yPos = row * 16; // setTextSize(1,2) = 16px per row, 4 rows fill 64px
 
     if (inverted) {
       oledDisplay->setTextColor(SSD1306_BLACK,
                                 SSD1306_WHITE); // Draw black text on white bg
       // Draw background bar
-      oledDisplay->fillRect(0, yPos, OLED_WIDTH, 8, SSD1306_WHITE);
+      oledDisplay->fillRect(0, yPos, OLED_WIDTH, 16, SSD1306_WHITE);
     } else {
       oledDisplay->setTextColor(SSD1306_WHITE);
     }
 
+    oledDisplay->setTextSize(1, 2);
     oledDisplay->setCursor(0, yPos);
     oledDisplay->println(text);
   }
@@ -1006,8 +1009,8 @@ void printCardData() {
 
       // LCD Printing
       printDisplayText(
-          "   ACCESS GRANTED   ", "",
-          centerText("Welcome, " + String(result->name), 20).c_str(),
+          "   ACCESS  GRANTED   ", "",
+          centerText("Welcome, " + String(result->name), 21).c_str(),
           result->flag);
 
       ledOnValid();
@@ -1305,17 +1308,18 @@ void initializeDisplay() {
     lcdDisplay->setCursor(0, 0);
     lcdDisplay->print("Initializing...");
     Serial.println("[SYSTEM] LCD 20x4 initialized");
-  } else if (activeDisplayType == DISPLAY_OLED_32) {
+  } else if (activeDisplayType == DISPLAY_OLED_64) {
     oledDisplay =
-        new Adafruit_SSD1306(OLED_WIDTH, OLED_32_HEIGHT, &Wire, OLED_RESET);
-    if (!oledDisplay->begin(SSD1306_SWITCHCAPVCC, OLED_32_ADDRESS)) {
-      Serial.println("[SYSTEM] ERROR: OLED 128x32 initialization failed!");
+        new Adafruit_SSD1306(OLED_WIDTH, OLED_HEIGHT, &Wire, OLED_RESET);
+    if (!oledDisplay->begin(SSD1306_SWITCHCAPVCC, OLED_ADDRESS)) {
+      Serial.println("[SYSTEM] ERROR: OLED 128x64 initialization failed!");
       delete oledDisplay;
       oledDisplay = nullptr;
       return;
     }
     oledDisplay->clearDisplay();
-    oledDisplay->setTextSize(1);
+    oledDisplay->setTextSize(1, 2); // 1x wide, 2x tall — matches visual size of
+                                    // prior 128x32 hw-doubled output
     oledDisplay->setTextColor(SSD1306_WHITE);
     oledDisplay->setCursor(0, 0);
 
@@ -1329,7 +1333,7 @@ void initializeDisplay() {
 
     oledDisplay->println("Initializing...");
     oledDisplay->display();
-    Serial.println("[SYSTEM] OLED 128x32 initialized");
+    Serial.println("[SYSTEM] OLED 128x64 initialized");
   }
 }
 
@@ -1346,9 +1350,9 @@ void printDisplayText(const char *msg1, const char *msg2, const char *msg3,
     lcdDisplay->print(msg3);
     lcdDisplay->setCursor(0, 3);
     lcdDisplay->print(msg4);
-  } else if (activeDisplayType == DISPLAY_OLED_32 && oledDisplay != nullptr) {
+  } else if (activeDisplayType == DISPLAY_OLED_64 && oledDisplay != nullptr) {
     oledDisplay->clearDisplay();
-    oledDisplay->setTextSize(1);
+    oledDisplay->setTextSize(1, 2);
     oledDisplay->setTextColor(SSD1306_WHITE);
     oledDisplay->setCursor(0, 0);
     oledDisplay->println(msg1);
@@ -1389,9 +1393,9 @@ void printDisplayRawCard() {
       snprintf(padBuf, sizeof(padBuf), "%d", lastPadCount);
     lcdDisplay->setCursor(5, 3);
     lcdDisplay->print(padBuf);
-  } else if (activeDisplayType == DISPLAY_OLED_32 && oledDisplay != nullptr) {
+  } else if (activeDisplayType == DISPLAY_OLED_64 && oledDisplay != nullptr) {
     oledDisplay->clearDisplay();
-    oledDisplay->setTextSize(1);
+    oledDisplay->setTextSize(1, 2);
     oledDisplay->setTextColor(SSD1306_WHITE);
     oledDisplay->setCursor(0, 0);
     oledDisplay->print("CARD: ");
@@ -1414,16 +1418,16 @@ void printDisplayRawCard() {
 
 void printStandbyMessage() {
   if (enableTamperDetect && tamperState) {
-    printDisplayText("   TAMPER ALERT!   ", "", "   THIS INCIDENT    ",
-                     "  WILL BE REPORTED! ");
+    printDisplayText("     TAMPER ALERT!    ", "", "    THIS INCIDENT    ",
+                     "  WILL BE REPORTED!  ");
     return;
   }
 
   if (deviceMode == "ctf") {
-    printDisplayText(centerText(customMessage, 20).c_str(), "",
-                     "    Present Card    ", "");
+    printDisplayText(centerText(customMessage, 21).c_str(), "",
+                     "    Present  Card    ", "");
   } else {
-    printDisplayText("      RAW MODE      ", "", "    Present Card    ", "");
+    printDisplayText("      RAW  MODE      ", "", "    Present  Card    ", "");
   }
 }
 
@@ -1473,7 +1477,7 @@ void updateDisplay() {
     break;
 
   case STATE_SYSTEM_PAUSED:
-    printDisplayText("", "   OPENDOORSIM IS   ", "      PAUSED      ", "");
+    printDisplayText("", "   OPENDOORSIM  IS   ", "       PAUSED.       ", "");
     break;
 
   case STATE_MENU_NAV:
@@ -1492,25 +1496,23 @@ void updateDisplay() {
   case STATE_VIEW_WIFI_INFO: {
     String ipLine = "IP: " + WiFi.softAPIP().toString();
     String passLine = (apPwd.length() > 0) ? "Pwd: " + apPwd : "Pwd: [OPEN]";
-    printDisplayText("   WIFI AP INFO    ", ("SSID: " + apSsid).c_str(),
+    printDisplayText("    WI-FI AP INFO    ", ("SSID: " + apSsid).c_str(),
                      ipLine.c_str(), passLine.c_str());
   } break;
 
   case STATE_CONFIRM_REBOOT:
-    printDisplayText("  CONFIRM REBOOT?   ", "", "  Click to Confirm  ",
-                     "  Rotate to Cancel  ");
+    printDisplayText("   CONFIRM REBOOT?   ", "", "  Click to Confirm,  ",
+                     "  Rotate to Cancel.  ");
     break;
 
   case STATE_CONFIRM_WIFI_REBOOT:
-    printDisplayText("  CONFIRM REBOOT?   ",
-                     " New Wifi Settings: ", "  Click to Confirm   ",
-                     "  Rotate to Cancel  ");
+    printDisplayText("   CONFIRM REBOOT?   ", "  New Wifi Settings  ",
+                     "  Click to Confirm,  ", "  Rotate to Cancel.  ");
     break;
 
   case STATE_CONFIRM_SCREEN_REBOOT:
-    printDisplayText("  CONFIRM REBOOT?   ",
-                     " Screen Settings    ", "  Click to Confirm  ",
-                     "  Rotate to Cancel  ");
+    printDisplayText("   CONFIRM REBOOT?   ", " New Screen Settings ",
+                     "  Click to Confirm,  ", "  Rotate to Cancel.  ");
     break;
   }
 
@@ -1540,7 +1542,7 @@ void printCardDataSerial() {
 void showSettingsSaved() {
   Serial.println("[DISPLAY] Showing Settings Saved message");
 
-  printDisplayText("   CONFIGURATION    ", "", "  Settings saved.   ", "");
+  printDisplayText("    CONFIGURATION     ", "", "   Settings saved.   ", "");
 
   lastCardTime = millis();
   isSystemMessage = true;
@@ -2083,7 +2085,7 @@ void processMenuAction() {
 
   // 2. CONFIRM REBOOT (Standard)
   if (currentMenuState == STATE_CONFIRM_REBOOT) {
-    printDisplayText("    REBOOTING...    ", "", "", "");
+    printDisplayText("    REBOOTING....    ", "", "", "");
     delay(1000);
     ESP.restart();
     return;
@@ -2091,7 +2093,7 @@ void processMenuAction() {
 
   // --- FIX: WIFI REBOOT CONFIRMATION ---
   if (currentMenuState == STATE_CONFIRM_WIFI_REBOOT) {
-    printDisplayText("    SAVING...       ", "    REBOOTING...    ", "", "");
+    printDisplayText("      SAVING...      ", "    REBOOTING....    ", "", "");
     saveSettingsToPreferences();
     delay(1000);
     ESP.restart();
@@ -2100,7 +2102,7 @@ void processMenuAction() {
 
   // --- SCREEN FLIP REBOOT CONFIRMATION ---
   if (currentMenuState == STATE_CONFIRM_SCREEN_REBOOT) {
-    printDisplayText("    SAVING...       ", "    REBOOTING...    ", "", "");
+    printDisplayText("     SAVING...       ", "    REBOOTING....    ", "", "");
     saveSettingsToPreferences();
     delay(1000);
     ESP.restart();
@@ -2309,8 +2311,8 @@ void setup() {
   // Build version line right-aligned to the 20-char splash width
   char verLine[21];
   snprintf(verLine, sizeof(verLine), "%20s", firmwareVersion.c_str());
-  printDisplayText("    OPENDOORSIM     ", "         by         ",
-                   "  SHORTRANGE.TECH   ", verLine);
+  printDisplayText("     OPENDOORSIM     ", "         by         ",
+                   "   SHORTRANGE.TECH   ", verLine);
   attachInterrupt(DATA0_PIN, ISR_INT0, FALLING);
   attachInterrupt(DATA1_PIN, ISR_INT1, FALLING);
 
