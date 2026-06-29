@@ -1664,6 +1664,33 @@ void webServer() {
     request->send(200, "text/plain", isSystemPaused ? "PAUSED" : "ACTIVE");
   });
 
+  // --- /setMode: dedicated endpoint for toggling mode from the navbar button ---
+  AsyncCallbackJsonWebHandler *setModeHandler = new AsyncCallbackJsonWebHandler(
+      "/setMode", [](AsyncWebServerRequest *request, JsonVariant &json) {
+        JsonObject jsonObj = json.as<JsonObject>();
+        String reqMode = jsonObj["mode"] | "";
+        reqMode.toLowerCase();
+
+        if (reqMode != "raw" && reqMode != "user") {
+          request->send(400, "application/json",
+                        "{\"status\":\"error\",\"message\":\"Invalid mode. Must be 'raw' or 'user'\"}");
+          return;
+        }
+
+        deviceMode = reqMode;
+        // Keep encoder menu in sync
+        tempDeviceModeInt = (deviceMode == "user") ? 1 : 0;
+        forceMenuUpdate = true;
+
+        saveSettingsToPreferences();
+        showSettingsSaved();
+        Serial.printf("[SYSTEM] Mode changed to: %s via WebUI navbar\n", deviceMode.c_str());
+
+        String resp = "{\"status\":\"success\",\"mode\":\"" + deviceMode + "\"}";
+        request->send(200, "application/json", resp);
+      });
+  server.addHandler(setModeHandler);
+
   AsyncCallbackJsonWebHandler *handler = new AsyncCallbackJsonWebHandler(
       "/saveSettings", [](AsyncWebServerRequest *request, JsonVariant &json) {
         JsonObject jsonObj = json.as<JsonObject>();
@@ -1688,13 +1715,10 @@ void webServer() {
           return;
         }
 
-        // update settings
+        // update settings (mode is now managed via /setMode)
         apSsid = reqSsid;
         apPwd = reqPwd;
 
-        deviceMode = jsonObj["device_mode"] | "user";
-        if (deviceMode == "ctf")
-          deviceMode = "user";
         displayTimeout = jsonObj["display_timeout"] | 30000;
 
         ssidHidden = jsonObj["ssid_hidden"] | 0;
@@ -1707,7 +1731,7 @@ void webServer() {
         disableEncoder = jsonObj["disable_encoder"] | false;
 
         // sync encoder menu variables
-        tempDeviceModeInt = (deviceMode == "user") ? 1 : 0;
+        // (tempDeviceModeInt is managed by /setMode; do not touch here)
 
         if (displayTimeout == 0)
           tempTimeoutIndex = 0; // None

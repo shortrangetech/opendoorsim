@@ -1,32 +1,34 @@
-:root{
-    --bg:#141413;
-    --text:#f5f5f4; 
-    --muted:#9a9a9a;
-    --accent:#fcbd00;
-    --header-bg:#2a2a2a; 
-    --card-bg:#1b1b1b;
-    --th-bg:#222;
-    --authorized:#236b2b;
-    --unauthorized:#8b1f1f;
+:root {
+    --bg: #141413;
+    --text: #f5f5f4;
+    --muted: #9a9a9a;
+    --accent: #fcbd00;
+    --header-bg: #2a2a2a;
+    --card-bg: #1b1b1b;
+    --th-bg: #222;
+    --authorized: #236b2b;
+    --unauthorized: #8b1f1f;
 }
 
 body {
     font-family: "DejaVu Sans Mono", "Liberation Mono", Menlo, Monaco, Consolas, monospace;
-    
+
     font-weight: 600;
     letter-spacing: -0.5px;
     background: var(--bg);
     color: var(--text);
 }
 
-h1 { margin-top: 0; }
+h1 {
+    margin-top: 0;
+}
 
 /* --- Header & Layout --- */
-header{
-    display:flex;
-    align-items:center;
-    padding:6px 12px;
-    color:var(--text);
+header {
+    display: flex;
+    align-items: center;
+    padding: 6px 12px;
+    color: var(--text);
 }
 
 #logo {
@@ -42,40 +44,60 @@ header{
     position: relative
 }
 
-#logo:hover { filter: grayscale(100%) brightness(22%); }
-
-.brand{
-    font-weight:800;
-    font-size:1.4rem;
-    line-height:1;
-    margin-left:10px;
-    margin-top:2px;
+#logo:hover {
+    filter: grayscale(100%) brightness(22%);
 }
 
-.header-banner{
-    flex:1;
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    background:var(--header-bg);
-    z-index:1;
-    margin-left:-130px;
-    margin-top:10px;
-    padding-left:140px;
-    border-radius:16px;
-    padding-right:16px;
-    padding-top:10px;
-    padding-bottom:10px;
+.brand {
+    font-weight: 800;
+    font-size: 1.4rem;
+    line-height: 1;
+    margin-left: 10px;
+    margin-top: 2px;
 }
 
-.header-center{flex:1;text-align:center}
-.header-center a{color:var(--accent);margin:0 14px;text-decoration:none;cursor:pointer;font-size:1.15rem;font-weight:700}
-.header-center a:hover{text-decoration:underline}
-.header-right{min-width:160px;text-align:right}
+.header-banner {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--header-bg);
+    z-index: 1;
+    margin-left: -130px;
+    margin-top: 10px;
+    padding-left: 140px;
+    border-radius: 16px;
+    padding-right: 16px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+.header-center {
+    flex: 1;
+    text-align: center
+}
+
+.header-center a {
+    color: var(--accent);
+    margin: 0 14px;
+    text-decoration: none;
+    cursor: pointer;
+    font-size: 1.15rem;
+    font-weight: 700
+}
+
+.header-center a:hover {
+    text-decoration: underline
+}
+
+.header-right {
+    min-width: 160px;
+    text-align: right
+}
 
 #modeBox {
     background: var(--card-bg);
-    padding: 10px 12px; 
+    padding: 10px 12px;
     border-radius: 12px;
     border: 1px solid #2f2f2f;
     color: var(--text);
@@ -84,13 +106,18 @@ header{
     align-items: center;
     justify-content: center;
     min-width: 120px;
-    
-    font-size: 0.85rem; 
+    font-size: 1rem;
     gap: 6px;
+    cursor: pointer;
+    user-select: none;
 }
 
 /* --- Inputs & Buttons --- */
-input[type="text"], input[type="number"], input[type="password"], textarea, select {
+input[type="text"],
+input[type="number"],
+input[type="password"],
+textarea,
+select {
     background: #d0d0d0;
     color: #111;
     border: 1px solid #bfbfbf;
@@ -102,17 +129,50 @@ input[type="text"], input[type="number"], input[type="password"], textarea, sele
     font-weight: 500;
 }
 
-@media (max-width:700px){
-    input[type="text"], input[type="number"], textarea, select { width:100%; }
+@media (max-width:700px) {
+
+    input[type="text"],
+    input[type="number"],
+    textarea,
+    select {
+        width: 100%;
+    }
 }
 
-.content{padding:20px}
+.content {
+    padding: 20px
+}
 
-table{width:100%;border-collapse:collapse;margin-bottom:20px;background:transparent;border-radius:10px;overflow:hidden}
-th, td{padding:10px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.06)}
-th{background:var(--th-bg);color:var(--text);font-weight:700}
-.inputRow td{padding:6px}
-.inputRow input{width:100%;box-sizing:border-box}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    background: transparent;
+    border-radius: 10px;
+    overflow: hidden
+}
+
+th,
+td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06)
+}
+
+th {
+    background: var(--th-bg);
+    color: var(--text);
+    font-weight: 700
+}
+
+.inputRow td {
+    padding: 6px
+}
+
+.inputRow input {
+    width: 100%;
+    box-sizing: border-box
+}
 
 button {
     /* Existing styles */
@@ -123,35 +183,71 @@ button {
     color: var(--text);
     cursor: pointer;
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
-    
+
     /* NEW: Fixes for Font and Alignment */
-    font-family: inherit;      /* Forces button to use Courier New */
-    display: inline-flex;      /* Allows flex alignment of text + badge */
-    align-items: center;       /* Vertically centers text and badge */
-    justify-content: center;   /* Horizontally centers content */
+    font-family: inherit;
+    /* Forces button to use Courier New */
+    display: inline-flex;
+    /* Allows flex alignment of text + badge */
+    align-items: center;
+    /* Vertically centers text and badge */
+    justify-content: center;
+    /* Horizontally centers content */
     font-weight: 700;
 }
 
-button:hover{
-    opacity:0.95;
+button:hover {
+    opacity: 0.95;
     background: var(--accent);
     color: var(--bg);
     border-color: var(--accent);
 }
 
-.button-secondary { background-color: #2b2b2b; color: var(--text); }
-.button-secondary:hover { background-color: #444 !important; color: var(--text) !important; border-color: var(--accent) !important; }
+.button-secondary {
+    background-color: #2b2b2b;
+    color: var(--text);
+}
 
-.button-danger { background-color: #8b1f1f; color: #fff; border-color: #8b1f1f; font-size: 0.85rem; }
-.button-danger:hover { background-color: #5a1414 !important; border-color: #5a1414 !important; color: #fff !important; }
+.button-secondary:hover {
+    background-color: #444 !important;
+    color: var(--text) !important;
+    border-color: var(--accent) !important;
+}
 
-.button-purple { background-color: #52009f; color: #fff; border-color: #52009f; font-size: 0.85rem; }
-.button-purple:hover { background-color: #37006f !important; border-color: #37006f !important; color: #fff !important; }
+.button-danger {
+    background-color: #8b1f1f;
+    color: #fff;
+    border-color: #8b1f1f;
+    font-size: 0.85rem;
+}
+
+.button-danger:hover {
+    background-color: #5a1414 !important;
+    border-color: #5a1414 !important;
+    color: #fff !important;
+}
+
+.button-purple {
+    background-color: #52009f;
+    color: #fff;
+    border-color: #52009f;
+    font-size: 0.85rem;
+}
+
+.button-purple:hover {
+    background-color: #37006f !important;
+    border-color: #37006f !important;
+    color: #fff !important;
+}
 
 /* --- BADGE SYSTEM (Consolidated) --- */
 
 /* 1. Base Badge Style (Shape & Text) */
-.badge, #userStatus, #tamperStatus, #rebootWarning, #pwdHint {
+.badge,
+#userStatus,
+#tamperStatus,
+#rebootWarning,
+#pwdHint {
     display: inline-block;
     padding: 4px 8px;
     border-radius: 8px;
@@ -166,19 +262,25 @@ button:hover{
 /* 2. Color Variants (Matches JS class toggles) */
 
 /* Green / Authorized */
-.badge-green, .user-on, .status-green {
+.badge-green,
+.user-on,
+.status-green {
     background: var(--authorized);
     color: #e8f8ee;
 }
 
 /* Red / Unauthorized / Warning */
-.badge-red, .user-off, .status-red, #rebootWarning {
+.badge-red,
+.user-off,
+.status-red,
+#rebootWarning {
     background: var(--unauthorized);
     color: #fff0f0;
 }
 
 /* Purple / Hints */
-.badge-purple, #pwdHint {
+.badge-purple,
+#pwdHint {
     background: #52009f;
     color: #dfcdf0;
     padding-left: 8px;
@@ -187,7 +289,7 @@ button:hover{
 }
 
 .badge-gray {
-    background-color: #2b2b2b; 
+    background-color: #2b2b2b;
     color: var(--text);
     border: 1px solid #2f2f2f;
 }
@@ -198,7 +300,8 @@ button:hover{
     margin-left: 6px;
     opacity: 0.9;
     transition: all 0.2s ease;
-    user-select: none; /* Prevents text selection on hover */
+    user-select: none;
+    /* Prevents text selection on hover */
 }
 
 .badge-clickable:hover {
@@ -207,85 +310,105 @@ button:hover{
 }
 
 /* Yellow / Caution */
-.badge-yellow, .status-yellow {
+.badge-yellow,
+.status-yellow {
     background: var(--accent);
     color: var(--bg);
 }
 
 /* Centers the text and the badge for the status lines */
-#userIndicator, #tamperIndicator {
+#userIndicator,
+#tamperIndicator {
     display: flex;
     align-items: center;
-    gap: 10px; /* Optional: adds nice spacing between label and badge */
+    gap: 10px;
+    /* Optional: adds nice spacing between label and badge */
 }
 
 /* 3. Pop-Up Animation Logic (Reboot Warning & Password Hint) */
-#rebootWarning, #pwdHint {
+#rebootWarning,
+#pwdHint {
     margin-left: 10px;
     transition: all 0.5s ease-in-out;
     overflow: hidden;
-    max-width: 800px; /* Fully open state */
+    max-width: 800px;
+    /* Fully open state */
     opacity: 1;
     flex-shrink: 0;
 }
 
 /* Override the default hidden behavior to allow animation */
-#rebootWarning.hidden, #pwdHint.hidden {
-    display: inline-block !important; 
+#rebootWarning.hidden,
+#pwdHint.hidden {
+    display: inline-block !important;
     max-width: 0;
     padding: 0;
     margin: 0;
     opacity: 0;
     pointer-events: none;
-    animation: none; /* Stop pulsing when hidden */
+    animation: none;
+    /* Stop pulsing when hidden */
 }
 
 #unsavedBadge {
-    transition: 
-        max-width 0.4s ease, 
+    transition:
+        max-width 0.4s ease,
         max-height 0.4s ease,
         padding 0.4s ease,
         margin 0.4s ease,
         opacity 0.4s ease;
-    
+
     overflow: hidden;
     white-space: nowrap;
-    display: inline-flex;    
-    align-items: center;  
-    align-self: center;      
-    
+    display: inline-flex;
+    align-items: center;
+    align-self: center;
+
     /* Appearance */
     background-color: var(--accent);
     color: var(--bg);
     border-radius: 6px;
-    
+
     /* NEW: Bold and Slightly Larger */
-    font-weight: 800;      /* Extra Bold */
-    font-size: 0.85rem;    /* Increased from 0.75rem */
-    
+    font-weight: 800;
+    /* Extra Bold */
+    font-size: 0.85rem;
+    /* Increased from 0.75rem */
+
     /* Active State (Grown) */
-    max-width: 120px;        /* Increased slightly to fit larger text */
-    max-height: 30px;        /* Increased from 30px */
-    padding: 4px 8px;       /* Increased from 4px 8px */
+    max-width: 120px;
+    /* Increased slightly to fit larger text */
+    max-height: 30px;
+    /* Increased from 30px */
+    padding: 4px 8px;
+    /* Increased from 4px 8px */
     margin-left: 10px;
-    opacity: 1; 
+    opacity: 1;
 }
 
 /* Collapsed State */
 #unsavedBadge.collapsed {
     max-width: 0;
-    max-height: 0;          
-    padding: 0;           
-    margin-left: 0;     
+    max-height: 0;
+    padding: 0;
+    margin-left: 0;
     opacity: 0;
     border: none;
 }
 
 /* 4. Pulse Animation */
 @keyframes fadePulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; } 
-    100% { opacity: 1; }
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+
+    100% {
+        opacity: 1;
+    }
 }
 
 /* Only the reboot warning pulses */
@@ -294,10 +417,12 @@ button:hover{
 }
 
 /* --- Utilities & Containers --- */
-.settings-actions, .input-group {
+.settings-actions,
+.input-group {
     display: flex;
     align-items: center;
-    gap: 0; /* Gap is handled by the badge margin for animation purposes */
+    gap: 0;
+    /* Gap is handled by the badge margin for animation purposes */
     flex-wrap: wrap;
 }
 
@@ -307,50 +432,64 @@ button:hover{
     margin-bottom: 20px;
 }
 
-.input-group { margin-bottom: 20px; }
+.input-group {
+    margin-bottom: 20px;
+}
 
 .input-group label {
     margin-right: 10px;
 }
 
-.hidden { display: none; }
-.collapsible { 
-    cursor: pointer; 
-    display: flex;          /* aligns items side-by-side */
-    align-items: center;    /* forces vertical centering */
-    gap: 10px;              /* adds clean spacing between text and badge */
+.hidden {
+    display: none;
 }
-.contentCollapsible { display: none; overflow: hidden; }
+
+.collapsible {
+    cursor: pointer;
+    display: flex;
+    /* aligns items side-by-side */
+    align-items: center;
+    /* forces vertical centering */
+    gap: 10px;
+    /* adds clean spacing between text and badge */
+}
+
+.contentCollapsible {
+    display: none;
+    overflow: hidden;
+}
 
 .password-wrapper {
     position: relative;
-    display: inline-block; 
+    display: inline-block;
     width: auto;
     width: 250px;
 }
 
 .password-wrapper input {
-    width: 100%; 
+    width: 100%;
 }
 
 .mode-paused {
-    background-color: #52009f !important; /* Purple matches buttons */
+    background-color: #52009f !important;
+    /* Purple matches buttons */
     border-color: #52009f !important;
     color: #fff !important;
     transition: background-color 0.3s ease;
 }
 
 .mode-raw {
-    background-color: var(--unauthorized) !important;
-    border-color: var(--unauthorized) !important;
-    color: #fff0f0 !important;
+    background-color: var(--authorized) !important;
+    border-color: var(--authorized) !important;
+    color: #e8f8ee !important;
     transition: background-color 0.3s ease;
 }
 
 .mode-user {
-    background-color: var(--authorized) !important;
-    border-color: var(--authorized) !important;
-    color: #e8f8ee !important;
+    background-color: var(--unauthorized) !important;
+    border-color: var(--unauthorized) !important;
+
+    color: #fff0f0 !important;
     transition: background-color 0.3s ease;
 }
 
@@ -358,7 +497,8 @@ button:hover{
     position: absolute;
     right: 10px;
     top: 50%;
-    transform: translateY(-50%); /* Centers icon vertically perfectly */
+    transform: translateY(-50%);
+    /* Centers icon vertically perfectly */
     cursor: pointer;
     color: #555;
     display: flex;
@@ -378,14 +518,16 @@ button:hover{
 }
 
 #oledCanvas {
-    display: block; /* Forces Firefox to respect dimensions */
-    image-rendering: pixelated; 
+    display: block;
+    /* Forces Firefox to respect dimensions */
+    image-rendering: pixelated;
     image-rendering: crisp-edges;
-    width: 512px; 
-    height: 128px; 
+    width: 512px;
+    height: 128px;
     background-color: #000;
     border: 1px solid #1a1a1a;
-    margin: 0 auto; /* Centers it if needed */
+    margin: 0 auto;
+    /* Centers it if needed */
 }
 
 #togglePwdBtn:hover {
@@ -399,33 +541,80 @@ button:hover{
 }
 
 /* Table Row Highlights */
-.authorized { background: linear-gradient(90deg,var(--authorized),#2ea24a33); }
-.unauthorized { background: linear-gradient(90deg,var(--unauthorized),#ff6b6b33); }
+.authorized {
+    background: linear-gradient(90deg, var(--authorized), #2ea24a33);
+}
+
+.unauthorized {
+    background: linear-gradient(90deg, var(--unauthorized), #ff6b6b33);
+}
 
 /* Links */
-a { color: var(--accent); }
+a {
+    color: var(--accent);
+}
 
 /* --- Responsive --- */
-@media(max-width:900px){
-    header{flex-direction:column;align-items:center}
-    .header-banner{margin-left:0;padding-left:16px;width:100%;border-radius:12px}
-    #logo{width:96px;height:96px;border:none;margin-bottom:8px;margin-left:0;}
-    .header-center{order:3;width:100%;display:flex;justify-content:center;flex-wrap:wrap}
-    .brand{font-size:1.4rem}
-    #modeBox{font-size:0.95rem}
+@media(max-width:900px) {
+    header {
+        flex-direction: column;
+        align-items: center
+    }
+
+    .header-banner {
+        margin-left: 0;
+        padding-left: 16px;
+        width: 100%;
+        border-radius: 12px
+    }
+
+    #logo {
+        width: 96px;
+        height: 96px;
+        border: none;
+        margin-bottom: 8px;
+        margin-left: 0;
+    }
+
+    .header-center {
+        order: 3;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap
+    }
+
+    .brand {
+        font-size: 1.4rem
+    }
+
+    #modeBox {
+        font-size: 0.95rem
+    }
 }
 
-@media(max-width:420px){
-    #logo{width:64px;height:64px}
-    .brand{font-size:1.1rem}
-    .header-center a{margin:0 8px;font-size:1rem}
+@media(max-width:420px) {
+    #logo {
+        width: 64px;
+        height: 64px
+    }
+
+    .brand {
+        font-size: 1.1rem
+    }
+
+    .header-center a {
+        margin: 0 8px;
+        font-size: 1rem
+    }
 }
 
-@media (max-width:700px){
+@media (max-width:700px) {
     .password-wrapper {
         width: 100%;
         display: block;
     }
+
     .password-wrapper input {
         width: 100%;
     }

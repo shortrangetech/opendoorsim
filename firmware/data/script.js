@@ -18,12 +18,15 @@ let sortNewestFirst = true;
 let unsavedChanges = false;
 
 // NEW globals for dirty checking
-let originalMode = "raw";
 let originalTimeout = 5000;
 let originalCustomMessage = "";
 let originalLedValid = 1;
 let originalTamper = false;
 let originalDisableEncoder = false;
+
+// Mode toggle state — prevents spam clicking out of sync with hardware
+let modePending = false;
+let currentMode = 'raw'; // mirrors last confirmed hardware mode
 
 // Virtual Screen Vars
 let screenInterval = null;
@@ -38,7 +41,6 @@ function checkDirty() {
     const currPwd = document.getElementById('ap_pwd').value;
     const currHidden = document.getElementById('ssid_hidden').checked;
 
-    const currMode = document.getElementById('modeSelect').value;
     const currTimeout = document.getElementById('timeoutSelect').value;
     const currMsg = document.getElementById('customMessage').value;
     const currLed = document.getElementById('ledValid').value;
@@ -53,7 +55,6 @@ function checkDirty() {
     if (currPwd !== originalPwd) isDirty = true;
     if (currHidden !== originalHidden) isDirty = true;
 
-    if (currMode !== originalMode) isDirty = true;
     if (currTimeout != originalTimeout) isDirty = true;
     if (currMsg !== originalCustomMessage) isDirty = true;
     if (currLed != originalLedValid) isDirty = true;
@@ -508,7 +509,6 @@ function saveSettings() {
         }
     }
 
-    const mode = document.getElementById('modeSelect').value.toString().toLowerCase();
     const timeout = document.getElementById('timeoutSelect').value;
     const customMessage = document.getElementById('customMessage').value;
     const ledValid = document.getElementById('ledValid').value;
@@ -516,7 +516,6 @@ function saveSettings() {
     const enableTamperDetect = document.getElementById('enable_tamper_detect').checked;
 
     let settings = {
-        device_mode: mode,
         display_timeout: parseInt(timeout, 10),
         ap_ssid: ssidInput,
         ap_pwd: pwdInput,
@@ -601,8 +600,6 @@ function updateSettingsUI(settings) {
     const isPaused = (settings.is_paused === true);
 
     // 1. Populate UI Inputs
-    if (document.getElementById('modeSelect')) document.getElementById('modeSelect').value = (mode || '').toString().toLowerCase();
-
     if (document.getElementById('timeoutSelect')) document.getElementById('timeoutSelect').value = displayTimeout;
     if (document.getElementById('ap_ssid')) document.getElementById('ap_ssid').value = apSsid;
     if (document.getElementById('ap_pwd')) document.getElementById('ap_pwd').value = apPass;
@@ -620,15 +617,16 @@ function updateSettingsUI(settings) {
     const modeValueEl = document.getElementById('modeValue');
 
     if (modeBox && modeValueEl) {
-        modeBox.classList.remove('mode-paused', 'mode-raw', 'mode-user');
+        modeBox.classList.remove('mode-paused', 'mode-raw', 'mode-user', 'mode-pending');
         if (isPaused) {
             modeValueEl.textContent = "PAUSED";
             modeBox.classList.add('mode-paused');
         } else {
+            currentMode = (mode || 'raw').toString().toLowerCase();
             modeValueEl.textContent = (mode || '').toString().toUpperCase();
-            if (mode.toLowerCase() === 'raw') {
+            if (currentMode === 'raw') {
                 modeBox.classList.add('mode-raw');
-            } else if (mode.toLowerCase() === 'user') {
+            } else if (currentMode === 'user') {
                 modeBox.classList.add('mode-user');
             }
         }
@@ -652,7 +650,6 @@ function updateSettingsUI(settings) {
     originalFlipOled = settings.flip_oled_display;
 
     // New globals
-    originalMode = (mode || '').toString().toLowerCase();
     originalTimeout = displayTimeout;
     originalCustomMessage = customMessage;
     originalLedValid = ledValid;
@@ -667,6 +664,44 @@ function updateSettingsUI(settings) {
 
     toggleFlipOption();
     checkDirty();
+}
+
+function toggleMode() {
+    if (modePending) return; // Ignore clicks while waiting for hardware confirmation
+
+    modePending = true;
+    const newMode = (currentMode === 'raw') ? 'user' : 'raw';
+
+    const modeBox = document.getElementById('modeBox');
+    if (modeBox) {
+        modeBox.classList.add('mode-pending');
+        modeBox.classList.remove('mode-raw', 'mode-user', 'mode-paused');
+    }
+
+    fetch('/setMode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: newMode })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Server rejected mode change');
+        return response.json();
+    })
+    .then(data => {
+        // Confirmed — fetch settings to fully sync UI
+        fetchSettings(true);
+    })
+    .catch(err => {
+        console.error('Mode toggle failed:', err);
+        // Revert visual to previously confirmed mode
+        if (modeBox) {
+            modeBox.classList.remove('mode-pending');
+            modeBox.classList.add('mode-' + currentMode);
+        }
+    })
+    .finally(() => {
+        modePending = false;
+    });
 }
 
 function togglePause() {
@@ -932,7 +967,7 @@ document.getElementById('ssid_hidden').addEventListener('change', () => { checkD
 document.getElementById('activeDisplayType').addEventListener('change', () => { checkDirty(); checkChanges(); });
 document.getElementById('flipOled').addEventListener('change', () => { checkDirty(); checkChanges(); });
 
-document.getElementById('modeSelect').addEventListener('change', checkDirty);
+document.getElementById('modeSelect') && document.getElementById('modeSelect').addEventListener('change', checkDirty);
 document.getElementById('timeoutSelect').addEventListener('change', checkDirty);
 document.getElementById('ledValid').addEventListener('change', checkDirty);
 document.getElementById('customMessage').addEventListener('input', checkDirty);
