@@ -475,14 +475,14 @@ button:hover {
     /* Purple matches buttons */
     border-color: #52009f !important;
     color: #fff !important;
-    transition: background-color 0.3s ease;
+    transition: all 0.3s ease;
 }
 
 .mode-raw {
     background-color: var(--authorized) !important;
     border-color: var(--authorized) !important;
     color: #e8f8ee !important;
-    transition: background-color 0.3s ease;
+    transition: all 0.3s ease;
 }
 
 .mode-user {
@@ -490,7 +490,7 @@ button:hover {
     border-color: var(--unauthorized) !important;
 
     color: #fff0f0 !important;
-    transition: background-color 0.3s ease;
+    transition: all 0.3s ease;
 }
 
 #togglePwdBtn {

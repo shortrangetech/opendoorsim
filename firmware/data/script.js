@@ -676,6 +676,9 @@ function toggleMode() {
     if (modeBox) {
         modeBox.classList.add('mode-pending');
         modeBox.classList.remove('mode-raw', 'mode-user', 'mode-paused');
+        modeBox.classList.add('mode-' + newMode);
+        const modeValueEl = document.getElementById('modeValue');
+        if (modeValueEl) modeValueEl.textContent = newMode.toUpperCase();
     }
 
     fetch('/setMode', {
@@ -695,8 +698,10 @@ function toggleMode() {
         console.error('Mode toggle failed:', err);
         // Revert visual to previously confirmed mode
         if (modeBox) {
-            modeBox.classList.remove('mode-pending');
+            modeBox.classList.remove('mode-pending', 'mode-raw', 'mode-user');
             modeBox.classList.add('mode-' + currentMode);
+            const modeValueEl = document.getElementById('modeValue');
+            if (modeValueEl) modeValueEl.textContent = currentMode.toUpperCase();
         }
     })
     .finally(() => {
