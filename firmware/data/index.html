@@ -56,11 +56,11 @@
             <div class="indent-section"
                 style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; margin-top: 15px;">
                 <div>
-                    <div id="ctfIndicator" style="margin-bottom:8px;">
-                        CTF Mode Status: <strong id="ctfStatus">OFF</strong>
+                    <div id="userIndicator" style="margin-bottom:8px;">
+                        User Mode Status: <strong id="userStatus">OFF</strong>
                     </div>
-                    <div id="ctfHint" style="color:gray; font-size:0.9em; display:none;">
-                        CTF mode is off. To enable CTF mode, change mode in settings.
+                    <div id="userHint" style="color:gray; font-size:0.9em; display:none;">
+                        User mode is off. To enable User mode, change mode in settings.
                     </div>
                     <div id="tamperIndicator" style="margin-bottom:8px;">
                         <br>
@@ -135,7 +135,7 @@
             <div class="indent-section">
                 <label for="modeSelect">Mode:</label>
                 <select id="modeSelect">
-                    <option value="ctf">CTF</option>
+                    <option value="user">User</option>
                     <option value="raw">Raw</option>
                 </select>
                 <br><br>
@@ -202,7 +202,7 @@
                 </div>
             </div>
 
-            <h2><br>CTF Mode</h2>
+            <h2><br>User Mode</h2>
             <div class="indent-section">
                 <label for="customMessage">Welcome Message:</label>
                 <input type="text" id="customMessage" maxlength="20">

@@ -151,7 +151,7 @@ button:hover{
 /* --- BADGE SYSTEM (Consolidated) --- */
 
 /* 1. Base Badge Style (Shape & Text) */
-.badge, #ctfStatus, #tamperStatus, #rebootWarning, #pwdHint {
+.badge, #userStatus, #tamperStatus, #rebootWarning, #pwdHint {
     display: inline-block;
     padding: 4px 8px;
     border-radius: 8px;
@@ -166,13 +166,13 @@ button:hover{
 /* 2. Color Variants (Matches JS class toggles) */
 
 /* Green / Authorized */
-.badge-green, .ctf-on, .status-green {
+.badge-green, .user-on, .status-green {
     background: var(--authorized);
     color: #e8f8ee;
 }
 
 /* Red / Unauthorized / Warning */
-.badge-red, .ctf-off, .status-red, #rebootWarning {
+.badge-red, .user-off, .status-red, #rebootWarning {
     background: var(--unauthorized);
     color: #fff0f0;
 }
@@ -213,7 +213,7 @@ button:hover{
 }
 
 /* Centers the text and the badge for the status lines */
-#ctfIndicator, #tamperIndicator {
+#userIndicator, #tamperIndicator {
     display: flex;
     align-items: center;
     gap: 10px; /* Optional: adds nice spacing between label and badge */
@@ -337,6 +337,20 @@ button:hover{
     background-color: #52009f !important; /* Purple matches buttons */
     border-color: #52009f !important;
     color: #fff !important;
+    transition: background-color 0.3s ease;
+}
+
+.mode-raw {
+    background-color: var(--unauthorized) !important;
+    border-color: var(--unauthorized) !important;
+    color: #fff0f0 !important;
+    transition: background-color 0.3s ease;
+}
+
+.mode-user {
+    background-color: var(--authorized) !important;
+    border-color: var(--authorized) !important;
+    color: #e8f8ee !important;
     transition: background-color 0.3s ease;
 }
 

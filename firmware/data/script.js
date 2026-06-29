@@ -422,17 +422,17 @@ function toggleFlipOption() {
     }
 }
 
-function updateCTFIndicator(settings) {
+function updateUserIndicator(settings) {
     const mode = (settings.device_mode || settings.mode || '').toString().toLowerCase();
-    const isCTFOn = (mode === 'ctf');
-    const statusEl = document.getElementById('ctfStatus');
-    const hintEl = document.getElementById('ctfHint');
+    const isUserOn = (mode === 'user');
+    const statusEl = document.getElementById('userStatus');
+    const hintEl = document.getElementById('userHint');
     if (statusEl) {
-        statusEl.textContent = isCTFOn ? 'ON' : 'OFF';
-        statusEl.classList.toggle('ctf-on', isCTFOn);
-        statusEl.classList.toggle('ctf-off', !isCTFOn);
+        statusEl.textContent = isUserOn ? 'ON' : 'OFF';
+        statusEl.classList.toggle('user-on', isUserOn);
+        statusEl.classList.toggle('user-off', !isUserOn);
     }
-    if (hintEl) hintEl.style.display = isCTFOn ? 'none' : 'block';
+    if (hintEl) hintEl.style.display = isUserOn ? 'none' : 'block';
 }
 
 function updateTamperIndicator(settings) {
@@ -559,7 +559,7 @@ function fetchSettings(forceUpdateUI = false) {
     fetch('/getSettings?t=' + Date.now())
         .then(response => response.json())
         .then(data => {
-            updateCTFIndicator(data);
+            updateUserIndicator(data);
             updateTamperIndicator(data);
 
             // FIX 1: Only update UI if there are NO unsaved changes 
@@ -620,13 +620,17 @@ function updateSettingsUI(settings) {
     const modeValueEl = document.getElementById('modeValue');
 
     if (modeBox && modeValueEl) {
+        modeBox.classList.remove('mode-paused', 'mode-raw', 'mode-user');
         if (isPaused) {
             modeValueEl.textContent = "PAUSED";
             modeBox.classList.add('mode-paused');
         } else {
-            // Revert to standard mode text (RAW/CTF) and remove purple class
             modeValueEl.textContent = (mode || '').toString().toUpperCase();
-            modeBox.classList.remove('mode-paused');
+            if (mode.toLowerCase() === 'raw') {
+                modeBox.classList.add('mode-raw');
+            } else if (mode.toLowerCase() === 'user') {
+                modeBox.classList.add('mode-user');
+            }
         }
     }
 

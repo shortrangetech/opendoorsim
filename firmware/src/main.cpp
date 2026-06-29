@@ -128,7 +128,7 @@ int oledRotation =
 
 // general device settings
 bool isCapturing = true;
-String deviceMode = "ctf"; // "ctf" or "raw"
+String deviceMode = "user"; // "user" or "raw"
 
 // Tamper Relay Settings
 bool enableTamperDetect = false;
@@ -235,8 +235,8 @@ bool origFlipOled = false; // Captures flipOledDisplay on GENERAL submenu entry
 
 // --- MENU ARRAYS ---
 
-// 1. CTF Submenu
-MenuItem menuItems_CTF[] = {
+// 1. User Submenu
+MenuItem menuItems_User[] = {
     {"Back", ITEM_ACTION, nullptr, 0, 0, nullptr, 0},
     {"Valid LED", ITEM_SELECT, &ledValid, 0, 2, nullptr,
      0} // 0=None, 1=Rapid, 2=Long
@@ -263,7 +263,7 @@ MenuItem menuItems_Main[] = {
     {"VIEW DATA", ITEM_ACTION, nullptr, 0, 0, nullptr, 0},
     {"GENERAL", ITEM_SUBMENU, nullptr, 0, 0, menuItems_General, 0},
     {"WIFI", ITEM_SUBMENU, nullptr, 0, 0, menuItems_Wifi, 0},
-    {"CTF", ITEM_SUBMENU, nullptr, 0, 0, menuItems_CTF, 0},
+    {"USER MODE", ITEM_SUBMENU, nullptr, 0, 0, menuItems_User, 0},
     {"REBOOT", ITEM_ACTION, nullptr, 0, 0, nullptr, 0}};
 
 void IRAM_ATTR isr_rotary() {
@@ -509,7 +509,7 @@ void renderMenu() {
         val = editTempIndex; // Show the temporary value we are scrolling
       }
       if (String(item->label) == "Mode") {
-        label += ": " + String(val == 0 ? "RAW" : "CTF");
+        label += ": " + String(val == 0 ? "RAW" : "USER");
       } else if (String(item->label) == "Timeout") {
         String tStr;
         switch (val) {
@@ -743,7 +743,9 @@ void loadSettingsFromPreferences() {
   }
 
   // Load settings
-  deviceMode = doc["device_mode"] | "ctf";
+  deviceMode = doc["device_mode"] | "user";
+  if (deviceMode == "ctf")
+    deviceMode = "user";
   displayTimeout = doc["display_timeout"] | 30000;
   apMode = doc["ap_mode"] | true;
 
@@ -1003,7 +1005,7 @@ void ledOnValid() {
 }
 
 void printCardData() {
-  if (deviceMode == "ctf") {
+  if (deviceMode == "user") {
     const User *result = checkUser(facilityCode, cardNumber);
     if (result != nullptr) {
       // Valid user found - serial console
@@ -1427,7 +1429,7 @@ void printStandbyMessage() {
     return;
   }
 
-  if (deviceMode == "ctf") {
+  if (deviceMode == "user") {
     printDisplayText(centerText(customMessage, 21).c_str(), "",
                      "    Present  Card    ", "");
   } else {
@@ -1690,7 +1692,9 @@ void webServer() {
         apSsid = reqSsid;
         apPwd = reqPwd;
 
-        deviceMode = jsonObj["device_mode"] | "ctf";
+        deviceMode = jsonObj["device_mode"] | "user";
+        if (deviceMode == "ctf")
+          deviceMode = "user";
         displayTimeout = jsonObj["display_timeout"] | 30000;
 
         ssidHidden = jsonObj["ssid_hidden"] | 0;
@@ -1703,7 +1707,7 @@ void webServer() {
         disableEncoder = jsonObj["disable_encoder"] | false;
 
         // sync encoder menu variables
-        tempDeviceModeInt = (deviceMode == "ctf") ? 1 : 0;
+        tempDeviceModeInt = (deviceMode == "user") ? 1 : 0;
 
         if (displayTimeout == 0)
           tempTimeoutIndex = 0; // None
@@ -2157,7 +2161,7 @@ void processMenuAction() {
     if (item->variable != nullptr) {
       *(int *)item->variable = editTempIndex;
       if (String(item->label) == "Mode") {
-        deviceMode = (editTempIndex == 0) ? "raw" : "ctf";
+        deviceMode = (editTempIndex == 0) ? "raw" : "user";
       }
       if (String(item->label) == "Timeout") {
         switch (editTempIndex) {
@@ -2209,7 +2213,7 @@ void processMenuAction() {
         // Capture Settings on Entry
         origApMode = apMode;
         origSsidHidden = ssidHidden;
-      } else if (String(item->label) == "CTF")
+      } else if (String(item->label) == "USER")
         currentMenuSize = 2;
       selectedIndex = 0;
       scrollOffset = 0;
@@ -2301,7 +2305,7 @@ void setup() {
   setupEncoder();
   Serial.println("[SYSTEM] Encoder initialized");
   tempDeviceModeInt =
-      (deviceMode == "ctf") ? 1 : 0; // TODO: make all of them import
+      (deviceMode == "user") ? 1 : 0; // TODO: make all of them import
 
   if (enableTamperDetect) {
     Serial.println("[SYSTEM] Tamper Detection is ENABLED");
