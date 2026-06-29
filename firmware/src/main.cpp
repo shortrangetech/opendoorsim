@@ -1546,7 +1546,7 @@ void printCardDataSerial() {
 void showSettingsSaved() {
   Serial.println("[DISPLAY] Showing Settings Saved message");
 
-  printDisplayText("    CONFIGURATION     ", "", "   Settings saved.   ", "");
+  printDisplayText("    CONFIGURATION    ", "", "   Settings saved.   ", "");
 
   lastCardTime = millis();
   isSystemMessage = true;

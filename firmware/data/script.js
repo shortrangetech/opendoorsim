@@ -95,7 +95,7 @@ function checkDirty() {
 }
 
 function updateScreen() {
-    if (document.getElementById('screen').classList.contains('hidden')) return;
+    if (document.getElementById('monitor').classList.contains('hidden')) return;
 
     // 1. Check if the element even exists in Firefox's view
     const canvas = document.getElementById('oledCanvas');
@@ -374,12 +374,11 @@ function showSection(section) {
     document.getElementById('log').classList.add('hidden');
     document.getElementById('monitor').classList.add('hidden');
     document.getElementById('settings').classList.add('hidden');
-    document.getElementById('screen').classList.add('hidden'); // Add this
 
     document.getElementById(section).classList.remove('hidden');
 
     // Manage the Polling Interval
-    if (section === 'screen') {
+    if (section === 'monitor') {
         if (!screenInterval) screenInterval = setInterval(updateScreen, 150); // ~6 FPS
     } else {
         if (screenInterval) {
@@ -941,6 +940,7 @@ setInterval(updateLastReadCardsTable, 5000);
 setInterval(fetchSettings, 5000);
 
 window.onload = function () {
+    if (!screenInterval) screenInterval = setInterval(updateScreen, 150);
     fetchSettings();
     updateTable();
     updateUserTable();

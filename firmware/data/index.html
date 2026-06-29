@@ -17,7 +17,6 @@
             <span class="brand">OpenDoorSim</span>
             <nav class="header-center">
                 <a onclick="showSectionWithRefresh('monitor')">Home</a>
-                <a onclick="showSectionWithRefresh('screen')">Screen</a>
                 <a onclick="showSection('log')">Log</a>
                 <a onclick="showSection('settings')">Settings</a>
             </nav>
@@ -54,22 +53,25 @@
             </table>
         </div>
         <div id="monitor">
-            <h1>CTF Monitor</h1>
-
-            <div class="indent-section">
-                <div id="ctfIndicator" style="margin-bottom:8px;">
-                    CTF Mode Status: <strong id="ctfStatus">OFF</strong>
+            <div class="indent-section"
+                style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; margin-top: 15px;">
+                <div>
+                    <div id="ctfIndicator" style="margin-bottom:8px;">
+                        CTF Mode Status: <strong id="ctfStatus">OFF</strong>
+                    </div>
+                    <div id="ctfHint" style="color:gray; font-size:0.9em; display:none;">
+                        CTF mode is off. To enable CTF mode, change mode in settings.
+                    </div>
+                    <div id="tamperIndicator" style="margin-bottom:8px;">
+                        <br>
+                        Tamper Status: <strong id="tamperStatus">CHECKING...</strong>
+                    </div>
                 </div>
-                <div id="ctfHint" style="color:gray; font-size:0.9em; display:none;">
-                    CTF mode is off. To enable CTF mode, change mode in settings.
-                </div>
-                <div id="tamperIndicator" style="margin-bottom:8px;">
-                    <br>
-                    Tamper Status: <strong id="tamperStatus">CHECKING...</strong>
+                <div class="screen-container" style="justify-self: center; margin-bottom: 20px;">
+                    <canvas id="oledCanvas" width="128" height="64"></canvas>
                 </div>
             </div>
 
-            <h2><br>Last Read Cards</h2>
             <table id="lastReadCardsTable">
                 <thead>
                     <tr>
@@ -125,14 +127,7 @@
                 </div>
             </div>
         </div>
-        <div id="screen" class="hidden">
-            <div class="content">
-                <h1>Live OLED Stream (beta)</h1>
-                <div class="screen-container">
-                    <canvas id="oledCanvas" width="128" height="64"></canvas>
-                </div>
-            </div>
-        </div>
+
         <div id="settings" class="hidden">
             <h1>Settings</h1>
 
