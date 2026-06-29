@@ -16,9 +16,9 @@
         <div class="header-banner">
             <span class="brand">OpenDoorSim</span>
             <nav class="header-center">
-                <a onclick="showSection('log')">Raw Mode</a>
-                <a onclick="showSectionWithRefresh('monitor')">CTF Mode</a>
+                <a onclick="showSectionWithRefresh('monitor')">Home</a>
                 <a onclick="showSectionWithRefresh('screen')">Screen</a>
+                <a onclick="showSection('log')">Log</a>
                 <a onclick="showSection('settings')">Settings</a>
             </nav>
             <div class="header-right">
@@ -29,12 +29,12 @@
     <div class="content">
         <div id="log" class="hidden">
             <h1>
-                Raw Log
+                Log
                 <span style="font-size: 0.5em; vertical-align: middle; margin-left: 15px;">
-                    <span id="badgeSortNew" class="badge badge-purple badge-clickable" onclick="setSort('new')">Newest
-                        Cards First</span>
+                    <span id="badgeSortNew" class="badge badge-purple badge-clickable" onclick="setSort('new')">Latest
+                        Scans First</span>
                     <span id="badgeSortOld" class="badge badge-gray badge-clickable" onclick="setSort('old')">Oldest
-                        Cards First</span>
+                        Scans First</span>
                 </span>
             </h1>
             <table id="cardTable">
@@ -129,7 +129,7 @@
             <div class="content">
                 <h1>Live OLED Stream (beta)</h1>
                 <div class="screen-container">
-                    <canvas id="oledCanvas" width="128" height="32"></canvas>
+                    <canvas id="oledCanvas" width="128" height="64"></canvas>
                 </div>
             </div>
         </div>
@@ -147,11 +147,11 @@
                 <label for="activeDisplayType">Display Type:</label>
                 <select id="activeDisplayType">
                     <option value="1">LCD 20x4</option>
-                    <option value="2">OLED 128x32/64</option>
+                    <option value="2">OLED 128x64</option>
                 </select>
 
                 <span id="flipOledContainer" style="margin-left:20px; display:none; vertical-align: middle;">
-                    <label for="flipOled">Flip OLED Screen:</label>
+                    <label for="flipOled">Flip OLED:</label>
                     <input type="checkbox" id="flipOled" style="vertical-align: middle;">
                 </span>
 
@@ -171,7 +171,7 @@
                     <input type="checkbox" id="enable_tamper_detect">
                 </div>
                 <div style="margin-top: 30px;">
-                    <label for="disable_encoder">Disable Knob Menu:</label>
+                    <label for="disable_encoder">Disable Knob:</label>
                     <input type="checkbox" id="disable_encoder">
                 </div>
             </div>

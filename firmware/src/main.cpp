@@ -1803,7 +1803,7 @@ void webServer() {
   server.on("/screen", HTTP_GET, [](AsyncWebServerRequest *request) {
     if (oledDisplay != nullptr) {
       // Confirm buffer size and type in Serial Monitor
-      size_t bufferSize = 512;
+      size_t bufferSize = 1024; // 128x64 OLED: 128 * 64 / 8 = 1024 bytes
       // Serial.printf("[DEBUG] Sending screen buffer: %d bytes, Display Type:
       // %d\n", bufferSize, activeDisplayType);
 
