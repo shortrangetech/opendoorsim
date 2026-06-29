@@ -1548,6 +1548,13 @@ void printCardDataSerial() {
 void showSettingsSaved() {
   Serial.println("[DISPLAY] Showing Settings Saved message");
 
+  // If already showing a system message, just refresh the timeout timer
+  // without re-drawing. Re-drawing mid-frame causes double-print artifacts.
+  if (isSystemMessage && displayingCard) {
+    lastCardTime = millis();
+    return;
+  }
+
   printDisplayText("    CONFIGURATION    ", "", "   Settings saved.   ", "");
 
   lastCardTime = millis();
@@ -1680,7 +1687,8 @@ void webServer() {
         deviceMode = reqMode;
         // Keep encoder menu in sync
         tempDeviceModeInt = (deviceMode == "user") ? 1 : 0;
-        forceMenuUpdate = true;
+        // NOTE: do NOT set forceMenuUpdate here — showSettingsSaved() takes
+        // ownership of the display and the timeout path restores it cleanly.
 
         saveSettingsToPreferences();
         showSettingsSaved();
