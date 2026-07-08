@@ -62,18 +62,20 @@
                         title="Blur data columns to focus on names">HIDE DATA</span>
                 </span>
             </h2>
-            <table id="scanLogTable">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th id="thName">Name</th>
-                        <th class="col-data">Decode</th>
-                        <th class="col-data" id="thCardData">Card Data (click to copy)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                </tbody>
-            </table>
+            <div class="table-responsive">
+                <table id="scanLogTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th id="thName">Name</th>
+                            <th class="col-data">Decode</th>
+                            <th class="col-data" id="thCardData">Card Data (click to copy)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
             <div id="logExpandControl">
                 <span id="logExpandBtn" class="badge badge-gray badge-clickable" onclick="toggleLogExpand()">&#9660;
                     Show 25</span>
@@ -85,20 +87,22 @@
                 <span class="badge badge-gray badge-clickable"> click to expand / collapse</span>
             </h2>
             <div class="contentCollapsible">
-                <table id="userTable">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Facility Code</th>
-                            <th>Card Number</th>
-                            <th>Name</th>
-                            <th>Flag</th>
-                            <th>Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    </tbody>
-                </table>
+                <div class="table-responsive">
+                    <table id="userTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Facility Code</th>
+                                <th>Card Number</th>
+                                <th>Name</th>
+                                <th>Flag</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
                 <div class="user-management-control">
                     <span id="userClearBtn" class="badge badge-gray badge-clickable badge-clear"
                         onclick="clearUsers()">CLEAR</span>

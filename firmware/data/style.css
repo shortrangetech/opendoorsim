@@ -212,14 +212,45 @@ select {
     padding: 20px
 }
 
+/* Responsive container for horizontal scroll on narrow screens */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 20px;
+}
+
 table {
     width: 100%;
     border-collapse: collapse;
-    margin-bottom: 20px;
     background: transparent;
     border-radius: 10px;
-    overflow: hidden
+    overflow: hidden;
+    table-layout: fixed; /* Lock column widths */
 }
+
+/* Min-widths to accommodate largest expected strings in columns */
+#scanLogTable {
+    min-width: 680px;
+}
+
+#userTable {
+    min-width: 700px;
+}
+
+/* Scan Log Table Column Width Distribution */
+#scanLogTable th:nth-child(1) { width: 6%; }  /* Index (#) */
+#scanLogTable th:nth-child(2) { width: 22%; } /* Name / Add Button */
+#scanLogTable th:nth-child(3) { width: 25%; } /* Decode (FC/CN) */
+#scanLogTable th:nth-child(4) { width: 47%; } /* Raw Card Data */
+
+/* User Table Column Width Distribution */
+#userTable th:nth-child(1) { width: 6%; }  /* Index (#) */
+#userTable th:nth-child(2) { width: 15%; } /* Facility Code */
+#userTable th:nth-child(3) { width: 15%; } /* Card Number */
+#userTable th:nth-child(4) { width: 18%; } /* Name */
+#userTable th:nth-child(5) { width: 22%; } /* Flag */
+#userTable th:nth-child(6) { width: 24%; } /* Actions (Edit/Delete/Clear/Save) */
 
 th,
 td {
@@ -639,11 +670,12 @@ button:hover {
 
 /* Blur effect for HIDE DATA mode */
 .col-data {
-    transition: filter 0.2s ease;
+    transition: filter 0.2s ease, border-color 0.2s ease;
 }
 
 .data-blurred {
     filter: blur(6px);
+    border-bottom-color: transparent !important;
     user-select: none;
     pointer-events: none;
 }
