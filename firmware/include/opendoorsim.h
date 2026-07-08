@@ -10,35 +10,38 @@
 #define STATUS_MAX 64
 #define DETAILS_MAX 128
 
-struct CardData
-{
-    unsigned int bitCount;
-    unsigned long facilityCode;
-    unsigned long cardNumber;
-    char rawCardData[RAW_DATA_MAX];
-    char hexData[HEX_DATA_MAX];
-    int padCount;
-    char status[STATUS_MAX];
-    char details[DETAILS_MAX];
+struct CardData {
+  unsigned int bitCount;
+  unsigned long facilityCode;
+  unsigned long cardNumber;
+  char rawCardData[RAW_DATA_MAX];
+  char hexData[HEX_DATA_MAX];
+  int padCount;
+  char status[STATUS_MAX];
+  char details[DETAILS_MAX];
+  int parityStatus; // -1: disabled/unchecked, 0: fail, 1: pass
 };
 
-struct User
-{
-    unsigned long facilityCode;
-    unsigned long cardNumber;
-    char name[50];
-    char flag[50];
+struct User {
+  unsigned long facilityCode;
+  unsigned long cardNumber;
+  char name[50];
+  char flag[50];
 };
 
-struct WiegandFormat
-{
-    unsigned int bitCount;
-    unsigned int facilityCodeStart;
-    unsigned int facilityCodeEnd;
-    unsigned int cardNumberStart;
-    unsigned int cardNumberEnd;
+struct WiegandFormat {
+  unsigned int bitCount;
+  unsigned int facilityCodeStart;
+  unsigned int facilityCodeEnd;
+  unsigned int cardNumberStart;
+  unsigned int cardNumberEnd;
+  int parityEvenBit;
+  int parityEvenStart;
+  int parityEvenEnd;
+  int parityOddBit;
+  int parityOddStart;
+  int parityOddEnd;
 };
-
 
 void ISR_INT0();
 void ISR_INT1();
@@ -47,6 +50,7 @@ void saveSettingsToPreferences();
 void loadSettingsFromPreferences();
 void saveUsersToPreferences();
 void loadUsersFromPreferences();
+bool checkParityBits(const WiegandFormat *format);
 void saveLogToPreferences();
 void loadLogFromPreferences();
 const User *checkUser(unsigned long fc, unsigned long cn);
@@ -72,7 +76,8 @@ void printCardDataSerial();
 void setupWifi();
 void webServer();
 void initializeDisplay();
-void printDisplayText(const char *msg1, const char *msg2, const char *msg3, const char *msg4);
+void printDisplayText(const char *msg1, const char *msg2, const char *msg3,
+                      const char *msg4);
 void printDisplayRawCard();
 
 #endif // DOORSIM_H

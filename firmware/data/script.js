@@ -28,6 +28,7 @@ let originalCustomMessage = "";
 let originalLedValid = 1;
 let originalTamper = false;
 let originalDisableEncoder = false;
+let originalParityCheck = false;
 
 // Mode toggle state — prevents spam clicking out of sync with hardware
 let modePending = false;
@@ -53,6 +54,7 @@ function checkDirty() {
     const currFlip = document.getElementById('flipOled').checked;
     const currTamper = document.getElementById('enable_tamper_detect').checked;
     const currDisableEncoder = document.getElementById('disable_encoder').checked; // NEW
+    const currParityCheck = document.getElementById('enable_parity_check').checked;
     // 2. Compare
     let isDirty = false;
 
@@ -67,6 +69,7 @@ function checkDirty() {
     if (currFlip !== originalFlipOled) isDirty = true;
     if (currTamper !== originalTamper) isDirty = true;
     if (currDisableEncoder !== originalDisableEncoder) isDirty = true;
+    if (currParityCheck !== originalParityCheck) isDirty = true;
 
     // 3. Update UI
     unsavedChanges = isDirty;
@@ -130,7 +133,7 @@ function updateScreen() {
 
             // Decode raw SSD1306 GDDRAM bytes into an ImageData at native size
             const offscreen = document.createElement('canvas');
-            offscreen.width  = bufW;
+            offscreen.width = bufW;
             offscreen.height = bufH;
             const offCtx = offscreen.getContext('2d');
             const imageData = offCtx.createImageData(bufW, bufH);
@@ -143,7 +146,7 @@ function updateScreen() {
                         const y = page * 8 + bit;
                         const index = (y * bufW + x) * 4;
                         const pixelOn = (byte >> bit) & 1;
-                        imageData.data[index]     = pixelOn ? r : 0;
+                        imageData.data[index] = pixelOn ? r : 0;
                         imageData.data[index + 1] = pixelOn ? g : 0;
                         imageData.data[index + 2] = pixelOn ? b : 0;
                         imageData.data[index + 3] = 255;
@@ -170,7 +173,7 @@ function updateScreen() {
             }
 
             const ctx = canvas.getContext('2d');
-            canvas.width  = displayW;
+            canvas.width = displayW;
             canvas.height = displayH;
             ctx.save();
 
@@ -239,7 +242,7 @@ function updateScanLog() {
                 const row = scanLogTableBody.insertRow();
 
                 // Row color always reflects authorization state
-                if (card.status === 'Authorized')   row.classList.add('authorized');
+                if (card.status === 'Authorized') row.classList.add('authorized');
                 if (card.status === 'Unauthorized') row.classList.add('unauthorized');
 
                 // Col 0: #
@@ -252,10 +255,15 @@ function updateScanLog() {
                 const matchedUser = usersCache.find(
                     u => String(u.facilityCode) === String(fc) && String(u.cardNumber) === String(cn)
                 );
-                if (matchedUser) {
+                const parityFailed = (card.parityStatus === 0);
+                if (matchedUser && !parityFailed) {
                     cellName.textContent = matchedUser.name;
                 } else if (fc !== '' || cn !== '') {
-                    cellName.innerHTML = `<span class="badge badge-add-user badge-clickable badge-scan" onclick="quickAddUser('${fc}', '${cn}')">+ ADD</span>`;
+                    if (parityFailed) {
+                        cellName.textContent = '—';
+                    } else {
+                        cellName.innerHTML = `<span class="badge badge-add-user badge-clickable badge-scan" onclick="quickAddUser('${fc}', '${cn}')">+ ADD</span>`;
+                    }
                 } else {
                     cellName.textContent = '—';
                 }
@@ -265,7 +273,16 @@ function updateScanLog() {
                 cellDecode.className = 'col-data';
                 if (hideData) cellDecode.classList.add('data-blurred');
                 if (fc !== '' || cn !== '') {
-                    cellDecode.innerHTML = `<span style="color: var(--muted); margin-right: 4px;">FC:</span><span class="badge badge-gray badge-scan" style="margin-right: 16px;">${fc}</span><span style="color: var(--muted); margin-right: 4px;">CN:</span><span class="badge badge-gray badge-scan">${cn}</span>`;
+                    let parityHTML = '';
+                    const ps = card.parityStatus;
+                    if (ps === 0) {
+                        parityHTML = ' <span class="badge badge-scan" style="background:var(--red,#e74c3c);color:#fff;margin-left:8px;">[F]</span>';
+                    } else if (ps === 1) {
+                        parityHTML = ' <span class="badge badge-scan" style="background:var(--green,#2ecc71);color:#fff;margin-left:8px;">[P]</span>';
+                    } else {
+                        parityHTML = ' <span class="badge badge-gray badge-scan" style="margin-left:8px;">[-]</span>';
+                    }
+                    cellDecode.innerHTML = `<span style="color: var(--muted); margin-right: 4px;">FC:</span><span class="badge badge-gray badge-scan" style="margin-right: 16px;">${fc}</span><span style="color: var(--muted); margin-right: 4px;">CN:</span><span class="badge badge-gray badge-scan">${cn}</span>${parityHTML}`;
                 } else {
                     cellDecode.innerHTML = '';
                 }
@@ -381,12 +398,12 @@ function checkUserInputsDirty() {
     const cnVal = document.getElementById('newCardNumber')?.value || '';
     const nameVal = document.getElementById('newName')?.value || '';
     const flagVal = document.getElementById('newFlag')?.value || '';
-    
+
     const isDirty = (fcVal !== '' || cnVal !== '' || nameVal !== '' || flagVal !== '');
-    
+
     const saveBtn = document.getElementById('saveUserButton');
     const inputRow = document.querySelector('.inputRow');
-    
+
     if (saveBtn) {
         if (isDirty) {
             saveBtn.classList.add('pulse-gold');
@@ -394,7 +411,7 @@ function checkUserInputsDirty() {
             saveBtn.classList.remove('pulse-gold');
         }
     }
-    
+
     if (inputRow) {
         if (isDirty) {
             inputRow.classList.add('row-active-gold');
@@ -558,6 +575,7 @@ function saveSettings() {
     const ssidInput = document.getElementById('ap_ssid').value;
     const hiddenInput = document.getElementById('ssid_hidden').checked;
     const disableEncoder = document.getElementById('disable_encoder').checked;
+    const enableParityCheck = document.getElementById('enable_parity_check').checked;
 
     if (!ssidInput || ssidInput.trim().length === 0) {
         alert("Cannot Save: SSID cannot be empty.");
@@ -619,7 +637,8 @@ function saveSettings() {
         flip_oled_display: currentFlip,
         enable_tamper_detect: enableTamperDetect,
         should_reboot: rebootRequired,
-        disable_encoder: disableEncoder
+        disable_encoder: disableEncoder,
+        enable_parity_check: enableParityCheck
     };
 
     fetch('/saveSettings', {
@@ -688,6 +707,7 @@ function updateSettingsUI(settings) {
     const enableTamperDetect = (settings.enable_tamper_detect !== undefined) ? settings.enable_tamper_detect : settings.enableTamperDetect;
     const version = settings.version || settings.version || '';
     const disableEncoder = (settings.disable_encoder !== undefined) ? settings.disable_encoder : false;
+    const enableParityCheck = (settings.enable_parity_check !== undefined) ? settings.enable_parity_check : false;
 
     // Get Pause State
     const isPaused = (settings.is_paused === true);
@@ -704,6 +724,7 @@ function updateSettingsUI(settings) {
     if (document.getElementById('versionValue')) document.getElementById('versionValue').textContent = version;
     if (document.getElementById('flipOled')) document.getElementById('flipOled').checked = settings.flip_oled_display;
     if (document.getElementById('disable_encoder')) document.getElementById('disable_encoder').checked = disableEncoder;
+    if (document.getElementById('enable_parity_check')) document.getElementById('enable_parity_check').checked = enableParityCheck;
 
     // 2. [NEW] Update Mode Banner (Top Right)
     const modeBox = document.getElementById('modeBox');
@@ -750,6 +771,7 @@ function updateSettingsUI(settings) {
     originalLedValid = ledValid;
     originalTamper = enableTamperDetect;
     originalDisableEncoder = disableEncoder;
+    originalParityCheck = enableParityCheck;
 
     // Listeners
     const displaySelect = document.getElementById('activeDisplayType');
@@ -781,27 +803,27 @@ function toggleMode() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode: newMode })
     })
-    .then(response => {
-        if (!response.ok) throw new Error('Server rejected mode change');
-        return response.json();
-    })
-    .then(data => {
-        // Confirmed — fetch settings to fully sync UI
-        fetchSettings(true);
-    })
-    .catch(err => {
-        console.error('Mode toggle failed:', err);
-        // Revert visual to previously confirmed mode
-        if (modeBox) {
-            modeBox.classList.remove('mode-pending', 'mode-raw', 'mode-user');
-            modeBox.classList.add('mode-' + currentMode);
-            const modeValueEl = document.getElementById('modeValue');
-            if (modeValueEl) modeValueEl.textContent = currentMode.toUpperCase();
-        }
-    })
-    .finally(() => {
-        modePending = false;
-    });
+        .then(response => {
+            if (!response.ok) throw new Error('Server rejected mode change');
+            return response.json();
+        })
+        .then(data => {
+            // Confirmed — fetch settings to fully sync UI
+            fetchSettings(true);
+        })
+        .catch(err => {
+            console.error('Mode toggle failed:', err);
+            // Revert visual to previously confirmed mode
+            if (modeBox) {
+                modeBox.classList.remove('mode-pending', 'mode-raw', 'mode-user');
+                modeBox.classList.add('mode-' + currentMode);
+                const modeValueEl = document.getElementById('modeValue');
+                if (modeValueEl) modeValueEl.textContent = currentMode.toUpperCase();
+            }
+        })
+        .finally(() => {
+            modePending = false;
+        });
 }
 
 function togglePause() {
@@ -1140,6 +1162,7 @@ document.getElementById('ledValid').addEventListener('change', checkDirty);
 document.getElementById('customMessage').addEventListener('input', checkDirty);
 document.getElementById('enable_tamper_detect').addEventListener('change', checkDirty);
 document.getElementById('disable_encoder').addEventListener('change', checkDirty);
+document.getElementById('enable_parity_check').addEventListener('change', checkDirty);
 
 setInterval(updateScanLog, 5000);
 setInterval(fetchSettings, 5000);

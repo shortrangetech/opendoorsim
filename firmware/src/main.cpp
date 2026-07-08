@@ -130,6 +130,8 @@ int oledRotation =
 // general device settings
 bool isCapturing = true;
 String deviceMode = "user"; // "user" or "raw"
+bool enableParityCheck = false;
+int lastParityStatus = -1; // -1: disabled, 0: fail, 1: pass
 
 // Tamper Relay Settings
 bool enableTamperDetect = false;
@@ -257,7 +259,8 @@ MenuItem menuItems_General[] = {
     {"Mode", ITEM_SELECT, &tempDeviceModeInt, 0, 1, nullptr, 0},
     {"Timeout", ITEM_SELECT, &tempTimeoutIndex, 0, 5, nullptr, 0},
     {"Tamper", ITEM_TOGGLE, &enableTamperDetect, 0, 1, nullptr, 0},
-    {"Flip Screen", ITEM_TOGGLE, &flipOledDisplay, 0, 1, nullptr, 0}};
+    {"Flip Screen", ITEM_TOGGLE, &flipOledDisplay, 0, 1, nullptr, 0},
+    {"Parity Chk", ITEM_TOGGLE, &enableParityCheck, 0, 1, nullptr, 0}};
 
 // 4. Main Menu
 MenuItem menuItems_Main[] = {
@@ -708,6 +711,7 @@ void saveSettingsToPreferences() {
   doc["flip_oled_display"] = flipOledDisplay;
   doc["enable_tamper_detect"] = enableTamperDetect;
   doc["disable_encoder"] = disableEncoder;
+  doc["enable_parity_check"] = enableParityCheck;
 
   if (serializeJson(doc, file) == 0) {
     Serial.println("[SYSTEM] ERROR: Failed to write settings to file.");
@@ -768,6 +772,7 @@ void loadSettingsFromPreferences() {
   flipOledDisplay = doc["flip_oled_display"] | flipOledDisplay;
   enableTamperDetect = doc["enable_tamper_detect"] | false;
   disableEncoder = doc["disable_encoder"] | false;
+  enableParityCheck = doc["enable_parity_check"] | false;
 
   unsigned int loadedMaxBits = doc["max_bits"] | (unsigned int)MAX_BITS_CONST;
   if (loadedMaxBits == 0)
@@ -884,6 +889,18 @@ void loadWiegandFormats() {
         format["cardNumberStart"] | 0;
     wiegandFormats[wiegandFormatCounter].cardNumberEnd =
         format["cardNumberEnd"] | 0;
+    wiegandFormats[wiegandFormatCounter].parityEvenBit =
+        format["parityEvenBit"] | -1;
+    wiegandFormats[wiegandFormatCounter].parityEvenStart =
+        format["parityEvenStart"] | -1;
+    wiegandFormats[wiegandFormatCounter].parityEvenEnd =
+        format["parityEvenEnd"] | -1;
+    wiegandFormats[wiegandFormatCounter].parityOddBit =
+        format["parityOddBit"] | -1;
+    wiegandFormats[wiegandFormatCounter].parityOddStart =
+        format["parityOddStart"] | -1;
+    wiegandFormats[wiegandFormatCounter].parityOddEnd =
+        format["parityOddEnd"] | -1;
 
     Serial.print("Loaded format: bitCount=");
     Serial.println(wiegandFormats[wiegandFormatCounter].bitCount);
@@ -1039,6 +1056,7 @@ void saveLogToPreferences() {
     card["padCount"] = cardDataArray[i].padCount;
     card["status"] = cardDataArray[i].status;
     card["details"] = cardDataArray[i].details;
+    card["parityStatus"] = cardDataArray[i].parityStatus;
   }
 
   if (serializeJson(doc, file) == 0) {
@@ -1107,6 +1125,8 @@ void loadLogFromPreferences() {
       strncpy(cardDataArray[i].details, details.c_str(),
               sizeof(cardDataArray[i].details) - 1);
       cardDataArray[i].details[sizeof(cardDataArray[i].details) - 1] = '\0';
+
+      cardDataArray[i].parityStatus = card["parityStatus"] | -1;
     }
   }
   Serial.print("[SYSTEM] Scan log loaded. Count: ");
@@ -1159,13 +1179,15 @@ void ledOnValid() {
 void printCardData() {
   if (deviceMode == "user") {
     const User *result = checkUser(facilityCode, cardNumber);
-    if (result != nullptr) {
-      // Valid user found - serial console
+    bool parityFailed = (lastParityStatus == 0);
+
+    if (result != nullptr && !parityFailed) {
+      // Valid user found AND parity OK (or disabled/undefined)
       Serial.println("Valid user found:");
       Serial.println("FC: " + String(result->facilityCode) + ", CN: " +
                      String(result->cardNumber) + ", Name: " + result->name);
 
-      // LCD Printing
+      // LCD/OLED Printing - ACCESS GRANTED
       printDisplayText(
           "   ACCESS  GRANTED   ", "",
           centerText("Welcome, " + String(result->name), 21).c_str(),
@@ -1179,10 +1201,9 @@ void printCardData() {
       strncpy(details, result->name, DETAILS_MAX - 1);
       details[DETAILS_MAX - 1] = '\0';
     } else {
-      // No valid user found - serial console
-      Serial.println("Error: No valid user found.");
+      // Either no user found, or parity explicitly failed
+      Serial.println("Error: Access denied.");
 
-      // LCD Printing
       printDisplayText("   ACCESS DENIED    ", "", " THIS INCIDENT WILL ",
                        "    BE REPORTED!    ");
 
@@ -1234,6 +1255,7 @@ void printCardData() {
   strncpy(cardDataArray[cardDataIndex].hexData, lastHexData, HEX_DATA_MAX - 1);
   cardDataArray[cardDataIndex].hexData[HEX_DATA_MAX - 1] = '\0';
   cardDataArray[cardDataIndex].padCount = lastPadCount;
+  cardDataArray[cardDataIndex].parityStatus = lastParityStatus;
 
   strncpy(cardDataArray[cardDataIndex].status, status, STATUS_MAX - 1);
   cardDataArray[cardDataIndex].status[STATUS_MAX - 1] = '\0';
@@ -1247,6 +1269,36 @@ void printCardData() {
   lastCardTime = millis();
   isSystemMessage = false;
   displayingCard = true;
+}
+
+// Returns true if all defined parity checks pass, false if any explicitly fail.
+// If no parity bits are defined (all -1), returns true (no failure).
+bool checkParityBits(const WiegandFormat *format) {
+  // Check even parity if defined
+  if (format->parityEvenBit >= 0 && format->parityEvenStart >= 0 && format->parityEvenEnd >= 0) {
+    int count = 0;
+    for (int i = format->parityEvenStart; i < format->parityEvenEnd; i++) {
+      if (databits[i]) count++;
+    }
+    // Include the parity bit itself
+    if (databits[format->parityEvenBit]) count++;
+    // Even parity: total count of 1s (data + parity bit) should be even
+    if (count % 2 != 0) return false;
+  }
+
+  // Check odd parity if defined
+  if (format->parityOddBit >= 0 && format->parityOddStart >= 0 && format->parityOddEnd >= 0) {
+    int count = 0;
+    for (int i = format->parityOddStart; i < format->parityOddEnd; i++) {
+      if (databits[i]) count++;
+    }
+    // Include the parity bit itself
+    if (databits[format->parityOddBit]) count++;
+    // Odd parity: total count of 1s (data + parity bit) should be odd
+    if (count % 2 != 1) return false;
+  }
+
+  return true;
 }
 
 // Process hid cards
@@ -1368,6 +1420,7 @@ void processHIDCard() {
 
   if (format == nullptr) {
     Serial.println("[-] Unsupported bitCount for HID card");
+    lastParityStatus = -1;
     return;
   }
 
@@ -1376,8 +1429,15 @@ void processHIDCard() {
       decodeFacilityCode(format->facilityCodeStart, format->facilityCodeEnd);
   cardNumber = decodeCardNumber(format->cardNumberStart, format->cardNumberEnd);
 
-  // Pure-binary mode: facilityCode and cardNumber are derived directly
-  // from databits[]. No hex/card chunk generation is performed.
+  // Parity check
+  if (enableParityCheck) {
+    bool parityOK = checkParityBits(format);
+    lastParityStatus = parityOK ? 1 : 0;
+  } else {
+    lastParityStatus = -1; // Disabled
+  }
+
+
 }
 
 void processCardData() {
@@ -1405,6 +1465,8 @@ void processCardData() {
 
   if (bitCount >= 26 && bitCount <= 96) {
     processHIDCard();
+  } else {
+    lastParityStatus = -1;
   }
 }
 
@@ -1426,6 +1488,7 @@ void cleanupCardData() {
   details[0] = '\0';
   lastHexData[0] = '\0';
   lastPadCount = 0;
+  lastParityStatus = -1;
 }
 
 bool allBitsAreOnes() {
@@ -1543,6 +1606,9 @@ void printDisplayRawCard() {
     lcdDisplay->print(" CN: ");
     lcdDisplay->setCursor(14, 1);
     lcdDisplay->print(cardNumber);
+    String parityTag = (lastParityStatus == 1) ? " [P]" :
+                       (lastParityStatus == 0) ? " [F]" : " [-]";
+    lcdDisplay->print(parityTag);
     // Show HEX and PAD instead of raw binary to save space
     lcdDisplay->setCursor(0, 2);
     lcdDisplay->print("HEX: ");
@@ -1568,7 +1634,10 @@ void printDisplayRawCard() {
     oledDisplay->print("FC:");
     oledDisplay->print(facilityCode);
     oledDisplay->print(" CN:");
-    oledDisplay->println(cardNumber);
+    oledDisplay->print(cardNumber);
+    String parityTag = (lastParityStatus == 1) ? " [P]" :
+                       (lastParityStatus == 0) ? " [F]" : " [-]";
+    oledDisplay->println(parityTag);
     oledDisplay->println("HEX:");
     oledDisplay->println(lastHexData);
     oledDisplay->print("PAD: ");
@@ -1769,6 +1838,7 @@ void webServer() {
       card["padCount"] = cardDataArray[i].padCount;
       card["status"] = cardDataArray[i].status;
       card["details"] = cardDataArray[i].details;
+      card["parityStatus"] = cardDataArray[i].parityStatus;
     }
     String response;
     serializeJson(doc, response);
@@ -1814,6 +1884,7 @@ void webServer() {
     doc["led_valid"] = ledValid;
     doc["disable_encoder"] = disableEncoder;
     doc["is_paused"] = isSystemPaused;
+    doc["enable_parity_check"] = enableParityCheck;
 
     String response;
     serializeJson(doc, response);
@@ -1905,6 +1976,7 @@ void webServer() {
         enableTamperDetect =
             jsonObj["enable_tamper_detect"] | enableTamperDetect;
         disableEncoder = jsonObj["disable_encoder"] | false;
+        enableParityCheck = jsonObj["enable_parity_check"] | false;
 
         // sync encoder menu variables
         // (tempDeviceModeInt is managed by /setMode; do not touch here)
@@ -2468,7 +2540,7 @@ void processMenuAction() {
     case ITEM_SUBMENU:
       currentMenuLevel = item->submenu;
       if (String(item->label) == "GENERAL") {
-        currentMenuSize = 5;
+        currentMenuSize = 6;
         // Capture flip setting on entry (mirrors Wifi origApMode pattern)
         origFlipOled = flipOledDisplay;
       } else if (String(item->label) == "WIFI") {
