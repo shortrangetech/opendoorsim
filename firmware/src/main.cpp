@@ -931,17 +931,48 @@ void loadUsersFromPreferences() {
   userCount = doc["userCount"] | 0;
   if (userCount > 0) {
     JsonArray usersArray = doc["users"].as<JsonArray>();
-    for (int i = 0; i < userCount; i++) {
-      Serial.println("Loading user " + String(i));
+    size_t totalInArray = usersArray.size();
+    size_t limit = ((size_t)userCount < totalInArray) ? (size_t)userCount : totalInArray;
+    int uniqueUserCount = 0;
+    bool duplicatesFound = false;
+
+    for (size_t i = 0; i < limit && uniqueUserCount < MAX_USERS; i++) {
       JsonObject user = usersArray[i].as<JsonObject>();
-      users[i].facilityCode = user["facilityCode"] | 0;
-      users[i].cardNumber = user["cardNumber"] | 0;
+      unsigned long fc = user["facilityCode"] | 0;
+      unsigned long cn = user["cardNumber"] | 0;
+
+      // Check if this (fc, cn) has already been loaded
+      bool isDuplicate = false;
+      for (int j = 0; j < uniqueUserCount; j++) {
+        if (users[j].facilityCode == fc && users[j].cardNumber == cn) {
+          isDuplicate = true;
+          break;
+        }
+      }
+
+      if (isDuplicate) {
+        Serial.printf("[SYSTEM] WARNING: Duplicate user skipped on boot: FC=%lu, CN=%lu\n", fc, cn);
+        duplicatesFound = true;
+        continue;
+      }
+
+      Serial.println("Loading user " + String(uniqueUserCount));
+      users[uniqueUserCount].facilityCode = fc;
+      users[uniqueUserCount].cardNumber = cn;
       String name = user["name"] | "";
-      strncpy(users[i].name, name.c_str(), sizeof(users[i].name) - 1);
-      users[i].name[sizeof(users[i].name) - 1] = '\0';
+      strncpy(users[uniqueUserCount].name, name.c_str(), sizeof(users[uniqueUserCount].name) - 1);
+      users[uniqueUserCount].name[sizeof(users[uniqueUserCount].name) - 1] = '\0';
       String flag = user["flag"] | "";
-      strncpy(users[i].flag, flag.c_str(), sizeof(users[i].flag) - 1);
-      users[i].flag[sizeof(users[i].flag) - 1] = '\0';
+      strncpy(users[uniqueUserCount].flag, flag.c_str(), sizeof(users[uniqueUserCount].flag) - 1);
+      users[uniqueUserCount].flag[sizeof(users[uniqueUserCount].flag) - 1] = '\0';
+      uniqueUserCount++;
+    }
+
+    userCount = uniqueUserCount;
+
+    if (duplicatesFound) {
+      Serial.println("[SYSTEM] Duplicate users were found in users.json. Saving cleaned user list...");
+      saveUsersToPreferences();
     }
   } else {
     Serial.println("[SYSTEM] ALERT: No valid users found.");
@@ -1914,9 +1945,17 @@ void webServer() {
       if (flag.length() > 20)
         return request->send(400, "text/plain", "Flag too long (max 20)");
 
+      // DUPLICATE CHECK
+      unsigned long newFC = strtoul(fcStr.c_str(), nullptr, 10);
+      unsigned long newCN = strtoul(cnStr.c_str(), nullptr, 10);
+      if (checkUser(newFC, newCN) != nullptr) {
+        return request->send(400, "text/plain",
+                             "Error: User with this FC and CN already exists");
+      }
+
       // Save
-      users[userCount].facilityCode = fcStr.toInt();
-      users[userCount].cardNumber = cnStr.toInt();
+      users[userCount].facilityCode = newFC;
+      users[userCount].cardNumber = newCN;
       strncpy(users[userCount].name, name.c_str(),
               sizeof(users[userCount].name) - 1);
       users[userCount].name[sizeof(users[userCount].name) - 1] = '\0';
@@ -1995,9 +2034,17 @@ void webServer() {
         if (flag.length() > 20)
           return request->send(400, "text/plain", "Flag too long");
 
+        // DUPLICATE CHECK
+        unsigned long newFC = strtoul(fcStr.c_str(), nullptr, 10);
+        unsigned long newCN = strtoul(cnStr.c_str(), nullptr, 10);
+        const User *existing = checkUser(newFC, newCN);
+        if (existing != nullptr && existing != &users[index]) {
+          return request->send(400, "text/plain", "Error: User with this FC and CN already exists");
+        }
+
         // Update
-        users[index].facilityCode = fcStr.toInt();
-        users[index].cardNumber = cnStr.toInt();
+        users[index].facilityCode = newFC;
+        users[index].cardNumber = newCN;
         strncpy(users[index].name, name.c_str(), sizeof(users[index].name) - 1);
         users[index].name[sizeof(users[index].name) - 1] = '\0';
         strncpy(users[index].flag, flag.c_str(), sizeof(users[index].flag) - 1);
@@ -2124,6 +2171,25 @@ void webServer() {
           // Strict Sanitization match frontend rules
           String fc = user["facilityCode"].as<String>();
           String cn = user["cardNumber"].as<String>();
+
+          // Duplicate detection against preceding records in upload array
+          unsigned long fcVal = strtoul(fc.c_str(), nullptr, 10);
+          unsigned long cnVal = strtoul(cn.c_str(), nullptr, 10);
+          for (int j = 0; j < row - 1; j++) {
+            JsonObject prevUser = usersArr[j].as<JsonObject>();
+            String prevFcStr = prevUser["facilityCode"].as<String>();
+            String prevCnStr = prevUser["cardNumber"].as<String>();
+            unsigned long prevFc = strtoul(prevFcStr.c_str(), nullptr, 10);
+            unsigned long prevCn = strtoul(prevCnStr.c_str(), nullptr, 10);
+            if (fcVal == prevFc && cnVal == prevCn) {
+              LittleFS.remove("/users.json.tmp");
+              return request->send(400, "text/plain",
+                                   "Error Row " + String(row) +
+                                       ": Duplicate user found (FC: " + String(fcVal) +
+                                       ", CN: " + String(cnVal) + ")");
+            }
+          }
+
           String name = user["name"] | "";
           String flag = user["flag"] | "";
 

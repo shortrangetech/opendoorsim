@@ -356,7 +356,7 @@ function addUser() {
     const name = document.getElementById('newName').value;
     const flag = document.getElementById('newFlag').value;
 
-    if (!validateUserInput(facilityCode, cardNumber, name, flag)) return;
+    if (!validateUserInput(facilityCode, cardNumber, name, flag, -1)) return;
 
     fetch(`/addUser?facilityCode=${facilityCode}&cardNumber=${cardNumber}&name=${encodeURIComponent(name)}&flag=${encodeURIComponent(flag)}`)
         .then(response => {
@@ -779,6 +779,22 @@ function uploadUserFile() {
                 return;
             }
 
+            // Check for duplicate users in uploaded file
+            const keys = new Set();
+            for (let i = 0; i < json.users.length; i++) {
+                const user = json.users[i];
+                if (user.facilityCode === undefined || user.cardNumber === undefined) {
+                    alert(`Invalid file format: User at index ${i} is missing facilityCode or cardNumber.`);
+                    return;
+                }
+                const key = `${user.facilityCode}-${user.cardNumber}`;
+                if (keys.has(key)) {
+                    alert(`Invalid file format: Duplicate user found in file (FC: ${user.facilityCode}, CN: ${user.cardNumber}).`);
+                    return;
+                }
+                keys.add(key);
+            }
+
             const message = `Import ${count} users?\n\nWARNING: This will overwrite all current users!`;
             if (!confirm(message)) return;
 
@@ -823,7 +839,7 @@ function uploadUserFile() {
     reader.readAsText(file);
 }
 
-function validateUserInput(fc, cn, name, flag) {
+function validateUserInput(fc, cn, name, flag, currentIndex = -1) {
     if (!/^\d{1,12}$/.test(fc)) {
         alert("Error: Facility Code must be a number (1-12 digits).");
         return false;
@@ -840,6 +856,19 @@ function validateUserInput(fc, cn, name, flag) {
         alert("Error: Flag cannot exceed 20 characters.");
         return false;
     }
+
+    const fcVal = parseInt(fc, 10);
+    const cnVal = parseInt(cn, 10);
+    const isDuplicate = usersCache.some((user, idx) => {
+        if (idx === currentIndex) return false;
+        return user.facilityCode === fcVal && user.cardNumber === cnVal;
+    });
+
+    if (isDuplicate) {
+        alert("Error: A user with this Facility Code and Card Number already exists.");
+        return false;
+    }
+
     return true;
 }
 
@@ -920,7 +949,7 @@ function saveEditedUser(index) {
     const name = document.getElementById('newName').value;
     const flag = document.getElementById('newFlag').value;
 
-    if (!validateUserInput(facilityCode, cardNumber, name, flag)) return;
+    if (!validateUserInput(facilityCode, cardNumber, name, flag, index)) return;
 
     fetch(`/updateUser?index=${index}&facilityCode=${facilityCode}&cardNumber=${cardNumber}&name=${encodeURIComponent(name)}&flag=${encodeURIComponent(flag)}`)
         .then(response => {
