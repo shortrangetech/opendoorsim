@@ -252,7 +252,13 @@ function updateScanLog() {
                 const matchedUser = usersCache.find(
                     u => String(u.facilityCode) === String(fc) && String(u.cardNumber) === String(cn)
                 );
-                cellName.textContent = matchedUser ? matchedUser.name : '—';
+                if (matchedUser) {
+                    cellName.textContent = matchedUser.name;
+                } else if (fc !== '' || cn !== '') {
+                    cellName.innerHTML = `<span class="badge badge-add-user badge-clickable" onclick="quickAddUser('${fc}', '${cn}')">+ ADD USER</span>`;
+                } else {
+                    cellName.textContent = '—';
+                }
 
                 // Col 2: Decode — FC: x CN: y (col-data)
                 const cellDecode = row.insertCell(2);
@@ -355,13 +361,63 @@ function updateUserTable() {
             let cellFlag = inputRow.insertCell(4);
             let cellAction = inputRow.insertCell(5);
 
-            cellFacilityCode.innerHTML = '<input type="text" id="newFacilityCode" inputmode="numeric" maxlength="9" oninput="this.value = this.value.replace(/[^0-9]/g, \'\')">';
-            cellCardNumber.innerHTML = '<input type="text" id="newCardNumber" inputmode="numeric" maxlength="9" oninput="this.value = this.value.replace(/[^0-9]/g, \'\')">';
-            cellName.innerHTML = '<input type="text" id="newName" maxlength="12">';
-            cellFlag.innerHTML = '<input type="text" id="newFlag" maxlength="21">';
+            cellFacilityCode.innerHTML = '<input type="text" id="newFacilityCode" inputmode="numeric" maxlength="9" oninput="this.value = this.value.replace(/[^0-9]/g, \'\'); checkUserInputsDirty();" onkeydown="if(event.key === \'Enter\') document.getElementById(\'saveUserButton\').click()">';
+            cellCardNumber.innerHTML = '<input type="text" id="newCardNumber" inputmode="numeric" maxlength="9" oninput="this.value = this.value.replace(/[^0-9]/g, \'\'); checkUserInputsDirty();" onkeydown="if(event.key === \'Enter\') document.getElementById(\'saveUserButton\').click()">';
+            cellName.innerHTML = '<input type="text" id="newName" maxlength="12" oninput="checkUserInputsDirty();" onkeydown="if(event.key === \'Enter\') document.getElementById(\'saveUserButton\').click()">';
+            cellFlag.innerHTML = '<input type="text" id="newFlag" maxlength="21" oninput="checkUserInputsDirty();" onkeydown="if(event.key === \'Enter\') document.getElementById(\'saveUserButton\').click()">';
             cellAction.innerHTML = '<button id="saveUserButton" onclick="addUser()">Save</button> <button id="cancelEditButton" style="display:none;" onclick="cancelEdit()">Cancel</button>';
+            checkUserInputsDirty();
         })
         .catch(error => console.error('Error fetching user data:', error));
+}
+
+function checkUserInputsDirty() {
+    const fcVal = document.getElementById('newFacilityCode')?.value || '';
+    const cnVal = document.getElementById('newCardNumber')?.value || '';
+    const nameVal = document.getElementById('newName')?.value || '';
+    const flagVal = document.getElementById('newFlag')?.value || '';
+    
+    const isDirty = (fcVal !== '' || cnVal !== '' || nameVal !== '' || flagVal !== '');
+    
+    const saveBtn = document.getElementById('saveUserButton');
+    const inputRow = document.querySelector('.inputRow');
+    
+    if (saveBtn) {
+        if (isDirty) {
+            saveBtn.classList.add('pulse-gold');
+        } else {
+            saveBtn.classList.remove('pulse-gold');
+        }
+    }
+    
+    if (inputRow) {
+        if (isDirty) {
+            inputRow.classList.add('row-active-gold');
+        } else {
+            inputRow.classList.remove('row-active-gold');
+        }
+    }
+}
+
+function quickAddUser(fc, cn) {
+    cancelEdit();
+
+    const content = document.querySelector(".contentCollapsible");
+    if (content && content.style.display !== "block") {
+        content.style.display = "block";
+    }
+
+    const fcInput = document.getElementById('newFacilityCode');
+    const cnInput = document.getElementById('newCardNumber');
+    const nameInput = document.getElementById('newName');
+
+    if (fcInput) fcInput.value = fc;
+    if (cnInput) cnInput.value = cn;
+    if (nameInput) {
+        nameInput.value = '';
+        nameInput.focus();
+    }
+    checkUserInputsDirty();
 }
 
 function addUser() {
@@ -375,7 +431,9 @@ function addUser() {
     fetch(`/addUser?facilityCode=${facilityCode}&cardNumber=${cardNumber}&name=${encodeURIComponent(name)}&flag=${encodeURIComponent(flag)}&t=${Date.now()}`)
         .then(response => {
             if (response.ok) {
-                updateUserTable();
+                updateUserTable().then(() => {
+                    updateScanLog();
+                });
                 document.getElementById('newFacilityCode').value = '';
                 document.getElementById('newCardNumber').value = '';
                 document.getElementById('newName').value = '';
@@ -391,7 +449,9 @@ function deleteUser(index) {
     fetch(`/deleteUser?index=${index}&t=${Date.now()}`)
         .then(response => {
             if (response.ok) {
-                updateUserTable();
+                updateUserTable().then(() => {
+                    updateScanLog();
+                });
                 alert('User deleted successfully');
             } else {
                 alert('Failed to delete user');
@@ -983,6 +1043,7 @@ function editUser(index) {
         saveBtn.onclick = function () { saveEditedUser(index); };
     }
     if (cancelBtn) cancelBtn.style.display = 'inline-block';
+    checkUserInputsDirty();
 }
 
 function saveEditedUser(index) {
@@ -996,7 +1057,9 @@ function saveEditedUser(index) {
     fetch(`/updateUser?index=${index}&facilityCode=${facilityCode}&cardNumber=${cardNumber}&name=${encodeURIComponent(name)}&flag=${encodeURIComponent(flag)}&t=${Date.now()}`)
         .then(response => {
             if (response.ok) {
-                updateUserTable();
+                updateUserTable().then(() => {
+                    updateScanLog();
+                });
                 alert('User updated successfully');
                 const saveBtn = document.getElementById('saveUserButton');
                 const cancelBtn = document.getElementById('cancelEditButton');
@@ -1018,6 +1081,7 @@ function cancelEdit() {
     document.getElementById('newCardNumber').value = '';
     document.getElementById('newName').value = '';
     document.getElementById('newFlag').value = '';
+    checkUserInputsDirty();
 }
 
 function togglePasswordVisibility() {

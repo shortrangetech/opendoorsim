@@ -721,3 +721,53 @@ a {
         width: 100%;
     }
 }
+
+/* Quick Add User Badge */
+.badge-add-user {
+    background-color: #2b2b2b !important;
+    color: var(--text) !important;
+    border: 1px solid #2f2f2f !important;
+    transition: all 0.2s ease;
+}
+
+.badge-add-user:hover {
+    background-color: var(--accent) !important;
+    color: var(--bg) !important;
+    border-color: var(--accent) !important;
+}
+
+/* User Management Row Active State */
+.inputRow {
+    background-color: var(--th-bg) !important;
+    transition: background-color 0.4s ease;
+}
+
+.inputRow.row-active-gold {
+    background-color: rgba(252, 189, 0, 0.15) !important;
+}
+
+/* Gold Pulse for Save Button */
+@keyframes goldPulse {
+    0% {
+        background-color: #2b2b2b;
+        color: var(--text);
+        border-color: #2f2f2f;
+        box-shadow: 0 0 0 0 rgba(252, 189, 0, 0);
+    }
+    50% {
+        background-color: var(--accent);
+        color: var(--bg);
+        border-color: var(--accent);
+        box-shadow: 0 0 5px 1px rgba(252, 189, 0, 0.4);
+    }
+    100% {
+        background-color: #2b2b2b;
+        color: var(--text);
+        border-color: #2f2f2f;
+        box-shadow: 0 0 0 0 rgba(252, 189, 0, 0);
+    }
+}
+
+.pulse-gold {
+    animation: goldPulse 2s infinite ease-in-out;
+}
