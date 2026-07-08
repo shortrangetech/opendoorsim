@@ -6,13 +6,17 @@
       "facilityCodeEnd": 9,
       "cardNumberStart": 10,
       "cardNumberEnd": 25,
-      "description": "Standard 26-bit HID format",
+      "description": "STANDARD 26BIT - (H10301)",
       "parityEvenBit": 1,
-      "parityEvenStart": 2,
-      "parityEvenEnd": 13,
       "parityOddBit": 26,
-      "parityOddStart": 14,
-      "parityOddEnd": 25
+      "parityEvenRange": [
+        2,
+        13
+      ],
+      "parityOddRange": [
+        14,
+        25
+      ]
     },
     {
       "bitCount": 27,
@@ -20,13 +24,7 @@
       "facilityCodeEnd": 13,
       "cardNumberStart": 14,
       "cardNumberEnd": 27,
-      "description": "27-bit HID format",
-      "parityEvenBit": -1,
-      "parityEvenStart": -1,
-      "parityEvenEnd": -1,
-      "parityOddBit": -1,
-      "parityOddStart": -1,
-      "parityOddEnd": -1
+      "description": "27-bit HID format"
     },
     {
       "bitCount": 29,
@@ -34,13 +32,7 @@
       "facilityCodeEnd": 13,
       "cardNumberStart": 14,
       "cardNumberEnd": 29,
-      "description": "29-bit HID format",
-      "parityEvenBit": -1,
-      "parityEvenStart": -1,
-      "parityEvenEnd": -1,
-      "parityOddBit": -1,
-      "parityOddStart": -1,
-      "parityOddEnd": -1
+      "description": "29-bit HID format"
     },
     {
       "bitCount": 30,
@@ -48,13 +40,7 @@
       "facilityCodeEnd": 13,
       "cardNumberStart": 14,
       "cardNumberEnd": 29,
-      "description": "30-bit HID format",
-      "parityEvenBit": -1,
-      "parityEvenStart": -1,
-      "parityEvenEnd": -1,
-      "parityOddBit": -1,
-      "parityOddStart": -1,
-      "parityOddEnd": -1
+      "description": "30-bit HID format"
     },
     {
       "bitCount": 31,
@@ -62,13 +48,7 @@
       "facilityCodeEnd": 5,
       "cardNumberStart": 6,
       "cardNumberEnd": 28,
-      "description": "31-bit HID format",
-      "parityEvenBit": -1,
-      "parityEvenStart": -1,
-      "parityEvenEnd": -1,
-      "parityOddBit": -1,
-      "parityOddStart": -1,
-      "parityOddEnd": -1
+      "description": "31-bit HID format"
     },
     {
       "bitCount": 32,
@@ -76,13 +56,7 @@
       "facilityCodeEnd": 16,
       "cardNumberStart": 18,
       "cardNumberEnd": 32,
-      "description": "32-bit Wiegand format (modified, not standard HID)",
-      "parityEvenBit": -1,
-      "parityEvenStart": -1,
-      "parityEvenEnd": -1,
-      "parityOddBit": -1,
-      "parityOddStart": -1,
-      "parityOddEnd": -1
+      "description": "32-bit Wiegand format (modified, not standard HID)"
     },
     {
       "bitCount": 33,
@@ -90,13 +64,7 @@
       "facilityCodeEnd": 8,
       "cardNumberStart": 9,
       "cardNumberEnd": 32,
-      "description": "33-bit HID format",
-      "parityEvenBit": -1,
-      "parityEvenStart": -1,
-      "parityEvenEnd": -1,
-      "parityOddBit": -1,
-      "parityOddStart": -1,
-      "parityOddEnd": -1
+      "description": "33-bit HID format"
     },
     {
       "bitCount": 34,
@@ -104,13 +72,7 @@
       "facilityCodeEnd": 17,
       "cardNumberStart": 18,
       "cardNumberEnd": 33,
-      "description": "34-bit HID format",
-      "parityEvenBit": -1,
-      "parityEvenStart": -1,
-      "parityEvenEnd": -1,
-      "parityOddBit": -1,
-      "parityOddStart": -1,
-      "parityOddEnd": -1
+      "description": "34-bit HID format"
     },
     {
       "bitCount": 35,
@@ -118,13 +80,7 @@
       "facilityCodeEnd": 14,
       "cardNumberStart": 15,
       "cardNumberEnd": 34,
-      "description": "35-bit HID format",
-      "parityEvenBit": -1,
-      "parityEvenStart": -1,
-      "parityEvenEnd": -1,
-      "parityOddBit": -1,
-      "parityOddStart": -1,
-      "parityOddEnd": -1
+      "description": "35-bit HID format"
     },
     {
       "bitCount": 36,
@@ -132,13 +88,7 @@
       "facilityCodeEnd": 33,
       "cardNumberStart": 2,
       "cardNumberEnd": 17,
-      "description": "36-bit HID format (facility code in different position)",
-      "parityEvenBit": -1,
-      "parityEvenStart": -1,
-      "parityEvenEnd": -1,
-      "parityOddBit": -1,
-      "parityOddStart": -1,
-      "parityOddEnd": -1
+      "description": "36-bit HID format (facility code in different position)"
     },
     {
       "bitCount": 48,
@@ -146,13 +96,7 @@
       "facilityCodeEnd": 23,
       "cardNumberStart": 24,
       "cardNumberEnd": 46,
-      "description": "HID 48-bit Corporate 1000 format (H2004064)",
-      "parityEvenBit": -1,
-      "parityEvenStart": -1,
-      "parityEvenEnd": -1,
-      "parityOddBit": -1,
-      "parityOddStart": -1,
-      "parityOddEnd": -1
+      "description": "HID 48-bit Corporate 1000 format (H2004064)"
     }
   ]
 }

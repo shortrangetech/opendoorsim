@@ -5,8 +5,8 @@
 
 // Structs
 // Fixed-size buffer sizes to avoid heap fragmentation
-#define RAW_DATA_MAX 128
-#define HEX_DATA_MAX 64
+#define RAW_DATA_MAX 256
+#define HEX_DATA_MAX 128
 #define STATUS_MAX 64
 #define DETAILS_MAX 128
 
@@ -36,11 +36,11 @@ struct WiegandFormat {
   unsigned int cardNumberStart;
   unsigned int cardNumberEnd;
   int parityEvenBit;
-  int parityEvenStart;
-  int parityEvenEnd;
+  uint8_t parityEvenIndices[128];
+  int parityEvenIndicesLength;
   int parityOddBit;
-  int parityOddStart;
-  int parityOddEnd;
+  uint8_t parityOddIndices[128];
+  int parityOddIndicesLength;
 };
 
 void ISR_INT0();

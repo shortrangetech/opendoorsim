@@ -164,7 +164,7 @@ volatile uint8_t old_AB = 0; // Stores the previous pin state (0..3)
 // Reader config and variables
 
 // compile-time array size for bits (kept as a safe upper bound)
-const int MAX_BITS_CONST = 100;
+const int MAX_BITS_CONST = 200;
 // runtime-configurable max bits (loaded from settings.json)
 volatile unsigned int maxBits = MAX_BITS_CONST;
 // time to wait for another weigand pulse (runtime-configurable)
@@ -889,18 +889,67 @@ void loadWiegandFormats() {
         format["cardNumberStart"] | 0;
     wiegandFormats[wiegandFormatCounter].cardNumberEnd =
         format["cardNumberEnd"] | 0;
-    wiegandFormats[wiegandFormatCounter].parityEvenBit =
-        format["parityEvenBit"] | -1;
-    wiegandFormats[wiegandFormatCounter].parityEvenStart =
-        format["parityEvenStart"] | -1;
-    wiegandFormats[wiegandFormatCounter].parityEvenEnd =
-        format["parityEvenEnd"] | -1;
-    wiegandFormats[wiegandFormatCounter].parityOddBit =
-        format["parityOddBit"] | -1;
-    wiegandFormats[wiegandFormatCounter].parityOddStart =
-        format["parityOddStart"] | -1;
-    wiegandFormats[wiegandFormatCounter].parityOddEnd =
-        format["parityOddEnd"] | -1;
+    wiegandFormats[wiegandFormatCounter].parityEvenBit = format["parityEvenBit"] | -1;
+    wiegandFormats[wiegandFormatCounter].parityEvenIndicesLength = 0;
+    
+    if (wiegandFormats[wiegandFormatCounter].parityEvenBit > 0) {
+      JsonVariant evenIndices = format["parityEvenIndices"];
+      JsonVariant evenRange = format["parityEvenRange"];
+      
+      if (evenIndices.is<JsonArray>()) {
+        JsonArray arr = evenIndices.as<JsonArray>();
+        for (JsonVariant val : arr) {
+          int idx = val.as<int>();
+          if (idx > 0 && wiegandFormats[wiegandFormatCounter].parityEvenIndicesLength < 128) {
+            wiegandFormats[wiegandFormatCounter].parityEvenIndices[wiegandFormats[wiegandFormatCounter].parityEvenIndicesLength++] = idx;
+          }
+        }
+      } else if (evenRange.is<JsonArray>()) {
+        JsonArray arr = evenRange.as<JsonArray>();
+        if (arr.size() == 2) {
+          int start = arr[0].as<int>();
+          int end = arr[1].as<int>();
+          if (start > 0 && end >= start) {
+            for (int idx = start; idx <= end; idx++) {
+              if (wiegandFormats[wiegandFormatCounter].parityEvenIndicesLength < 128) {
+                wiegandFormats[wiegandFormatCounter].parityEvenIndices[wiegandFormats[wiegandFormatCounter].parityEvenIndicesLength++] = idx;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    wiegandFormats[wiegandFormatCounter].parityOddBit = format["parityOddBit"] | -1;
+    wiegandFormats[wiegandFormatCounter].parityOddIndicesLength = 0;
+    
+    if (wiegandFormats[wiegandFormatCounter].parityOddBit > 0) {
+      JsonVariant oddIndices = format["parityOddIndices"];
+      JsonVariant oddRange = format["parityOddRange"];
+      
+      if (oddIndices.is<JsonArray>()) {
+        JsonArray arr = oddIndices.as<JsonArray>();
+        for (JsonVariant val : arr) {
+          int idx = val.as<int>();
+          if (idx > 0 && wiegandFormats[wiegandFormatCounter].parityOddIndicesLength < 128) {
+            wiegandFormats[wiegandFormatCounter].parityOddIndices[wiegandFormats[wiegandFormatCounter].parityOddIndicesLength++] = idx;
+          }
+        }
+      } else if (oddRange.is<JsonArray>()) {
+        JsonArray arr = oddRange.as<JsonArray>();
+        if (arr.size() == 2) {
+          int start = arr[0].as<int>();
+          int end = arr[1].as<int>();
+          if (start > 0 && end >= start) {
+            for (int idx = start; idx <= end; idx++) {
+              if (wiegandFormats[wiegandFormatCounter].parityOddIndicesLength < 128) {
+                wiegandFormats[wiegandFormatCounter].parityOddIndices[wiegandFormats[wiegandFormatCounter].parityOddIndicesLength++] = idx;
+              }
+            }
+          }
+        }
+      }
+    }
 
     Serial.print("Loaded format: bitCount=");
     Serial.println(wiegandFormats[wiegandFormatCounter].bitCount);
@@ -1291,37 +1340,33 @@ void printCardData() {
 // If no parity bits are defined (all <= 0), returns true (no failure).
 bool checkParityBits(const WiegandFormat *format) {
   // Check even parity if defined
-  if (format->parityEvenBit > 0 && format->parityEvenStart > 0 &&
-      format->parityEvenEnd > 0) {
+  if (format->parityEvenBit > 0 && format->parityEvenIndicesLength > 0) {
     int count = 0;
-    for (unsigned int i = format->parityEvenStart - 1;
-         i <= format->parityEvenEnd - 1; i++) {
-      if (databits[i])
-        count++;
+    for (int i = 0; i < format->parityEvenIndicesLength; i++) {
+      int bitPos = format->parityEvenIndices[i];
+      if (bitPos > 0 && bitPos <= (int)format->bitCount) {
+        if (databits[bitPos - 1]) count++;
+      }
     }
-    // Include the parity bit itself
-    if (databits[format->parityEvenBit - 1])
-      count++;
-    // Even parity: total count of 1s (data + parity bit) should be even
-    if (count % 2 != 0)
-      return false;
+    if (format->parityEvenBit <= (int)format->bitCount) {
+      if (databits[format->parityEvenBit - 1]) count++;
+    }
+    if (count % 2 != 0) return false;
   }
 
   // Check odd parity if defined
-  if (format->parityOddBit > 0 && format->parityOddStart > 0 &&
-      format->parityOddEnd > 0) {
+  if (format->parityOddBit > 0 && format->parityOddIndicesLength > 0) {
     int count = 0;
-    for (unsigned int i = format->parityOddStart - 1;
-         i <= format->parityOddEnd - 1; i++) {
-      if (databits[i])
-        count++;
+    for (int i = 0; i < format->parityOddIndicesLength; i++) {
+      int bitPos = format->parityOddIndices[i];
+      if (bitPos > 0 && bitPos <= (int)format->bitCount) {
+        if (databits[bitPos - 1]) count++;
+      }
     }
-    // Include the parity bit itself
-    if (databits[format->parityOddBit - 1])
-      count++;
-    // Odd parity: total count of 1s (data + parity bit) should be odd
-    if (count % 2 != 1)
-      return false;
+    if (format->parityOddBit <= (int)format->bitCount) {
+      if (databits[format->parityOddBit - 1]) count++;
+    }
+    if (count % 2 != 1) return false;
   }
 
   return true;
@@ -1461,7 +1506,9 @@ void processHIDCard() {
 
   // Parity check
   if (enableParityCheck) {
-    if (format->parityEvenBit <= 0 && format->parityOddBit <= 0) {
+    bool hasEven = (format->parityEvenBit > 0 && format->parityEvenIndicesLength > 0);
+    bool hasOdd = (format->parityOddBit > 0 && format->parityOddIndicesLength > 0);
+    if (!hasEven && !hasOdd) {
       lastParityStatus = 2; // No parity information set
     } else {
       bool parityOK = checkParityBits(format);
