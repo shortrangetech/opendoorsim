@@ -355,10 +355,10 @@ function updateUserTable() {
             let cellFlag = inputRow.insertCell(4);
             let cellAction = inputRow.insertCell(5);
 
-            cellFacilityCode.innerHTML = '<input type="number" id="newFacilityCode">';
-            cellCardNumber.innerHTML = '<input type="number" id="newCardNumber">';
-            cellName.innerHTML = '<input type="text" id="newName">';
-            cellFlag.innerHTML = '<input type="text" id="newFlag">';
+            cellFacilityCode.innerHTML = '<input type="text" id="newFacilityCode" inputmode="numeric" maxlength="9" oninput="this.value = this.value.replace(/[^0-9]/g, \'\')">';
+            cellCardNumber.innerHTML = '<input type="text" id="newCardNumber" inputmode="numeric" maxlength="9" oninput="this.value = this.value.replace(/[^0-9]/g, \'\')">';
+            cellName.innerHTML = '<input type="text" id="newName" maxlength="12">';
+            cellFlag.innerHTML = '<input type="text" id="newFlag" maxlength="21">';
             cellAction.innerHTML = '<button id="saveUserButton" onclick="addUser()">Save</button> <button id="cancelEditButton" style="display:none;" onclick="cancelEdit()">Cancel</button>';
         })
         .catch(error => console.error('Error fetching user data:', error));
@@ -803,12 +803,33 @@ function uploadUserFile() {
                     alert(`Invalid file format: User at index ${i} is missing facilityCode or cardNumber.`);
                     return;
                 }
+                const fcStr = String(user.facilityCode);
+                const cnStr = String(user.cardNumber);
+                if (!/^\d{1,9}$/.test(fcStr)) {
+                    alert(`Invalid file format: User at index ${i} has an invalid facilityCode ("${fcStr}"). Must be 1-9 digits.`);
+                    return;
+                }
+                if (!/^\d{1,9}$/.test(cnStr)) {
+                    alert(`Invalid file format: User at index ${i} has an invalid cardNumber ("${cnStr}"). Must be 1-9 digits.`);
+                    return;
+                }
                 const key = `${user.facilityCode}-${user.cardNumber}`;
                 if (keys.has(key)) {
                     alert(`Invalid file format: Duplicate user found in file (FC: ${user.facilityCode}, CN: ${user.cardNumber}).`);
                     return;
                 }
                 keys.add(key);
+
+                const userName = user.name !== undefined && user.name !== null ? String(user.name) : "";
+                const userFlag = user.flag !== undefined && user.flag !== null ? String(user.flag) : "";
+                if (userName.length > 12) {
+                    alert(`Invalid file format: User at index ${i} has a name exceeding 12 characters ("${userName}").`);
+                    return;
+                }
+                if (userFlag.length > 21) {
+                    alert(`Invalid file format: User at index ${i} has a flag exceeding 21 characters ("${userFlag}").`);
+                    return;
+                }
             }
 
             const message = `Import ${count} users?\n\nWARNING: This will overwrite all current users!`;
@@ -856,20 +877,20 @@ function uploadUserFile() {
 }
 
 function validateUserInput(fc, cn, name, flag, currentIndex = -1) {
-    if (!/^\d{1,12}$/.test(fc)) {
-        alert("Error: Facility Code must be a number (1-12 digits).");
+    if (!/^\d{1,9}$/.test(fc)) {
+        alert("Error: Facility Code must be a number (1-9 digits).");
         return false;
     }
-    if (!/^\d{1,12}$/.test(cn)) {
-        alert("Error: Card Number must be a number (1-12 digits).");
+    if (!/^\d{1,9}$/.test(cn)) {
+        alert("Error: Card Number must be a number (1-9 digits).");
         return false;
     }
-    if (name.length > 20) {
-        alert("Error: Name cannot exceed 20 characters.");
+    if (name.length > 12) {
+        alert("Error: Name cannot exceed 12 characters.");
         return false;
     }
-    if (flag.length > 20) {
-        alert("Error: Flag cannot exceed 20 characters.");
+    if (flag.length > 21) {
+        alert("Error: Flag cannot exceed 21 characters.");
         return false;
     }
 

@@ -934,12 +934,23 @@ void loadUsersFromPreferences() {
     size_t totalInArray = usersArray.size();
     size_t limit = ((size_t)userCount < totalInArray) ? (size_t)userCount : totalInArray;
     int uniqueUserCount = 0;
-    bool duplicatesFound = false;
+    bool cleanupNeeded = false;
 
     for (size_t i = 0; i < limit && uniqueUserCount < MAX_USERS; i++) {
       JsonObject user = usersArray[i].as<JsonObject>();
       unsigned long fc = user["facilityCode"] | 0;
       unsigned long cn = user["cardNumber"] | 0;
+
+      if (fc > 999999999UL) {
+        Serial.printf("[SYSTEM] WARNING: User FC exceeds 9 digits on boot: %lu. Clamping to 999999999.\n", fc);
+        fc = 999999999UL;
+        cleanupNeeded = true;
+      }
+      if (cn > 999999999UL) {
+        Serial.printf("[SYSTEM] WARNING: User CN exceeds 9 digits on boot: %lu. Clamping to 999999999.\n", cn);
+        cn = 999999999UL;
+        cleanupNeeded = true;
+      }
 
       // Check if this (fc, cn) has already been loaded
       bool isDuplicate = false;
@@ -952,17 +963,29 @@ void loadUsersFromPreferences() {
 
       if (isDuplicate) {
         Serial.printf("[SYSTEM] WARNING: Duplicate user skipped on boot: FC=%lu, CN=%lu\n", fc, cn);
-        duplicatesFound = true;
+        cleanupNeeded = true;
         continue;
+      }
+
+      String name = user["name"] | "";
+      String flag = user["flag"] | "";
+
+      if (name.length() > 12) {
+        Serial.printf("[SYSTEM] WARNING: User name exceeds 12 chars on boot: '%s'. Truncating...\n", name.c_str());
+        name = name.substring(0, 12);
+        cleanupNeeded = true;
+      }
+      if (flag.length() > 21) {
+        Serial.printf("[SYSTEM] WARNING: User flag exceeds 21 chars on boot: '%s'. Truncating...\n", flag.c_str());
+        flag = flag.substring(0, 21);
+        cleanupNeeded = true;
       }
 
       Serial.println("Loading user " + String(uniqueUserCount));
       users[uniqueUserCount].facilityCode = fc;
       users[uniqueUserCount].cardNumber = cn;
-      String name = user["name"] | "";
       strncpy(users[uniqueUserCount].name, name.c_str(), sizeof(users[uniqueUserCount].name) - 1);
       users[uniqueUserCount].name[sizeof(users[uniqueUserCount].name) - 1] = '\0';
-      String flag = user["flag"] | "";
       strncpy(users[uniqueUserCount].flag, flag.c_str(), sizeof(users[uniqueUserCount].flag) - 1);
       users[uniqueUserCount].flag[sizeof(users[uniqueUserCount].flag) - 1] = '\0';
       uniqueUserCount++;
@@ -970,8 +993,8 @@ void loadUsersFromPreferences() {
 
     userCount = uniqueUserCount;
 
-    if (duplicatesFound) {
-      Serial.println("[SYSTEM] Duplicate users were found in users.json. Saving cleaned user list...");
+    if (cleanupNeeded) {
+      Serial.println("[SYSTEM] Duplicate or invalid users were found in users.json. Saving cleaned user list...");
       saveUsersToPreferences();
     }
   } else {
@@ -1930,20 +1953,20 @@ void webServer() {
           request->hasParam("flag") ? request->getParam("flag")->value() : "";
 
       // SANITIZATION CHECKS
-      if (fcStr.length() < 1 || fcStr.length() > 12 ||
+      if (fcStr.length() < 1 || fcStr.length() > 9 ||
           !std::all_of(fcStr.begin(), fcStr.end(), ::isdigit))
         return request->send(400, "text/plain",
-                             "Invalid FC: Must be 1-12 digits");
+                             "Invalid FC: Must be 1-9 digits");
 
-      if (cnStr.length() < 1 || cnStr.length() > 12 ||
+      if (cnStr.length() < 1 || cnStr.length() > 9 ||
           !std::all_of(cnStr.begin(), cnStr.end(), ::isdigit))
         return request->send(400, "text/plain",
-                             "Invalid CN: Must be 1-12 digits");
+                             "Invalid CN: Must be 1-9 digits");
 
-      if (name.length() > 20)
-        return request->send(400, "text/plain", "Name too long (max 20)");
-      if (flag.length() > 20)
-        return request->send(400, "text/plain", "Flag too long (max 20)");
+      if (name.length() > 12)
+        return request->send(400, "text/plain", "Name too long (max 12)");
+      if (flag.length() > 21)
+        return request->send(400, "text/plain", "Flag too long (max 21)");
 
       // DUPLICATE CHECK
       unsigned long newFC = strtoul(fcStr.c_str(), nullptr, 10);
@@ -2039,18 +2062,18 @@ void webServer() {
             request->hasParam("flag") ? request->getParam("flag")->value() : "";
 
         // SANITIZATION CHECKS
-        if (fcStr.length() < 1 || fcStr.length() > 12 ||
+        if (fcStr.length() < 1 || fcStr.length() > 9 ||
             !std::all_of(fcStr.begin(), fcStr.end(), ::isdigit))
-          return request->send(400, "text/plain", "Invalid FC");
+          return request->send(400, "text/plain", "Invalid FC: Must be 1-9 digits");
 
-        if (cnStr.length() < 1 || cnStr.length() > 12 ||
+        if (cnStr.length() < 1 || cnStr.length() > 9 ||
             !std::all_of(cnStr.begin(), cnStr.end(), ::isdigit))
-          return request->send(400, "text/plain", "Invalid CN");
+          return request->send(400, "text/plain", "Invalid CN: Must be 1-9 digits");
 
-        if (name.length() > 20)
-          return request->send(400, "text/plain", "Name too long");
-        if (flag.length() > 20)
-          return request->send(400, "text/plain", "Flag too long");
+        if (name.length() > 12)
+          return request->send(400, "text/plain", "Name too long (max 12)");
+        if (flag.length() > 21)
+          return request->send(400, "text/plain", "Flag too long (max 21)");
 
         // DUPLICATE CHECK
         unsigned long newFC = strtoul(fcStr.c_str(), nullptr, 10);
@@ -2215,23 +2238,29 @@ void webServer() {
           String name = user["name"] | "";
           String flag = user["flag"] | "";
 
-          if (fc.length() < 1 || fc.length() > 12) {
+          if (fc.length() < 1 || fc.length() > 9 || !std::all_of(fc.begin(), fc.end(), ::isdigit)) {
             LittleFS.remove("/users.json.tmp");
             return request->send(400, "text/plain",
                                  "Error Row " + String(row) +
-                                     ": FC length invalid");
+                                     ": FC length or format invalid (Max 9 digits)");
           }
-          if (cn.length() < 1 || cn.length() > 12) {
+          if (cn.length() < 1 || cn.length() > 9 || !std::all_of(cn.begin(), cn.end(), ::isdigit)) {
             LittleFS.remove("/users.json.tmp");
             return request->send(400, "text/plain",
                                  "Error Row " + String(row) +
-                                     ": CN length invalid");
+                                     ": CN length or format invalid (Max 9 digits)");
           }
-          if (name.length() > 20) {
+          if (name.length() > 12) {
             LittleFS.remove("/users.json.tmp");
             return request->send(400, "text/plain",
                                  "Error Row " + String(row) +
-                                     ": Name too long");
+                                     ": Name too long (Max 12 chars)");
+          }
+          if (flag.length() > 21) {
+            LittleFS.remove("/users.json.tmp");
+            return request->send(400, "text/plain",
+                                 "Error Row " + String(row) +
+                                     ": Flag too long (Max 21 chars)");
           }
           row++;
         }
