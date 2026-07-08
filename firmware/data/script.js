@@ -271,10 +271,10 @@ function updateScanLog() {
                     cellHTML = `<a href="#" onclick="copyToClipboard('${copyStr}');return false;">${copyStr}</a>`;
                 }
                 if (card.bitCount) {
-                    cellHTML += ` <span class="badge badge-gray" style="font-size:0.75em;">${card.bitCount}b</span>`;
+                    cellHTML += ` <span class="badge badge-gray" style="font-size:0.85em;">${card.bitCount}b</span>`;
                 }
                 if (cardDataMode === 'hex' && card.padCount && card.padCount > 0) {
-                    cellHTML += ` <span class="badge badge-gray" style="font-size:0.75em;">PAD: ${card.padCount}</span>`;
+                    cellHTML += ` <span class="badge badge-gray" style="font-size:0.85em;">PAD: ${card.padCount}</span>`;
                 }
                 cellCardData.innerHTML = cellHTML;
             });

@@ -558,11 +558,14 @@ button:hover {
 }
 
 /* Blur effect for HIDE DATA mode */
+.col-data {
+    transition: filter 0.2s ease;
+}
+
 .data-blurred {
-    filter: blur(4px);
+    filter: blur(6px);
     user-select: none;
     pointer-events: none;
-    transition: filter 0.2s ease;
 }
 
 /* Clear badge — gray default, red on hover */
