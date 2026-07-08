@@ -1272,28 +1272,28 @@ void printCardData() {
 }
 
 // Returns true if all defined parity checks pass, false if any explicitly fail.
-// If no parity bits are defined (all -1), returns true (no failure).
+// If no parity bits are defined (all <= 0), returns true (no failure).
 bool checkParityBits(const WiegandFormat *format) {
   // Check even parity if defined
-  if (format->parityEvenBit >= 0 && format->parityEvenStart >= 0 && format->parityEvenEnd >= 0) {
+  if (format->parityEvenBit > 0 && format->parityEvenStart > 0 && format->parityEvenEnd > 0) {
     int count = 0;
-    for (int i = format->parityEvenStart; i < format->parityEvenEnd; i++) {
+    for (unsigned int i = format->parityEvenStart - 1; i <= format->parityEvenEnd - 1; i++) {
       if (databits[i]) count++;
     }
     // Include the parity bit itself
-    if (databits[format->parityEvenBit]) count++;
+    if (databits[format->parityEvenBit - 1]) count++;
     // Even parity: total count of 1s (data + parity bit) should be even
     if (count % 2 != 0) return false;
   }
 
   // Check odd parity if defined
-  if (format->parityOddBit >= 0 && format->parityOddStart >= 0 && format->parityOddEnd >= 0) {
+  if (format->parityOddBit > 0 && format->parityOddStart > 0 && format->parityOddEnd > 0) {
     int count = 0;
-    for (int i = format->parityOddStart; i < format->parityOddEnd; i++) {
+    for (unsigned int i = format->parityOddStart - 1; i <= format->parityOddEnd - 1; i++) {
       if (databits[i]) count++;
     }
     // Include the parity bit itself
-    if (databits[format->parityOddBit]) count++;
+    if (databits[format->parityOddBit - 1]) count++;
     // Odd parity: total count of 1s (data + parity bit) should be odd
     if (count % 2 != 1) return false;
   }
@@ -1304,16 +1304,20 @@ bool checkParityBits(const WiegandFormat *format) {
 // Process hid cards
 unsigned long decodeFacilityCode(unsigned int start, unsigned int end) {
   unsigned long HIDFacilityCode = 0;
-  for (unsigned int i = start; i < end; i++) {
-    HIDFacilityCode = (HIDFacilityCode << 1) | databits[i];
+  if (start > 0 && end >= start) {
+    for (unsigned int i = start - 1; i <= end - 1; i++) {
+      HIDFacilityCode = (HIDFacilityCode << 1) | databits[i];
+    }
   }
   return HIDFacilityCode;
 }
 
 unsigned long decodeCardNumber(unsigned int start, unsigned int end) {
   unsigned long HIDCardNumber = 0;
-  for (unsigned int i = start; i < end; i++) {
-    HIDCardNumber = (HIDCardNumber << 1) | databits[i];
+  if (start > 0 && end >= start) {
+    for (unsigned int i = start - 1; i <= end - 1; i++) {
+      HIDCardNumber = (HIDCardNumber << 1) | databits[i];
+    }
   }
   return HIDCardNumber;
 }
@@ -1431,8 +1435,12 @@ void processHIDCard() {
 
   // Parity check
   if (enableParityCheck) {
-    bool parityOK = checkParityBits(format);
-    lastParityStatus = parityOK ? 1 : 0;
+    if (format->parityEvenBit <= 0 && format->parityOddBit <= 0) {
+      lastParityStatus = 2; // No parity information set
+    } else {
+      bool parityOK = checkParityBits(format);
+      lastParityStatus = parityOK ? 1 : 0;
+    }
   } else {
     lastParityStatus = -1; // Disabled
   }
@@ -1607,7 +1615,8 @@ void printDisplayRawCard() {
     lcdDisplay->setCursor(14, 1);
     lcdDisplay->print(cardNumber);
     String parityTag = (lastParityStatus == 1) ? " [P]" :
-                       (lastParityStatus == 0) ? " [F]" : " [-]";
+                       (lastParityStatus == 0) ? " [F]" :
+                       (lastParityStatus == 2) ? " [N]" : " [-]";
     lcdDisplay->print(parityTag);
     // Show HEX and PAD instead of raw binary to save space
     lcdDisplay->setCursor(0, 2);
@@ -1636,7 +1645,8 @@ void printDisplayRawCard() {
     oledDisplay->print(" CN:");
     oledDisplay->print(cardNumber);
     String parityTag = (lastParityStatus == 1) ? " [P]" :
-                       (lastParityStatus == 0) ? " [F]" : " [-]";
+                       (lastParityStatus == 0) ? " [F]" :
+                       (lastParityStatus == 2) ? " [N]" : " [-]";
     oledDisplay->println(parityTag);
     oledDisplay->println("HEX:");
     oledDisplay->println(lastHexData);

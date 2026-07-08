@@ -279,6 +279,8 @@ function updateScanLog() {
                         parityHTML = ' <span class="badge badge-scan" style="background:var(--red,#e74c3c);color:#fff;margin-left:8px;">[F]</span>';
                     } else if (ps === 1) {
                         parityHTML = ' <span class="badge badge-scan" style="background:var(--green,#2ecc71);color:#fff;margin-left:8px;">[P]</span>';
+                    } else if (ps === 2) {
+                        parityHTML = ' <span class="badge badge-yellow badge-scan" style="margin-left:8px;">[N]</span>';
                     } else {
                         parityHTML = ' <span class="badge badge-gray badge-scan" style="margin-left:8px;">[-]</span>';
                     }
