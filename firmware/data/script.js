@@ -365,7 +365,7 @@ function updateUserTable() {
             cellCardNumber.innerHTML = '<input type="text" id="newCardNumber" inputmode="numeric" maxlength="9" oninput="this.value = this.value.replace(/[^0-9]/g, \'\'); checkUserInputsDirty();" onkeydown="if(event.key === \'Enter\') document.getElementById(\'saveUserButton\').click()">';
             cellName.innerHTML = '<input type="text" id="newName" maxlength="12" oninput="checkUserInputsDirty();" onkeydown="if(event.key === \'Enter\') document.getElementById(\'saveUserButton\').click()">';
             cellFlag.innerHTML = '<input type="text" id="newFlag" maxlength="21" oninput="checkUserInputsDirty();" onkeydown="if(event.key === \'Enter\') document.getElementById(\'saveUserButton\').click()">';
-            cellAction.innerHTML = '<button id="saveUserButton" onclick="addUser()">Save</button> <button id="cancelEditButton" style="display:none;" onclick="cancelEdit()">Cancel</button>';
+            cellAction.innerHTML = '<button id="saveUserButton" onclick="addUser()">Save</button> <button id="clearUserFieldsButton" onclick="clearUserFields()">Clear</button> <button id="cancelEditButton" style="display:none;" onclick="cancelEdit()">Cancel</button>';
             checkUserInputsDirty();
         })
         .catch(error => console.error('Error fetching user data:', error));
@@ -1038,11 +1038,13 @@ function editUser(index) {
     document.getElementById('newFlag').value = user.flag || '';
     const saveBtn = document.getElementById('saveUserButton');
     const cancelBtn = document.getElementById('cancelEditButton');
+    const clearBtn = document.getElementById('clearUserFieldsButton');
     if (saveBtn) {
         saveBtn.textContent = 'Update';
         saveBtn.onclick = function () { saveEditedUser(index); };
     }
     if (cancelBtn) cancelBtn.style.display = 'inline-block';
+    if (clearBtn) clearBtn.style.display = 'none';
     checkUserInputsDirty();
 }
 
@@ -1063,8 +1065,10 @@ function saveEditedUser(index) {
                 alert('User updated successfully');
                 const saveBtn = document.getElementById('saveUserButton');
                 const cancelBtn = document.getElementById('cancelEditButton');
+                const clearBtn = document.getElementById('clearUserFieldsButton');
                 if (saveBtn) { saveBtn.textContent = 'Save'; saveBtn.onclick = addUser; }
                 if (cancelBtn) cancelBtn.style.display = 'none';
+                if (clearBtn) clearBtn.style.display = 'inline-block';
             } else {
                 alert('Failed to update user');
             }
@@ -1075,12 +1079,26 @@ function saveEditedUser(index) {
 function cancelEdit() {
     const saveBtn = document.getElementById('saveUserButton');
     const cancelBtn = document.getElementById('cancelEditButton');
+    const clearBtn = document.getElementById('clearUserFieldsButton');
     if (saveBtn) { saveBtn.textContent = 'Save'; saveBtn.onclick = addUser; }
     if (cancelBtn) cancelBtn.style.display = 'none';
+    if (clearBtn) clearBtn.style.display = 'inline-block';
     document.getElementById('newFacilityCode').value = '';
     document.getElementById('newCardNumber').value = '';
     document.getElementById('newName').value = '';
     document.getElementById('newFlag').value = '';
+    checkUserInputsDirty();
+}
+
+function clearUserFields() {
+    const fcInput = document.getElementById('newFacilityCode');
+    const cnInput = document.getElementById('newCardNumber');
+    const nameInput = document.getElementById('newName');
+    const flagInput = document.getElementById('newFlag');
+    if (fcInput) fcInput.value = '';
+    if (cnInput) cnInput.value = '';
+    if (nameInput) nameInput.value = '';
+    if (flagInput) flagInput.value = '';
     checkUserInputsDirty();
 }
 
