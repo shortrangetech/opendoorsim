@@ -1,7 +1,6 @@
 let cardData = [];
-const tableBody = document.getElementById('cardTable').getElementsByTagName('tbody')[0];
+const scanLogTableBody = document.getElementById('scanLogTable').getElementsByTagName('tbody')[0];
 const userTableBody = document.getElementById('userTable').getElementsByTagName('tbody')[0];
-const lastReadCardsTableBody = document.getElementById('lastReadCardsTable').getElementsByTagName('tbody')[0];
 const importExportArea = document.getElementById('importExportArea');
 
 let originalSsid = "";
@@ -12,7 +11,12 @@ let originalDisplayType = 1;
 let originalFlipOled = false;
 
 let currentUserCount = 0;
-let sortNewestFirst = true;
+
+// Scan log display state
+let showNameCol = false;   // NAME badge toggles this
+let cardDataMode = 'hex';  // 'hex' or 'bin' — HEX badge toggles this
+let logLimit = 10;
+let logExpanded = false;
 
 // FIX 1: Track if the user is currently editing the form
 let unsavedChanges = false;
@@ -198,56 +202,94 @@ function updateScreen() {
         .catch(err => console.error("Firefox Fetch Error:", err));
 }
 
-
-
-function updateTable() {
-    // FIX 2: Add timestamp to prevent caching
-    fetch('/getCards?t=' + Date.now())
-        .then(response => response.json())
-        .then(data => {
-            tableBody.innerHTML = '';
-            cardData = [];
-
-            if (sortNewestFirst) {
-                data.reverse();
-            }
-
-            data.forEach((card, index) => {
-                cardData.push(card);
-                let row = tableBody.insertRow();
-                let cellIndex = row.insertCell(0);
-                let cellBitLength = row.insertCell(1);
-                let cellFacilityCode = row.insertCell(2);
-                let cellCardNumber = row.insertCell(3);
-                let cellRawData = row.insertCell(4);
-                let cellHexData = row.insertCell(5);
-                let cellPadCount = row.insertCell(6);
-                cellIndex.innerHTML = index + 1;
-
-                cellBitLength.innerHTML = card.bitCount;
-                cellFacilityCode.innerHTML = card.facilityCode;
-                cellCardNumber.innerHTML = card.cardNumber;
-                cellRawData.innerHTML = `<a href="#" onclick="copyToClipboard('${card.rawCardData}')">${card.rawCardData}</a>`;
-                cellHexData.innerHTML = card.hexData ? `<a href="#" onclick="copyToClipboard('${card.hexData}')">${card.hexData}</a>` : 'N/A';
-                cellPadCount.innerHTML = card.padCount === 0 ? 'None' : card.padCount;
-            });
-        })
-        .catch(error => console.error('Error fetching card data:', error));
+function toggleNameCol() {
+    showNameCol = !showNameCol;
+    const badge = document.getElementById('badgeName');
+    const thName = document.getElementById('thName');
+    if (badge) badge.className = 'badge badge-clickable ' + (showNameCol ? 'badge-purple' : 'badge-gray');
+    // Toggle header + all body cells with class col-name
+    if (thName) thName.style.display = showNameCol ? '' : 'none';
+    document.querySelectorAll('.col-name').forEach(el => el.style.display = showNameCol ? '' : 'none');
 }
 
-function setSort(order) {
-    sortNewestFirst = (order === 'new');
-    const badgeNew = document.getElementById('badgeSortNew');
-    const badgeOld = document.getElementById('badgeSortOld');
+function toggleCardDataMode() {
+    cardDataMode = (cardDataMode === 'hex') ? 'bin' : 'hex';
+    const badge = document.getElementById('badgeCardData');
+    if (badge) badge.textContent = cardDataMode === 'hex' ? 'HEX' : 'BIN';
+    updateScanLog();
+}
 
-    if (sortNewestFirst) {
-        badgeNew.className = "badge badge-purple badge-clickable";
-        badgeOld.className = "badge badge-gray badge-clickable";
-    } else {
-        badgeNew.className = "badge badge-gray badge-clickable";
-        badgeOld.className = "badge badge-purple badge-clickable";
-    }
-    updateTable();
+function toggleLogExpand() {
+    logExpanded = !logExpanded;
+    logLimit = logExpanded ? 25 : 10;
+    const btn = document.getElementById('logExpandBtn');
+    if (btn) btn.innerHTML = logExpanded ? '&#9650; Show 10' : '&#9660; Show 25';
+    updateScanLog();
+}
+
+function updateScanLog() {
+    fetch('/getCards?t=' + Date.now())
+        .then(r => r.json())
+        .then(data => {
+            scanLogTableBody.innerHTML = '';
+            const slice = data.slice(-logLimit).reverse(); // newest first
+
+            slice.forEach((card, index) => {
+                const row = scanLogTableBody.insertRow();
+
+                // Row color always reflects authorization state
+                if (card.status === 'Authorized')   row.classList.add('authorized');
+                if (card.status === 'Unauthorized') row.classList.add('unauthorized');
+
+                // Col 0: #
+                row.insertCell(0).textContent = index + 1;
+
+                // Col 1: Name (col-name, toggled by NAME badge)
+                const cellName = row.insertCell(1);
+                cellName.className = 'col-name';
+                cellName.style.display = showNameCol ? '' : 'none';
+                if (card.status === 'Authorized' && card.details) {
+                    cellName.textContent = card.details;
+                } else if (card.status === 'Unauthorized') {
+                    cellName.textContent = '—';
+                } else {
+                    cellName.textContent = '';
+                }
+
+                // Col 2: Bit Length
+                row.insertCell(2).textContent = card.bitCount ?? '';
+
+                // Col 3: Decode — FC: x CN: y
+                const cellDecode = row.insertCell(3);
+                const fc = card.facilityCode ?? '';
+                const cn = card.cardNumber ?? '';
+                cellDecode.textContent = (fc !== '' || cn !== '') ? `FC: ${fc}  CN: ${cn}` : '';
+
+                // Col 4: Card Data — hex or binary, with optional inline PAD badge
+                const cellCardData = row.insertCell(4);
+                const dataStr = cardDataMode === 'hex' ? card.hexData : card.rawCardData;
+                const copyStr = dataStr || '';
+                let cellHTML = '';
+                if (copyStr) {
+                    cellHTML = `<a href="#" onclick="copyToClipboard('${copyStr}');return false;">${copyStr}</a>`;
+                }
+                if (card.padCount && card.padCount > 0) {
+                    cellHTML += ` <span class="badge badge-gray" style="font-size:0.75em;">PAD: ${card.padCount}</span>`;
+                }
+                cellCardData.innerHTML = cellHTML;
+            });
+
+            // Pad empty rows to fill logLimit
+            for (let i = slice.length; i < logLimit; i++) {
+                const row = scanLogTableBody.insertRow();
+                for (let c = 0; c < 5; c++) row.insertCell(c);
+                row.cells[0].textContent = i + 1;
+                // keep name cell visibility in sync
+                row.cells[1].style.display = showNameCol ? '' : 'none';
+                row.cells[1].className = 'col-name';
+            }
+        })
+        .catch(err => console.error('Error fetching scan log:', err));
 }
 
 function updateUserTable() {
@@ -291,50 +333,6 @@ function updateUserTable() {
         .catch(error => console.error('Error fetching user data:', error));
 }
 
-function updateLastReadCardsTable() {
-    fetch('/getCards?t=' + Date.now())
-        .then(response => response.json())
-        .then(data => {
-            lastReadCardsTableBody.innerHTML = '';
-            const last10Cards = data.slice(-10).reverse();
-            last10Cards.forEach((card, index) => {
-                let row = lastReadCardsTableBody.insertRow();
-                if (card.status === "Authorized") {
-                    row.classList.add("authorized");
-                } else if (card.status === "Unauthorized") {
-                    row.classList.add("unauthorized");
-                }
-                let cellIndex = row.insertCell(0);
-                let cellStatus = row.insertCell(1);
-                let cellDetails = row.insertCell(2);
-
-                cellIndex.innerHTML = index + 1;
-                cellStatus.innerHTML = card.status;
-
-                if (card.status === 'RawRead' || card.status === 'Unauthorized') {
-                    const fc = (card.facilityCode !== undefined) ? card.facilityCode : '';
-                    const cn = (card.cardNumber !== undefined) ? card.cardNumber : '';
-                    const hex = card.hexData || 'N/A';
-                    const pad = (card.padCount === 0) ? 'None' : card.padCount;
-                    cellDetails.innerHTML = `FC: ${fc} &nbsp; CN: ${cn} &nbsp; HEX: ${hex} &nbsp; PAD: ${pad}`;
-                } else {
-                    cellDetails.innerHTML = card.details || '';
-                }
-            });
-
-            for (let i = last10Cards.length; i < 10; i++) {
-                let row = lastReadCardsTableBody.insertRow();
-                let cellIndex = row.insertCell(0);
-                let cellStatus = row.insertCell(1);
-                let cellDetails = row.insertCell(2);
-                cellIndex.innerHTML = i + 1;
-                cellStatus.innerHTML = "";
-                cellDetails.innerHTML = "";
-            }
-        })
-        .catch(error => console.error('Error fetching last read card data:', error));
-}
-
 function addUser() {
     const facilityCode = document.getElementById('newFacilityCode').value;
     const cardNumber = document.getElementById('newCardNumber').value;
@@ -372,7 +370,6 @@ function deleteUser(index) {
 }
 
 function showSection(section) {
-    document.getElementById('log').classList.add('hidden');
     document.getElementById('monitor').classList.add('hidden');
     document.getElementById('settings').classList.add('hidden');
 
@@ -979,14 +976,12 @@ document.getElementById('customMessage').addEventListener('input', checkDirty);
 document.getElementById('enable_tamper_detect').addEventListener('change', checkDirty);
 document.getElementById('disable_encoder').addEventListener('change', checkDirty);
 
-setInterval(updateTable, 5000);
-setInterval(updateLastReadCardsTable, 5000);
+setInterval(updateScanLog, 5000);
 setInterval(fetchSettings, 5000);
 
 window.onload = function () {
     if (!screenInterval) screenInterval = setInterval(updateScreen, 150);
     fetchSettings();
-    updateTable();
+    updateScanLog();
     updateUserTable();
-    updateLastReadCardsTable();
 };

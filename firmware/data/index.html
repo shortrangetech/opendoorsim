@@ -17,7 +17,6 @@
             <span class="brand">OpenDoorSim</span>
             <nav class="header-center">
                 <a onclick="showSectionWithRefresh('monitor')">Home</a>
-                <a onclick="showSection('log')">Log</a>
                 <a onclick="showSection('settings')">Settings</a>
             </nav>
             <div class="header-right">
@@ -27,32 +26,7 @@
         </div>
     </header>
     <div class="content">
-        <div id="log" class="hidden">
-            <h1>
-                Log
-                <span style="font-size: 0.5em; vertical-align: middle; margin-left: 15px;">
-                    <span id="badgeSortNew" class="badge badge-purple badge-clickable" onclick="setSort('new')">Latest
-                        Scans First</span>
-                    <span id="badgeSortOld" class="badge badge-gray badge-clickable" onclick="setSort('old')">Oldest
-                        Scans First</span>
-                </span>
-            </h1>
-            <table id="cardTable">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Bit Length</th>
-                        <th>Facility Code</th>
-                        <th>Card Number</th>
-                        <th>Raw Binary Data (click to copy)</th>
-                        <th>Hex Data (click to copy)</th>
-                        <th>Padding</th>
-                    </tr>
-                </thead>
-                <tbody>
-                </tbody>
-            </table>
-        </div>
+
         <div id="monitor">
             <div class="indent-section"
                 style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; margin-top: 15px;">
@@ -67,17 +41,29 @@
                 </div>
             </div>
 
-            <table id="lastReadCardsTable">
+            <h2 class="collapsible" style="cursor:default; margin-top: 20px;">
+                Recent Scans
+                <span style="font-size: 0.5em; vertical-align: middle; margin-left: 15px;">
+                    <span id="badgeName" class="badge badge-gray badge-clickable" onclick="toggleNameCol()" title="Show/hide Name column">NAME</span>
+                    <span id="badgeCardData" class="badge badge-purple badge-clickable" onclick="toggleCardDataMode()" title="Toggle Hex / Binary view">HEX</span>
+                </span>
+            </h2>
+            <table id="scanLogTable">
                 <thead>
                     <tr>
                         <th>#</th>
-                        <th>Status</th>
-                        <th>Details</th>
+                        <th id="thName" style="display:none">Name</th>
+                        <th>Bit Length</th>
+                        <th>Decode</th>
+                        <th id="thCardData">Card Data (click to copy)</th>
                     </tr>
                 </thead>
                 <tbody>
                 </tbody>
             </table>
+            <div id="logExpandControl">
+                <span id="logExpandBtn" class="badge badge-gray badge-clickable" onclick="toggleLogExpand()">&#9660; Show 25</span>
+            </div>
             <h2 class="collapsible" onclick="toggleCollapsible()">
                 User Management
                 <span class="badge badge-purple badge-clickable"> click to expand / collapse</span>

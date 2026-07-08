@@ -549,6 +549,12 @@ button:hover {
     background: linear-gradient(90deg, var(--unauthorized), #ff6b6b33);
 }
 
+/* Scan log expand control */
+#logExpandControl {
+    text-align: center;
+    margin: -8px 0 18px;
+}
+
 /* Links */
 a {
     color: var(--accent);
