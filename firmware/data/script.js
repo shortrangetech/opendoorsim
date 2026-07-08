@@ -309,7 +309,7 @@ function clearLog() {
 }
 
 function updateUserTable() {
-    fetch('/getUsers?t=' + Date.now())
+    return fetch('/getUsers?t=' + Date.now())
         .then(response => response.json())
         .then(data => {
             currentUserCount = data.length;
@@ -735,16 +735,11 @@ function togglePause() {
 
 
 function exportData() {
-    fetch('/getUsers')
-        .then(response => response.json())
-        .then(data => {
-            const dataString = JSON.stringify(data);
-            importExportArea.value = dataString;
-            importExportArea.select();
-            document.execCommand('copy');
-            alert('Data exported to clipboard');
-        })
-        .catch(error => console.error('Error exporting data:', error));
+    const dataString = JSON.stringify(usersCache);
+    importExportArea.value = dataString;
+    importExportArea.select();
+    document.execCommand('copy');
+    alert('Data exported to clipboard');
 }
 
 function confirmExport() {
@@ -904,24 +899,19 @@ function checkChanges() {
 }
 
 function editUser(index) {
-    fetch('/getUsers')
-        .then(res => res.json())
-        .then(data => {
-            const user = data[index];
-            if (!user) return;
-            document.getElementById('newFacilityCode').value = user.facilityCode;
-            document.getElementById('newCardNumber').value = user.cardNumber;
-            document.getElementById('newName').value = user.name;
-            document.getElementById('newFlag').value = user.flag || '';
-            const saveBtn = document.getElementById('saveUserButton');
-            const cancelBtn = document.getElementById('cancelEditButton');
-            if (saveBtn) {
-                saveBtn.textContent = 'Update';
-                saveBtn.onclick = function () { saveEditedUser(index); };
-            }
-            if (cancelBtn) cancelBtn.style.display = 'inline-block';
-        })
-        .catch(err => console.error('Error fetching users for edit:', err));
+    const user = usersCache[index];
+    if (!user) return;
+    document.getElementById('newFacilityCode').value = user.facilityCode;
+    document.getElementById('newCardNumber').value = user.cardNumber;
+    document.getElementById('newName').value = user.name;
+    document.getElementById('newFlag').value = user.flag || '';
+    const saveBtn = document.getElementById('saveUserButton');
+    const cancelBtn = document.getElementById('cancelEditButton');
+    if (saveBtn) {
+        saveBtn.textContent = 'Update';
+        saveBtn.onclick = function () { saveEditedUser(index); };
+    }
+    if (cancelBtn) cancelBtn.style.display = 'inline-block';
 }
 
 function saveEditedUser(index) {
@@ -999,6 +989,7 @@ setInterval(fetchSettings, 5000);
 window.onload = function () {
     if (!screenInterval) screenInterval = setInterval(updateScreen, 150);
     fetchSettings();
-    updateScanLog();
-    updateUserTable();
+    updateUserTable().finally(() => {
+        updateScanLog();
+    });
 };

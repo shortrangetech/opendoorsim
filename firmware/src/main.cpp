@@ -12,7 +12,7 @@
 #include <WiFi.h>
 #include <Wire.h>
 
-#include "doorsim.h"
+#include "opendoorsim.h"
 
 // --- MENU SYSTEM CONSTANTS & STRUCTS ---
 
@@ -1020,7 +1020,8 @@ void loadLogFromPreferences() {
   }
 
   cardDataIndex = doc["cardDataIndex"] | 0;
-  if (cardDataIndex > MAX_CARDS) cardDataIndex = MAX_CARDS;
+  if (cardDataIndex > MAX_CARDS)
+    cardDataIndex = MAX_CARDS;
 
   if (cardDataIndex > 0) {
     JsonArray cardsArray = doc["cards"].as<JsonArray>();
@@ -1029,23 +1030,28 @@ void loadLogFromPreferences() {
       cardDataArray[i].bitCount = card["bitCount"] | 0;
       cardDataArray[i].facilityCode = card["facilityCode"] | 0;
       cardDataArray[i].cardNumber = card["cardNumber"] | 0;
-      
+
       String raw = card["rawCardData"] | "";
-      strncpy(cardDataArray[i].rawCardData, raw.c_str(), sizeof(cardDataArray[i].rawCardData) - 1);
-      cardDataArray[i].rawCardData[sizeof(cardDataArray[i].rawCardData) - 1] = '\0';
-      
+      strncpy(cardDataArray[i].rawCardData, raw.c_str(),
+              sizeof(cardDataArray[i].rawCardData) - 1);
+      cardDataArray[i].rawCardData[sizeof(cardDataArray[i].rawCardData) - 1] =
+          '\0';
+
       String hex = card["hexData"] | "";
-      strncpy(cardDataArray[i].hexData, hex.c_str(), sizeof(cardDataArray[i].hexData) - 1);
+      strncpy(cardDataArray[i].hexData, hex.c_str(),
+              sizeof(cardDataArray[i].hexData) - 1);
       cardDataArray[i].hexData[sizeof(cardDataArray[i].hexData) - 1] = '\0';
-      
+
       cardDataArray[i].padCount = card["padCount"] | 0;
-      
+
       String status = card["status"] | "";
-      strncpy(cardDataArray[i].status, status.c_str(), sizeof(cardDataArray[i].status) - 1);
+      strncpy(cardDataArray[i].status, status.c_str(),
+              sizeof(cardDataArray[i].status) - 1);
       cardDataArray[i].status[sizeof(cardDataArray[i].status) - 1] = '\0';
-      
+
       String details = card["details"] | "";
-      strncpy(cardDataArray[i].details, details.c_str(), sizeof(cardDataArray[i].details) - 1);
+      strncpy(cardDataArray[i].details, details.c_str(),
+              sizeof(cardDataArray[i].details) - 1);
       cardDataArray[i].details[sizeof(cardDataArray[i].details) - 1] = '\0';
     }
   }
@@ -1159,7 +1165,8 @@ void printCardData() {
   // Store card data
   if (cardDataIndex >= MAX_CARDS) {
     // Shift elements left by 1 to make room (drop the oldest card)
-    memmove(&cardDataArray[0], &cardDataArray[1], sizeof(CardData) * (MAX_CARDS - 1));
+    memmove(&cardDataArray[0], &cardDataArray[1],
+            sizeof(CardData) * (MAX_CARDS - 1));
     cardDataIndex = MAX_CARDS - 1;
   }
 
@@ -1170,8 +1177,7 @@ void printCardData() {
           RAW_DATA_MAX - 1);
   cardDataArray[cardDataIndex].rawCardData[RAW_DATA_MAX - 1] = '\0';
   // Store previously-calculated hex and padding from processCardData()
-  strncpy(cardDataArray[cardDataIndex].hexData, lastHexData,
-          HEX_DATA_MAX - 1);
+  strncpy(cardDataArray[cardDataIndex].hexData, lastHexData, HEX_DATA_MAX - 1);
   cardDataArray[cardDataIndex].hexData[HEX_DATA_MAX - 1] = '\0';
   cardDataArray[cardDataIndex].padCount = lastPadCount;
 
@@ -1775,7 +1781,8 @@ void webServer() {
     request->send(200, "text/plain", isSystemPaused ? "PAUSED" : "ACTIVE");
   });
 
-  // --- /setMode: dedicated endpoint for toggling mode from the navbar button ---
+  // --- /setMode: dedicated endpoint for toggling mode from the navbar button
+  // ---
   AsyncCallbackJsonWebHandler *setModeHandler = new AsyncCallbackJsonWebHandler(
       "/setMode", [](AsyncWebServerRequest *request, JsonVariant &json) {
         JsonObject jsonObj = json.as<JsonObject>();
@@ -1784,7 +1791,8 @@ void webServer() {
 
         if (reqMode != "raw" && reqMode != "user") {
           request->send(400, "application/json",
-                        "{\"status\":\"error\",\"message\":\"Invalid mode. Must be 'raw' or 'user'\"}");
+                        "{\"status\":\"error\",\"message\":\"Invalid mode. "
+                        "Must be 'raw' or 'user'\"}");
           return;
         }
 
@@ -1796,9 +1804,11 @@ void webServer() {
 
         saveSettingsToPreferences();
         showSettingsSaved();
-        Serial.printf("[SYSTEM] Mode changed to: %s via WebUI navbar\n", deviceMode.c_str());
+        Serial.printf("[SYSTEM] Mode changed to: %s via WebUI navbar\n",
+                      deviceMode.c_str());
 
-        String resp = "{\"status\":\"success\",\"mode\":\"" + deviceMode + "\"}";
+        String resp =
+            "{\"status\":\"success\",\"mode\":\"" + deviceMode + "\"}";
         request->send(200, "application/json", resp);
       });
   server.addHandler(setModeHandler);
