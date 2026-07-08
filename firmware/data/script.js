@@ -278,10 +278,11 @@ function updateScanLog() {
                 const copyStr = dataStr || '';
                 let cellHTML = '';
                 if (copyStr) {
-                    cellHTML = `<a href="#" onclick="copyToClipboard('${copyStr}');return false;">${copyStr}</a>`;
+                    const prefix = cardDataMode === 'hex' ? 'HEX:' : 'BIN:';
+                    cellHTML = `<span style="color: var(--muted); margin-right: 4px;">${prefix}</span><span class="badge badge-gray badge-scan" style="margin-right: 12px;"><a href="#" onclick="copyToClipboard('${copyStr}');return false;" style="color: var(--accent); text-decoration: underline;">${copyStr}</a></span>`;
                 }
                 if (card.bitCount) {
-                    cellHTML += ` <span class="badge badge-gray badge-scan">${card.bitCount}b</span>`;
+                    cellHTML += ` <span class="badge badge-gray badge-scan" style="margin-right: 8px;">${card.bitCount}b</span>`;
                 }
                 if (cardDataMode === 'hex' && card.padCount && card.padCount > 0) {
                     cellHTML += ` <span class="badge badge-gray badge-scan">PAD: ${card.padCount}</span>`;

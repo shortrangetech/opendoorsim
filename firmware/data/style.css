@@ -240,58 +240,58 @@ table {
 }
 
 /* Scan Log Table Column Width Distribution */
-#scanLogTable th:nth-child(1) {
-    width: 4%;
-}
 
 /* Index (#) */
+#scanLogTable th:nth-child(1) {
+    width: 2%;
+}
+
+/* User / Add Button */
 #scanLogTable th:nth-child(2) {
     width: 12%;
 }
 
-/* Name / Add Button */
+/* Decode (FC/CN) */
 #scanLogTable th:nth-child(3) {
-    width: 24%;
+    width: 26%;
 }
 
-/* Decode (FC/CN) */
+/* Raw Card Data */
 #scanLogTable th:nth-child(4) {
     width: 60%;
 }
 
-/* Raw Card Data */
-
 /* User Table Column Width Distribution */
+
+/* Index (#) */
 #userTable th:nth-child(1) {
     width: 6%;
 }
 
-/* Index (#) */
+/* Facility Code */
 #userTable th:nth-child(2) {
     width: 15%;
 }
 
-/* Facility Code */
+/* Card Number */
 #userTable th:nth-child(3) {
     width: 15%;
 }
 
-/* Card Number */
+/* Name */
 #userTable th:nth-child(4) {
     width: 18%;
 }
 
-/* Name */
+/* Flag */
 #userTable th:nth-child(5) {
     width: 22%;
 }
 
-/* Flag */
+/* Actions (Edit/Delete/Clear/Save) */
 #userTable th:nth-child(6) {
     width: 24%;
 }
-
-/* Actions (Edit/Delete/Clear/Save) */
 
 th,
 td {
@@ -436,7 +436,7 @@ button:hover {
 }
 
 .badge-scan {
-    font-size: 0.92rem !important;
+    font-size: inherit !important;
 }
 
 /* Interaction styles */
