@@ -1996,6 +1996,16 @@ void webServer() {
     }
   });
 
+  server.on("/clearUsers", HTTP_POST, [](AsyncWebServerRequest *request) {
+    userCount = 0;
+    saveUsersToPreferences();
+    AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", "OK");
+    response->addHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    response->addHeader("Pragma", "no-cache");
+    response->addHeader("Expires", "0");
+    request->send(response);
+  });
+
   // Virtual Screen for Iceman's Demons
   server.on("/screen", HTTP_GET, [](AsyncWebServerRequest *request) {
     if (oledDisplay != nullptr) {

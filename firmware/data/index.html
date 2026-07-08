@@ -22,6 +22,18 @@
             <div class="header-right">
                 <div id="modeBox" class="mode-raw badge badge-clickable" onclick="toggleMode()"
                     title="Click to toggle RAW / USER mode">MODE: <span id="modeValue">RAW</span></div>
+                <button id="navBtnPause" class="navbar-btn" onclick="togglePause()" title="Pause DoorSim">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <rect x="6" y="4" width="4" height="16" rx="1"></rect>
+                        <rect x="14" y="4" width="4" height="16" rx="1"></rect>
+                    </svg>
+                </button>
+                <button id="navBtnReboot" class="navbar-btn" onclick="rebootDevice()" title="Remote Reboot">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                    </svg>
+                </button>
             </div>
         </div>
     </header>
@@ -44,10 +56,10 @@
             <h2 class="collapsible" style="cursor:default; margin-top: 20px;">
                 Recent Scans
                 <span style="font-size: 0.5em; vertical-align: middle; margin-left: 15px;">
+                    <span id="badgeCardData" class="badge badge-purple badge-clickable" onclick="toggleCardDataMode()"
+                        title="Toggle Hex / Binary view">DATA: BIN</span>
                     <span id="badgeHideData" class="badge badge-gray badge-clickable" onclick="toggleHideData()"
                         title="Blur data columns to focus on names">HIDE DATA</span>
-                    <span id="badgeCardData" class="badge badge-purple badge-clickable" onclick="toggleCardDataMode()"
-                        title="Toggle Hex / Binary view">DATA: HEX</span>
                 </span>
             </h2>
             <table id="scanLogTable">
@@ -87,6 +99,10 @@
                     <tbody>
                     </tbody>
                 </table>
+                <div class="user-management-control">
+                    <span id="userClearBtn" class="badge badge-gray badge-clickable badge-clear"
+                        onclick="clearUsers()">CLEAR</span>
+                </div>
                 <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;">
                     <h3>Batch Tool</h3>
 
@@ -208,11 +224,6 @@
                 <div id="versionInfo" style="color:var(--muted);font-size:0.85rem;">
                     Version: <span id="versionValue"></span><br>
                     by shortrange.tech
-                </div>
-
-                <div style="display:flex; gap: 15px;">
-                    <button id="btnPause" class="button-purple" onclick="togglePause()">Pause DoorSim</button>
-                    <button class="button-danger" onclick="rebootDevice()">Remote Reboot</button>
                 </div>
             </div>
         </div>

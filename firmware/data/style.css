@@ -92,12 +92,17 @@ header {
 
 .header-right {
     min-width: 160px;
-    text-align: right
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
 }
 
 #modeBox {
     background: var(--card-bg);
-    padding: 10px 12px;
+    height: 42px;
+    box-sizing: border-box;
+    padding: 0 30px;
     border-radius: 12px;
     border: 1px solid #2f2f2f;
     color: var(--text);
@@ -111,6 +116,70 @@ header {
     cursor: pointer;
     user-select: none;
 }
+
+/* --- Navbar Buttons --- */
+.navbar-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+    width: 42px;
+    height: 42px;
+    box-sizing: border-box;
+    border-radius: 12px;
+    border: 1px solid #2f2f2f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s ease;
+}
+
+.navbar-btn:hover {
+    transform: scale(1.05);
+}
+
+.navbar-btn svg {
+    display: block;
+    width: 22px;
+    height: 22px;
+}
+
+#navBtnPause:hover {
+    background-color: #52009f;
+    border-color: #52009f;
+    color: #fff;
+}
+
+#navBtnPause.paused {
+    background-color: #52009f;
+    border-color: #52009f;
+    color: #fff;
+}
+
+#navBtnPause.paused:hover {
+    background-color: #7300e6;
+    border-color: #7300e6;
+    color: #fff;
+}
+
+#navBtnReboot:hover {
+    background-color: #8b1f1f;
+    border-color: #8b1f1f;
+    color: #fff;
+}
+
+#navBtnReboot.active {
+    background-color: #8b1f1f;
+    border-color: #8b1f1f;
+    color: #fff;
+}
+
+#navBtnReboot.active:hover {
+    background-color: #b32424;
+    border-color: #b32424;
+    color: #fff;
+}
+
 
 /* --- Inputs & Buttons --- */
 input[type="text"],
@@ -166,7 +235,7 @@ th {
 }
 
 .inputRow td {
-    padding: 6px
+    padding: 10px;
 }
 
 .inputRow input {
@@ -549,10 +618,17 @@ button:hover {
     background: linear-gradient(90deg, var(--unauthorized), #ff6b6b33);
 }
 
-/* Scan log expand / clear control */
 #logExpandControl {
     display: flex;
     justify-content: space-between;
+    align-items: center;
+    margin: -8px 0 18px;
+}
+
+/* User management clear control */
+.user-management-control {
+    display: flex;
+    justify-content: flex-end;
     align-items: center;
     margin: -8px 0 18px;
 }

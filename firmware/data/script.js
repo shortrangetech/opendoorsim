@@ -14,7 +14,7 @@ let currentUserCount = 0;
 
 // Scan log display state
 let hideData = false;      // HIDE DATA badge toggles blur on data columns
-let cardDataMode = 'hex';  // 'hex' or 'bin' — DATA badge toggles this
+let cardDataMode = 'bin';  // 'hex' or 'bin' — DATA badge toggles this
 let logLimit = 10;
 let logExpanded = false;
 let usersCache = [];       // mirrors users list for client-side name lookup
@@ -306,6 +306,20 @@ function clearLog() {
             }
         })
         .catch(err => console.error('Error clearing log:', err));
+}
+
+function clearUsers() {
+    if (!confirm('Clear all users from the device?')) return;
+    fetch('/clearUsers', { method: 'POST' })
+        .then(response => {
+            if (response.ok) {
+                updateUserTable();
+                alert('All users cleared successfully.');
+            } else {
+                alert('Failed to clear users.');
+            }
+        })
+        .catch(err => console.error('Error clearing users:', err));
 }
 
 function updateUserTable() {
@@ -646,13 +660,15 @@ function updateSettingsUI(settings) {
         }
     }
 
-    // 3. Update Pause Button Text
-    const btnPause = document.getElementById('btnPause');
-    if (btnPause) {
+    // 3. Update Pause Button State
+    const navBtnPause = document.getElementById('navBtnPause');
+    if (navBtnPause) {
         if (isPaused) {
-            btnPause.textContent = "Un-pause DoorSim";
+            navBtnPause.classList.add('paused');
+            navBtnPause.setAttribute('title', 'Un-pause DoorSim');
         } else {
-            btnPause.textContent = "Pause DoorSim";
+            navBtnPause.classList.remove('paused');
+            navBtnPause.setAttribute('title', 'Pause DoorSim');
         }
     }
 
@@ -885,12 +901,17 @@ function copyToClipboard(text) {
 
 function rebootDevice() {
     if (confirm("Are you sure you want to reboot the device?")) {
+        const btn = document.getElementById('navBtnReboot');
+        if (btn) btn.classList.add('active');
         fetch('/rebootDevice', { method: 'POST' })
             .then(() => {
                 alert("Device is rebooting. Please reconnect in ~10 seconds.");
                 setTimeout(() => window.location.reload(), 5000);
             })
-            .catch(err => alert("Error sending reboot command."));
+            .catch(err => {
+                alert("Error sending reboot command.");
+                if (btn) btn.classList.remove('active');
+            });
     }
 }
 
