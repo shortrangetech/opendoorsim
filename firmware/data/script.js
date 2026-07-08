@@ -358,7 +358,7 @@ function addUser() {
 
     if (!validateUserInput(facilityCode, cardNumber, name, flag, -1)) return;
 
-    fetch(`/addUser?facilityCode=${facilityCode}&cardNumber=${cardNumber}&name=${encodeURIComponent(name)}&flag=${encodeURIComponent(flag)}`)
+    fetch(`/addUser?facilityCode=${facilityCode}&cardNumber=${cardNumber}&name=${encodeURIComponent(name)}&flag=${encodeURIComponent(flag)}&t=${Date.now()}`)
         .then(response => {
             if (response.ok) {
                 updateUserTable();
@@ -374,7 +374,7 @@ function addUser() {
 }
 
 function deleteUser(index) {
-    fetch(`/deleteUser?index=${index}`)
+    fetch(`/deleteUser?index=${index}&t=${Date.now()}`)
         .then(response => {
             if (response.ok) {
                 updateUserTable();
@@ -951,7 +951,7 @@ function saveEditedUser(index) {
 
     if (!validateUserInput(facilityCode, cardNumber, name, flag, index)) return;
 
-    fetch(`/updateUser?index=${index}&facilityCode=${facilityCode}&cardNumber=${cardNumber}&name=${encodeURIComponent(name)}&flag=${encodeURIComponent(flag)}`)
+    fetch(`/updateUser?index=${index}&facilityCode=${facilityCode}&cardNumber=${cardNumber}&name=${encodeURIComponent(name)}&flag=${encodeURIComponent(flag)}&t=${Date.now()}`)
         .then(response => {
             if (response.ok) {
                 updateUserTable();

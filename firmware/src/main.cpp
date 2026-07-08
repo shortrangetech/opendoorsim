@@ -1964,7 +1964,11 @@ void webServer() {
       users[userCount].flag[sizeof(users[userCount].flag) - 1] = '\0';
       userCount++;
       saveUsersToPreferences();
-      request->send(200, "text/plain", "User added");
+      AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", "User added");
+      response->addHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      response->addHeader("Pragma", "no-cache");
+      response->addHeader("Expires", "0");
+      request->send(response);
     } else {
       request->send(400, "text/plain", "Missing parameters");
     }
@@ -1979,7 +1983,11 @@ void webServer() {
         }
         userCount--;
         saveUsersToPreferences();
-        request->send(200, "text/plain", "User deleted successfully");
+        AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", "User deleted successfully");
+        response->addHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        response->addHeader("Pragma", "no-cache");
+        response->addHeader("Expires", "0");
+        request->send(response);
       } else {
         request->send(400, "text/plain", "Invalid index");
       }
@@ -2050,7 +2058,11 @@ void webServer() {
         strncpy(users[index].flag, flag.c_str(), sizeof(users[index].flag) - 1);
         users[index].flag[sizeof(users[index].flag) - 1] = '\0';
         saveUsersToPreferences();
-        request->send(200, "text/plain", "User updated");
+        AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", "User updated");
+        response->addHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        response->addHeader("Pragma", "no-cache");
+        response->addHeader("Expires", "0");
+        request->send(response);
       } else {
         request->send(400, "text/plain", "Invalid index");
       }
