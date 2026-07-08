@@ -13,10 +13,11 @@ let originalFlipOled = false;
 let currentUserCount = 0;
 
 // Scan log display state
-let showNameCol = false;   // NAME badge toggles this
-let cardDataMode = 'hex';  // 'hex' or 'bin' — HEX badge toggles this
+let hideData = false;      // HIDE DATA badge toggles blur on data columns
+let cardDataMode = 'hex';  // 'hex' or 'bin' — DATA badge toggles this
 let logLimit = 10;
 let logExpanded = false;
+let usersCache = [];       // mirrors users list for client-side name lookup
 
 // FIX 1: Track if the user is currently editing the form
 let unsavedChanges = false;
@@ -202,20 +203,20 @@ function updateScreen() {
         .catch(err => console.error("Firefox Fetch Error:", err));
 }
 
-function toggleNameCol() {
-    showNameCol = !showNameCol;
-    const badge = document.getElementById('badgeName');
-    const thName = document.getElementById('thName');
-    if (badge) badge.className = 'badge badge-clickable ' + (showNameCol ? 'badge-purple' : 'badge-gray');
-    // Toggle header + all body cells with class col-name
-    if (thName) thName.style.display = showNameCol ? '' : 'none';
-    document.querySelectorAll('.col-name').forEach(el => el.style.display = showNameCol ? '' : 'none');
+function toggleHideData() {
+    hideData = !hideData;
+    const badge = document.getElementById('badgeHideData');
+    if (badge) badge.className = 'badge badge-clickable ' + (hideData ? 'badge-purple' : 'badge-gray');
+    // Only blur tbody data cells — not the header
+    document.querySelectorAll('#scanLogTable tbody td.col-data').forEach(el => {
+        el.classList.toggle('data-blurred', hideData);
+    });
 }
 
 function toggleCardDataMode() {
     cardDataMode = (cardDataMode === 'hex') ? 'bin' : 'hex';
     const badge = document.getElementById('badgeCardData');
-    if (badge) badge.textContent = cardDataMode === 'hex' ? 'HEX' : 'BIN';
+    if (badge) badge.textContent = cardDataMode === 'hex' ? 'DATA: HEX' : 'DATA: BIN';
     updateScanLog();
 }
 
@@ -244,36 +245,35 @@ function updateScanLog() {
                 // Col 0: #
                 row.insertCell(0).textContent = index + 1;
 
-                // Col 1: Name (col-name, toggled by NAME badge)
+                // Col 1: Name — client-side lookup by FC+CN regardless of mode
                 const cellName = row.insertCell(1);
-                cellName.className = 'col-name';
-                cellName.style.display = showNameCol ? '' : 'none';
-                if (card.status === 'Authorized' && card.details) {
-                    cellName.textContent = card.details;
-                } else if (card.status === 'Unauthorized') {
-                    cellName.textContent = '—';
-                } else {
-                    cellName.textContent = '';
-                }
-
-                // Col 2: Bit Length
-                row.insertCell(2).textContent = card.bitCount ?? '';
-
-                // Col 3: Decode — FC: x CN: y
-                const cellDecode = row.insertCell(3);
                 const fc = card.facilityCode ?? '';
                 const cn = card.cardNumber ?? '';
+                const matchedUser = usersCache.find(
+                    u => String(u.facilityCode) === String(fc) && String(u.cardNumber) === String(cn)
+                );
+                cellName.textContent = matchedUser ? matchedUser.name : '—';
+
+                // Col 2: Decode — FC: x CN: y (col-data)
+                const cellDecode = row.insertCell(2);
+                cellDecode.className = 'col-data';
+                if (hideData) cellDecode.classList.add('data-blurred');
                 cellDecode.textContent = (fc !== '' || cn !== '') ? `FC: ${fc}  CN: ${cn}` : '';
 
-                // Col 4: Card Data — hex or binary, with optional inline PAD badge
-                const cellCardData = row.insertCell(4);
+                // Col 3: Card Data — hex or binary + <num>b badge always + PAD badge in hex mode (col-data)
+                const cellCardData = row.insertCell(3);
+                cellCardData.className = 'col-data';
+                if (hideData) cellCardData.classList.add('data-blurred');
                 const dataStr = cardDataMode === 'hex' ? card.hexData : card.rawCardData;
                 const copyStr = dataStr || '';
                 let cellHTML = '';
                 if (copyStr) {
                     cellHTML = `<a href="#" onclick="copyToClipboard('${copyStr}');return false;">${copyStr}</a>`;
                 }
-                if (card.padCount && card.padCount > 0) {
+                if (card.bitCount) {
+                    cellHTML += ` <span class="badge badge-gray" style="font-size:0.75em;">${card.bitCount}b</span>`;
+                }
+                if (cardDataMode === 'hex' && card.padCount && card.padCount > 0) {
                     cellHTML += ` <span class="badge badge-gray" style="font-size:0.75em;">PAD: ${card.padCount}</span>`;
                 }
                 cellCardData.innerHTML = cellHTML;
@@ -282,14 +282,30 @@ function updateScanLog() {
             // Pad empty rows to fill logLimit
             for (let i = slice.length; i < logLimit; i++) {
                 const row = scanLogTableBody.insertRow();
-                for (let c = 0; c < 5; c++) row.insertCell(c);
+                for (let c = 0; c < 4; c++) row.insertCell(c);
                 row.cells[0].textContent = i + 1;
-                // keep name cell visibility in sync
-                row.cells[1].style.display = showNameCol ? '' : 'none';
-                row.cells[1].className = 'col-name';
+                row.cells[2].className = 'col-data';
+                row.cells[3].className = 'col-data';
+                if (hideData) {
+                    row.cells[2].classList.add('data-blurred');
+                    row.cells[3].classList.add('data-blurred');
+                }
             }
         })
         .catch(err => console.error('Error fetching scan log:', err));
+}
+
+function clearLog() {
+    if (!confirm('Clear all scan history?')) return;
+    fetch('/clearCards', { method: 'POST' })
+        .then(response => {
+            if (response.ok) {
+                updateScanLog();
+            } else {
+                alert('Failed to clear log.');
+            }
+        })
+        .catch(err => console.error('Error clearing log:', err));
 }
 
 function updateUserTable() {
@@ -297,6 +313,7 @@ function updateUserTable() {
         .then(response => response.json())
         .then(data => {
             currentUserCount = data.length;
+            usersCache = data; // keep a local copy for name lookup in the scan log
             userTableBody.innerHTML = '';
             data.forEach((user, index) => {
                 let row = userTableBody.insertRow();

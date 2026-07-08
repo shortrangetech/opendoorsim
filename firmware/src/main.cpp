@@ -1617,6 +1617,11 @@ void webServer() {
     request->send(200, "application/json", response);
   });
 
+  server.on("/clearCards", HTTP_POST, [](AsyncWebServerRequest *request) {
+    cardDataIndex = 0;
+    request->send(200, "text/plain", "OK");
+  });
+
   server.on("/getUsers", HTTP_GET, [](AsyncWebServerRequest *request) {
     JsonDocument doc;
     JsonArray usersArray = doc.to<JsonArray>();

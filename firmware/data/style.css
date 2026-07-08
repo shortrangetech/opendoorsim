@@ -549,10 +549,27 @@ button:hover {
     background: linear-gradient(90deg, var(--unauthorized), #ff6b6b33);
 }
 
-/* Scan log expand control */
+/* Scan log expand / clear control */
 #logExpandControl {
-    text-align: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin: -8px 0 18px;
+}
+
+/* Blur effect for HIDE DATA mode */
+.data-blurred {
+    filter: blur(4px);
+    user-select: none;
+    pointer-events: none;
+    transition: filter 0.2s ease;
+}
+
+/* Clear badge — gray default, red on hover */
+.badge-clear:hover {
+    background: var(--unauthorized) !important;
+    border-color: var(--unauthorized) !important;
+    color: #fff0f0 !important;
 }
 
 /* Links */
