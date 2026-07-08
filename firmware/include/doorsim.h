@@ -47,6 +47,8 @@ void saveSettingsToPreferences();
 void loadSettingsFromPreferences();
 void saveUsersToPreferences();
 void loadUsersFromPreferences();
+void saveLogToPreferences();
+void loadLogFromPreferences();
 const User *checkUser(unsigned long fc, unsigned long cn);
 void ledOnValid();
 void speakerOnValid();

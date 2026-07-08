@@ -69,6 +69,7 @@ IPAddress subnet(255, 255, 255, 0);
 
 const char *settingsFile = "/settings.json";
 const char *usersFile = "/users.json";
+const char *logFile = "/log.json";
 const char *wiegandFormatsFile = "/wiegand_formats.json";
 
 // I2C Screen Pins
@@ -220,9 +221,10 @@ User users[MAX_USERS];
 int userCount = 0;
 
 // maximum number of stored cards
-const int MAX_CARDS = 100;
+const int MAX_CARDS = 25;
 CardData cardDataArray[MAX_CARDS];
 int cardDataIndex = 0;
+bool pendingLogSave = false;
 
 // Wiegand formats
 const int MAX_WIEGAND_FORMATS = 50;
@@ -961,6 +963,96 @@ void loadUsersFromPreferences() {
   Serial.println(userCount);
 }
 
+void saveLogToPreferences() {
+  File file = LittleFS.open(logFile, "w");
+  if (!file) {
+    Serial.println("[SYSTEM] ERROR: Failed to open log file for writing.");
+    return;
+  }
+
+  JsonDocument doc;
+  doc["cardDataIndex"] = cardDataIndex;
+
+  JsonArray cardsArray = doc["cards"].to<JsonArray>();
+
+  for (int i = 0; i < cardDataIndex; i++) {
+    JsonObject card = cardsArray.add<JsonObject>();
+    card["bitCount"] = cardDataArray[i].bitCount;
+    card["facilityCode"] = cardDataArray[i].facilityCode;
+    card["cardNumber"] = cardDataArray[i].cardNumber;
+    card["rawCardData"] = cardDataArray[i].rawCardData;
+    card["hexData"] = cardDataArray[i].hexData;
+    card["padCount"] = cardDataArray[i].padCount;
+    card["status"] = cardDataArray[i].status;
+    card["details"] = cardDataArray[i].details;
+  }
+
+  if (serializeJson(doc, file) == 0) {
+    Serial.println("[SYSTEM] ERROR: Failed to write log to file.");
+  } else {
+    Serial.println("[SYSTEM] Log saved successfully.");
+  }
+  file.close();
+}
+
+void loadLogFromPreferences() {
+  Serial.println("[SYSTEM] Loading scan log from Preferences...");
+
+  if (!LittleFS.exists(logFile)) {
+    Serial.println("[SYSTEM] ALERT: Log file does not exist.");
+    return;
+  }
+
+  File file = LittleFS.open(logFile, "r");
+  if (!file) {
+    Serial.println("[SYSTEM] ERROR: Failed to open log file for reading.");
+    return;
+  }
+
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, file);
+  file.close();
+
+  if (error) {
+    Serial.print("[SYSTEM] ERROR: Failed to parse log file: ");
+    Serial.println(error.c_str());
+    return;
+  }
+
+  cardDataIndex = doc["cardDataIndex"] | 0;
+  if (cardDataIndex > MAX_CARDS) cardDataIndex = MAX_CARDS;
+
+  if (cardDataIndex > 0) {
+    JsonArray cardsArray = doc["cards"].as<JsonArray>();
+    for (int i = 0; i < cardDataIndex; i++) {
+      JsonObject card = cardsArray[i].as<JsonObject>();
+      cardDataArray[i].bitCount = card["bitCount"] | 0;
+      cardDataArray[i].facilityCode = card["facilityCode"] | 0;
+      cardDataArray[i].cardNumber = card["cardNumber"] | 0;
+      
+      String raw = card["rawCardData"] | "";
+      strncpy(cardDataArray[i].rawCardData, raw.c_str(), sizeof(cardDataArray[i].rawCardData) - 1);
+      cardDataArray[i].rawCardData[sizeof(cardDataArray[i].rawCardData) - 1] = '\0';
+      
+      String hex = card["hexData"] | "";
+      strncpy(cardDataArray[i].hexData, hex.c_str(), sizeof(cardDataArray[i].hexData) - 1);
+      cardDataArray[i].hexData[sizeof(cardDataArray[i].hexData) - 1] = '\0';
+      
+      cardDataArray[i].padCount = card["padCount"] | 0;
+      
+      String status = card["status"] | "";
+      strncpy(cardDataArray[i].status, status.c_str(), sizeof(cardDataArray[i].status) - 1);
+      cardDataArray[i].status[sizeof(cardDataArray[i].status) - 1] = '\0';
+      
+      String details = card["details"] | "";
+      strncpy(cardDataArray[i].details, details.c_str(), sizeof(cardDataArray[i].details) - 1);
+      cardDataArray[i].details[sizeof(cardDataArray[i].details) - 1] = '\0';
+    }
+  }
+  Serial.print("[SYSTEM] Scan log loaded. Count: ");
+  Serial.println(cardDataIndex);
+}
+
 // Check if user is valid
 const User *checkUser(unsigned long fc, unsigned long cn) {
   for (unsigned int i = 0; i < (unsigned int)userCount; i++) {
@@ -1065,25 +1157,31 @@ void printCardData() {
   }
 
   // Store card data
-  if (cardDataIndex < MAX_CARDS) {
-    cardDataArray[cardDataIndex].bitCount = bitCount;
-    cardDataArray[cardDataIndex].facilityCode = facilityCode;
-    cardDataArray[cardDataIndex].cardNumber = cardNumber;
-    strncpy(cardDataArray[cardDataIndex].rawCardData, rawCardData,
-            RAW_DATA_MAX - 1);
-    cardDataArray[cardDataIndex].rawCardData[RAW_DATA_MAX - 1] = '\0';
-    // Store previously-calculated hex and padding from processCardData()
-    strncpy(cardDataArray[cardDataIndex].hexData, lastHexData,
-            HEX_DATA_MAX - 1);
-    cardDataArray[cardDataIndex].hexData[HEX_DATA_MAX - 1] = '\0';
-    cardDataArray[cardDataIndex].padCount = lastPadCount;
-
-    strncpy(cardDataArray[cardDataIndex].status, status, STATUS_MAX - 1);
-    cardDataArray[cardDataIndex].status[STATUS_MAX - 1] = '\0';
-    strncpy(cardDataArray[cardDataIndex].details, details, DETAILS_MAX - 1);
-    cardDataArray[cardDataIndex].details[DETAILS_MAX - 1] = '\0';
-    cardDataIndex++;
+  if (cardDataIndex >= MAX_CARDS) {
+    // Shift elements left by 1 to make room (drop the oldest card)
+    memmove(&cardDataArray[0], &cardDataArray[1], sizeof(CardData) * (MAX_CARDS - 1));
+    cardDataIndex = MAX_CARDS - 1;
   }
+
+  cardDataArray[cardDataIndex].bitCount = bitCount;
+  cardDataArray[cardDataIndex].facilityCode = facilityCode;
+  cardDataArray[cardDataIndex].cardNumber = cardNumber;
+  strncpy(cardDataArray[cardDataIndex].rawCardData, rawCardData,
+          RAW_DATA_MAX - 1);
+  cardDataArray[cardDataIndex].rawCardData[RAW_DATA_MAX - 1] = '\0';
+  // Store previously-calculated hex and padding from processCardData()
+  strncpy(cardDataArray[cardDataIndex].hexData, lastHexData,
+          HEX_DATA_MAX - 1);
+  cardDataArray[cardDataIndex].hexData[HEX_DATA_MAX - 1] = '\0';
+  cardDataArray[cardDataIndex].padCount = lastPadCount;
+
+  strncpy(cardDataArray[cardDataIndex].status, status, STATUS_MAX - 1);
+  cardDataArray[cardDataIndex].status[STATUS_MAX - 1] = '\0';
+  strncpy(cardDataArray[cardDataIndex].details, details, DETAILS_MAX - 1);
+  cardDataArray[cardDataIndex].details[DETAILS_MAX - 1] = '\0';
+  cardDataIndex++;
+
+  pendingLogSave = true;
 
   // Start the display timer
   lastCardTime = millis();
@@ -1619,6 +1717,7 @@ void webServer() {
 
   server.on("/clearCards", HTTP_POST, [](AsyncWebServerRequest *request) {
     cardDataIndex = 0;
+    saveLogToPreferences();
     request->send(200, "text/plain", "OK");
   });
 
@@ -2338,6 +2437,7 @@ void setup() {
   loadWiegandFormats();
   loadSettingsFromPreferences();
   loadUsersFromPreferences();
+  loadLogFromPreferences();
 
   setupEncoder();
   Serial.println("[SYSTEM] Encoder initialized");
@@ -2433,5 +2533,11 @@ void loop() {
       cleanupCardData();
       clearDatabits();
     }
+  }
+
+  // Check if we need to save the log persistently
+  if (pendingLogSave) {
+    saveLogToPreferences();
+    pendingLogSave = false;
   }
 }
