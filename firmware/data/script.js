@@ -255,7 +255,7 @@ function updateScanLog() {
                 if (matchedUser) {
                     cellName.textContent = matchedUser.name;
                 } else if (fc !== '' || cn !== '') {
-                    cellName.innerHTML = `<span class="badge badge-add-user badge-clickable" onclick="quickAddUser('${fc}', '${cn}')">+ ADD USER</span>`;
+                    cellName.innerHTML = `<span class="badge badge-add-user badge-clickable badge-scan" onclick="quickAddUser('${fc}', '${cn}')">+ ADD</span>`;
                 } else {
                     cellName.textContent = '—';
                 }
@@ -264,7 +264,11 @@ function updateScanLog() {
                 const cellDecode = row.insertCell(2);
                 cellDecode.className = 'col-data';
                 if (hideData) cellDecode.classList.add('data-blurred');
-                cellDecode.textContent = (fc !== '' || cn !== '') ? `FC: ${fc}  CN: ${cn}` : '';
+                if (fc !== '' || cn !== '') {
+                    cellDecode.innerHTML = `<span style="color: var(--muted); margin-right: 4px;">FC:</span><span class="badge badge-gray badge-scan" style="margin-right: 16px;">${fc}</span><span style="color: var(--muted); margin-right: 4px;">CN:</span><span class="badge badge-gray badge-scan">${cn}</span>`;
+                } else {
+                    cellDecode.innerHTML = '';
+                }
 
                 // Col 3: Card Data — hex or binary + <num>b badge always + PAD badge in hex mode (col-data)
                 const cellCardData = row.insertCell(3);
@@ -277,10 +281,10 @@ function updateScanLog() {
                     cellHTML = `<a href="#" onclick="copyToClipboard('${copyStr}');return false;">${copyStr}</a>`;
                 }
                 if (card.bitCount) {
-                    cellHTML += ` <span class="badge badge-gray" style="font-size:0.85em;">${card.bitCount}b</span>`;
+                    cellHTML += ` <span class="badge badge-gray badge-scan">${card.bitCount}b</span>`;
                 }
                 if (cardDataMode === 'hex' && card.padCount && card.padCount > 0) {
-                    cellHTML += ` <span class="badge badge-gray" style="font-size:0.85em;">PAD: ${card.padCount}</span>`;
+                    cellHTML += ` <span class="badge badge-gray badge-scan">PAD: ${card.padCount}</span>`;
                 }
                 cellCardData.innerHTML = cellHTML;
             });
