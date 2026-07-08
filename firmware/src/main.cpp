@@ -2245,7 +2245,7 @@ void processMenuAction() {
         // Capture Settings on Entry
         origApMode = apMode;
         origSsidHidden = ssidHidden;
-      } else if (String(item->label) == "USER")
+      } else if (String(item->label) == "USER MODE")
         currentMenuSize = 2;
       selectedIndex = 0;
       scrollOffset = 0;
