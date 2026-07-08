@@ -273,18 +273,15 @@ function updateScanLog() {
                 cellDecode.className = 'col-data';
                 if (hideData) cellDecode.classList.add('data-blurred');
                 if (fc !== '' || cn !== '') {
-                    let parityHTML = '';
                     const ps = card.parityStatus;
-                    if (ps === 0) {
-                        parityHTML = ' <span class="badge badge-scan" style="background:var(--red,#e74c3c);color:#fff;margin-left:8px;">[F]</span>';
-                    } else if (ps === 1) {
-                        parityHTML = ' <span class="badge badge-scan" style="background:var(--green,#2ecc71);color:#fff;margin-left:8px;">[P]</span>';
-                    } else if (ps === 2) {
-                        parityHTML = ' <span class="badge badge-yellow badge-scan" style="margin-left:8px;">[N]</span>';
-                    } else {
-                        parityHTML = ' <span class="badge badge-gray badge-scan" style="margin-left:8px;">[-]</span>';
+                    const parityCheckEnabled = document.getElementById('enable_parity_check') ? document.getElementById('enable_parity_check').checked : false;
+                    let parityText = '--';
+                    if (parityCheckEnabled) {
+                        if (ps === 1) parityText = 'PASS';
+                        else if (ps === 0) parityText = 'FAIL';
+                        else if (ps === 2) parityText = 'N/A';
                     }
-                    cellDecode.innerHTML = `<span style="color: var(--muted); margin-right: 4px;">FC:</span><span class="badge badge-gray badge-scan" style="margin-right: 16px;">${fc}</span><span style="color: var(--muted); margin-right: 4px;">CN:</span><span class="badge badge-gray badge-scan">${cn}</span>${parityHTML}`;
+                    cellDecode.innerHTML = `<span style="color: var(--muted); margin-right: 4px;">FC:</span><span class="badge badge-gray badge-scan" style="margin-right: 16px;">${fc}</span><span style="color: var(--muted); margin-right: 4px;">CN:</span><span class="badge badge-gray badge-scan" style="margin-right: 16px;">${cn}</span><span style="color: var(--muted); margin-right: 4px;">P:</span><span class="badge badge-gray badge-scan">${parityText}</span>`;
                 } else {
                     cellDecode.innerHTML = '';
                 }

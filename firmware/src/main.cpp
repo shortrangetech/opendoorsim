@@ -949,7 +949,8 @@ void loadUsersFromPreferences() {
   if (userCount > 0) {
     JsonArray usersArray = doc["users"].as<JsonArray>();
     size_t totalInArray = usersArray.size();
-    size_t limit = ((size_t)userCount < totalInArray) ? (size_t)userCount : totalInArray;
+    size_t limit =
+        ((size_t)userCount < totalInArray) ? (size_t)userCount : totalInArray;
     int uniqueUserCount = 0;
     bool cleanupNeeded = false;
 
@@ -959,12 +960,16 @@ void loadUsersFromPreferences() {
       unsigned long cn = user["cardNumber"] | 0;
 
       if (fc > 999999999UL) {
-        Serial.printf("[SYSTEM] WARNING: User FC exceeds 9 digits on boot: %lu. Clamping to 999999999.\n", fc);
+        Serial.printf("[SYSTEM] WARNING: User FC exceeds 9 digits on boot: "
+                      "%lu. Clamping to 999999999.\n",
+                      fc);
         fc = 999999999UL;
         cleanupNeeded = true;
       }
       if (cn > 999999999UL) {
-        Serial.printf("[SYSTEM] WARNING: User CN exceeds 9 digits on boot: %lu. Clamping to 999999999.\n", cn);
+        Serial.printf("[SYSTEM] WARNING: User CN exceeds 9 digits on boot: "
+                      "%lu. Clamping to 999999999.\n",
+                      cn);
         cn = 999999999UL;
         cleanupNeeded = true;
       }
@@ -979,7 +984,9 @@ void loadUsersFromPreferences() {
       }
 
       if (isDuplicate) {
-        Serial.printf("[SYSTEM] WARNING: Duplicate user skipped on boot: FC=%lu, CN=%lu\n", fc, cn);
+        Serial.printf("[SYSTEM] WARNING: Duplicate user skipped on boot: "
+                      "FC=%lu, CN=%lu\n",
+                      fc, cn);
         cleanupNeeded = true;
         continue;
       }
@@ -988,12 +995,16 @@ void loadUsersFromPreferences() {
       String flag = user["flag"] | "";
 
       if (name.length() > 12) {
-        Serial.printf("[SYSTEM] WARNING: User name exceeds 12 chars on boot: '%s'. Truncating...\n", name.c_str());
+        Serial.printf("[SYSTEM] WARNING: User name exceeds 12 chars on boot: "
+                      "'%s'. Truncating...\n",
+                      name.c_str());
         name = name.substring(0, 12);
         cleanupNeeded = true;
       }
       if (flag.length() > 21) {
-        Serial.printf("[SYSTEM] WARNING: User flag exceeds 21 chars on boot: '%s'. Truncating...\n", flag.c_str());
+        Serial.printf("[SYSTEM] WARNING: User flag exceeds 21 chars on boot: "
+                      "'%s'. Truncating...\n",
+                      flag.c_str());
         flag = flag.substring(0, 21);
         cleanupNeeded = true;
       }
@@ -1001,17 +1012,22 @@ void loadUsersFromPreferences() {
       Serial.println("Loading user " + String(uniqueUserCount));
       users[uniqueUserCount].facilityCode = fc;
       users[uniqueUserCount].cardNumber = cn;
-      strncpy(users[uniqueUserCount].name, name.c_str(), sizeof(users[uniqueUserCount].name) - 1);
-      users[uniqueUserCount].name[sizeof(users[uniqueUserCount].name) - 1] = '\0';
-      strncpy(users[uniqueUserCount].flag, flag.c_str(), sizeof(users[uniqueUserCount].flag) - 1);
-      users[uniqueUserCount].flag[sizeof(users[uniqueUserCount].flag) - 1] = '\0';
+      strncpy(users[uniqueUserCount].name, name.c_str(),
+              sizeof(users[uniqueUserCount].name) - 1);
+      users[uniqueUserCount].name[sizeof(users[uniqueUserCount].name) - 1] =
+          '\0';
+      strncpy(users[uniqueUserCount].flag, flag.c_str(),
+              sizeof(users[uniqueUserCount].flag) - 1);
+      users[uniqueUserCount].flag[sizeof(users[uniqueUserCount].flag) - 1] =
+          '\0';
       uniqueUserCount++;
     }
 
     userCount = uniqueUserCount;
 
     if (cleanupNeeded) {
-      Serial.println("[SYSTEM] Duplicate or invalid users were found in users.json. Saving cleaned user list...");
+      Serial.println("[SYSTEM] Duplicate or invalid users were found in "
+                     "users.json. Saving cleaned user list...");
       saveUsersToPreferences();
     }
   } else {
@@ -1204,8 +1220,8 @@ void printCardData() {
       // Either no user found, or parity explicitly failed
       Serial.println("Error: Access denied.");
 
-      printDisplayText("   ACCESS DENIED    ", "", " THIS INCIDENT WILL ",
-                       "    BE REPORTED!    ");
+      printDisplayText("    ACCESS DENIED    ", "", "  THIS INCIDENT HAS  ",
+                       "   BEEN  REPORTED!   ");
 
       // Update card data status and details (use fixed buffers)
       strncpy(status, "Unauthorized", STATUS_MAX - 1);
@@ -1275,27 +1291,37 @@ void printCardData() {
 // If no parity bits are defined (all <= 0), returns true (no failure).
 bool checkParityBits(const WiegandFormat *format) {
   // Check even parity if defined
-  if (format->parityEvenBit > 0 && format->parityEvenStart > 0 && format->parityEvenEnd > 0) {
+  if (format->parityEvenBit > 0 && format->parityEvenStart > 0 &&
+      format->parityEvenEnd > 0) {
     int count = 0;
-    for (unsigned int i = format->parityEvenStart - 1; i <= format->parityEvenEnd - 1; i++) {
-      if (databits[i]) count++;
+    for (unsigned int i = format->parityEvenStart - 1;
+         i <= format->parityEvenEnd - 1; i++) {
+      if (databits[i])
+        count++;
     }
     // Include the parity bit itself
-    if (databits[format->parityEvenBit - 1]) count++;
+    if (databits[format->parityEvenBit - 1])
+      count++;
     // Even parity: total count of 1s (data + parity bit) should be even
-    if (count % 2 != 0) return false;
+    if (count % 2 != 0)
+      return false;
   }
 
   // Check odd parity if defined
-  if (format->parityOddBit > 0 && format->parityOddStart > 0 && format->parityOddEnd > 0) {
+  if (format->parityOddBit > 0 && format->parityOddStart > 0 &&
+      format->parityOddEnd > 0) {
     int count = 0;
-    for (unsigned int i = format->parityOddStart - 1; i <= format->parityOddEnd - 1; i++) {
-      if (databits[i]) count++;
+    for (unsigned int i = format->parityOddStart - 1;
+         i <= format->parityOddEnd - 1; i++) {
+      if (databits[i])
+        count++;
     }
     // Include the parity bit itself
-    if (databits[format->parityOddBit - 1]) count++;
+    if (databits[format->parityOddBit - 1])
+      count++;
     // Odd parity: total count of 1s (data + parity bit) should be odd
-    if (count % 2 != 1) return false;
+    if (count % 2 != 1)
+      return false;
   }
 
   return true;
@@ -1444,8 +1470,6 @@ void processHIDCard() {
   } else {
     lastParityStatus = -1; // Disabled
   }
-
-
 }
 
 void processCardData() {
@@ -1599,6 +1623,19 @@ void printDisplayText(const char *msg1, const char *msg2, const char *msg3,
 }
 
 void printDisplayRawCard() {
+  if (deviceMode == "ctf") {
+    printStandbyMessage();
+    return;
+  }
+
+  String parityString = "--";
+  if (enableParityCheck) {
+    parityString = (lastParityStatus == 1)   ? "PASS"
+                   : (lastParityStatus == 0) ? "FAIL"
+                   : (lastParityStatus == 2) ? "N/A"
+                                             : "--";
+  }
+
   if (activeDisplayType == DISPLAY_LCD && lcdDisplay != nullptr) {
     lcdDisplay->clear();
     lcdDisplay->setCursor(0, 0);
@@ -1606,6 +1643,7 @@ void printDisplayRawCard() {
     lcdDisplay->setCursor(11, 0);
     lcdDisplay->print(bitCount);
     lcdDisplay->print(" bits");
+
     lcdDisplay->setCursor(0, 1);
     lcdDisplay->print("FC: ");
     lcdDisplay->setCursor(4, 1);
@@ -1614,24 +1652,14 @@ void printDisplayRawCard() {
     lcdDisplay->print(" CN: ");
     lcdDisplay->setCursor(14, 1);
     lcdDisplay->print(cardNumber);
-    String parityTag = (lastParityStatus == 1) ? " [P]" :
-                       (lastParityStatus == 0) ? " [F]" :
-                       (lastParityStatus == 2) ? " [N]" : " [-]";
-    lcdDisplay->print(parityTag);
-    // Show HEX and PAD instead of raw binary to save space
+
     lcdDisplay->setCursor(0, 2);
-    lcdDisplay->print("HEX: ");
-    lcdDisplay->setCursor(5, 2);
-    lcdDisplay->print(lastHexData);
+    lcdDisplay->print("P: ");
+    lcdDisplay->print(parityString);
+
     lcdDisplay->setCursor(0, 3);
-    lcdDisplay->print("PAD: ");
-    char padBuf[8];
-    if (lastPadCount == 0)
-      strncpy(padBuf, "None", sizeof(padBuf));
-    else
-      snprintf(padBuf, sizeof(padBuf), "%d", lastPadCount);
-    lcdDisplay->setCursor(5, 3);
-    lcdDisplay->print(padBuf);
+    lcdDisplay->print("HEX:");
+    lcdDisplay->print(lastHexData);
   } else if (activeDisplayType == DISPLAY_OLED_64 && oledDisplay != nullptr) {
     oledDisplay->clearDisplay();
     oledDisplay->setTextSize(1, 2);
@@ -1640,21 +1668,17 @@ void printDisplayRawCard() {
     oledDisplay->print("CARD: ");
     oledDisplay->print(bitCount);
     oledDisplay->println("b");
+
     oledDisplay->print("FC:");
     oledDisplay->print(facilityCode);
     oledDisplay->print(" CN:");
-    oledDisplay->print(cardNumber);
-    String parityTag = (lastParityStatus == 1) ? " [P]" :
-                       (lastParityStatus == 0) ? " [F]" :
-                       (lastParityStatus == 2) ? " [N]" : " [-]";
-    oledDisplay->println(parityTag);
-    oledDisplay->println("HEX:");
+    oledDisplay->println(cardNumber);
+
+    oledDisplay->print("P: ");
+    oledDisplay->println(parityString);
+
+    oledDisplay->print("HEX:");
     oledDisplay->println(lastHexData);
-    oledDisplay->print("PAD: ");
-    if (lastPadCount == 0)
-      oledDisplay->println("None");
-    else
-      oledDisplay->println(lastPadCount);
     oledDisplay->display();
   }
 }
@@ -2069,8 +2093,10 @@ void webServer() {
       users[userCount].flag[sizeof(users[userCount].flag) - 1] = '\0';
       userCount++;
       saveUsersToPreferences();
-      AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", "User added");
-      response->addHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      AsyncWebServerResponse *response =
+          request->beginResponse(200, "text/plain", "User added");
+      response->addHeader("Cache-Control",
+                          "no-cache, no-store, must-revalidate");
       response->addHeader("Pragma", "no-cache");
       response->addHeader("Expires", "0");
       request->send(response);
@@ -2088,8 +2114,10 @@ void webServer() {
         }
         userCount--;
         saveUsersToPreferences();
-        AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", "User deleted successfully");
-        response->addHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        AsyncWebServerResponse *response = request->beginResponse(
+            200, "text/plain", "User deleted successfully");
+        response->addHeader("Cache-Control",
+                            "no-cache, no-store, must-revalidate");
         response->addHeader("Pragma", "no-cache");
         response->addHeader("Expires", "0");
         request->send(response);
@@ -2104,7 +2132,8 @@ void webServer() {
   server.on("/clearUsers", HTTP_POST, [](AsyncWebServerRequest *request) {
     userCount = 0;
     saveUsersToPreferences();
-    AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", "OK");
+    AsyncWebServerResponse *response =
+        request->beginResponse(200, "text/plain", "OK");
     response->addHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     response->addHeader("Pragma", "no-cache");
     response->addHeader("Expires", "0");
@@ -2146,11 +2175,13 @@ void webServer() {
         // SANITIZATION CHECKS
         if (fcStr.length() < 1 || fcStr.length() > 9 ||
             !std::all_of(fcStr.begin(), fcStr.end(), ::isdigit))
-          return request->send(400, "text/plain", "Invalid FC: Must be 1-9 digits");
+          return request->send(400, "text/plain",
+                               "Invalid FC: Must be 1-9 digits");
 
         if (cnStr.length() < 1 || cnStr.length() > 9 ||
             !std::all_of(cnStr.begin(), cnStr.end(), ::isdigit))
-          return request->send(400, "text/plain", "Invalid CN: Must be 1-9 digits");
+          return request->send(400, "text/plain",
+                               "Invalid CN: Must be 1-9 digits");
 
         if (name.length() > 12)
           return request->send(400, "text/plain", "Name too long (max 12)");
@@ -2162,7 +2193,9 @@ void webServer() {
         unsigned long newCN = strtoul(cnStr.c_str(), nullptr, 10);
         const User *existing = checkUser(newFC, newCN);
         if (existing != nullptr && existing != &users[index]) {
-          return request->send(400, "text/plain", "Error: User with this FC and CN already exists");
+          return request->send(
+              400, "text/plain",
+              "Error: User with this FC and CN already exists");
         }
 
         // Update
@@ -2173,8 +2206,10 @@ void webServer() {
         strncpy(users[index].flag, flag.c_str(), sizeof(users[index].flag) - 1);
         users[index].flag[sizeof(users[index].flag) - 1] = '\0';
         saveUsersToPreferences();
-        AsyncWebServerResponse *response = request->beginResponse(200, "text/plain", "User updated");
-        response->addHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        AsyncWebServerResponse *response =
+            request->beginResponse(200, "text/plain", "User updated");
+        response->addHeader("Cache-Control",
+                            "no-cache, no-store, must-revalidate");
         response->addHeader("Pragma", "no-cache");
         response->addHeader("Expires", "0");
         request->send(response);
@@ -2310,27 +2345,31 @@ void webServer() {
             unsigned long prevCn = strtoul(prevCnStr.c_str(), nullptr, 10);
             if (fcVal == prevFc && cnVal == prevCn) {
               LittleFS.remove("/users.json.tmp");
-              return request->send(400, "text/plain",
-                                   "Error Row " + String(row) +
-                                       ": Duplicate user found (FC: " + String(fcVal) +
-                                       ", CN: " + String(cnVal) + ")");
+              return request->send(
+                  400, "text/plain",
+                  "Error Row " + String(row) + ": Duplicate user found (FC: " +
+                      String(fcVal) + ", CN: " + String(cnVal) + ")");
             }
           }
 
           String name = user["name"] | "";
           String flag = user["flag"] | "";
 
-          if (fc.length() < 1 || fc.length() > 9 || !std::all_of(fc.begin(), fc.end(), ::isdigit)) {
+          if (fc.length() < 1 || fc.length() > 9 ||
+              !std::all_of(fc.begin(), fc.end(), ::isdigit)) {
             LittleFS.remove("/users.json.tmp");
-            return request->send(400, "text/plain",
-                                 "Error Row " + String(row) +
-                                     ": FC length or format invalid (Max 9 digits)");
+            return request->send(
+                400, "text/plain",
+                "Error Row " + String(row) +
+                    ": FC length or format invalid (Max 9 digits)");
           }
-          if (cn.length() < 1 || cn.length() > 9 || !std::all_of(cn.begin(), cn.end(), ::isdigit)) {
+          if (cn.length() < 1 || cn.length() > 9 ||
+              !std::all_of(cn.begin(), cn.end(), ::isdigit)) {
             LittleFS.remove("/users.json.tmp");
-            return request->send(400, "text/plain",
-                                 "Error Row " + String(row) +
-                                     ": CN length or format invalid (Max 9 digits)");
+            return request->send(
+                400, "text/plain",
+                "Error Row " + String(row) +
+                    ": CN length or format invalid (Max 9 digits)");
           }
           if (name.length() > 12) {
             LittleFS.remove("/users.json.tmp");
