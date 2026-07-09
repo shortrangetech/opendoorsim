@@ -2590,6 +2590,10 @@ void processMenuAction() {
   // --- FIX: WIFI REBOOT CONFIRMATION ---
   if (currentMenuState == STATE_CONFIRM_WIFI_REBOOT) {
     printDisplayText("      SAVING...      ", "    REBOOTING....    ", "", "");
+    if (!apMode) {
+      disableEncoder = false;
+      Serial.println("[SYSTEM] WiFi hotspot turned off. Forcing encoder ENABLED before reboot.");
+    }
     saveSettingsToPreferences();
     delay(1000);
     ESP.restart();
@@ -2751,6 +2755,10 @@ void processMenuAction() {
       if (item->variable != nullptr) {
         bool *val = (bool *)item->variable;
         *val = !(*val);
+        if (val == &apMode && !apMode) {
+          disableEncoder = false;
+          Serial.println("[SYSTEM] WiFi hotspot turned off via encoder. Forcing encoder ENABLED.");
+        }
         saveSettingsToPreferences();
       }
       break;
