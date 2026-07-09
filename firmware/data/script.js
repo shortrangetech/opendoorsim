@@ -404,14 +404,24 @@ function updateScanLog() {
                 cellHTML += `<span class="hex-prefix">HEX:</span>`;
                 cellHTML += `</span>`;
                 
+                const binLen = binStr ? binStr.length : 0;
+                const hexStr = card.hexData || '';
+                let hexLen = hexStr ? hexStr.length : 0;
+                if (hexStr && card.padCount && card.padCount > 0) {
+                    hexLen += 6 + String(card.padCount).length;
+                }
+                
                 // Single badge container with sliding wrappers inside
-                cellHTML += `<span class="badge badge-gray badge-scan badge-clickable card-data-badge" style="margin-right: 4px;">`;
+                cellHTML += `<span class="badge badge-gray badge-scan badge-clickable card-data-badge" style="--bin-width: ${binLen}ch; --hex-width: ${hexLen}ch; margin-right: 4px;">`;
                 if (binStr) {
                     cellHTML += `<span class="bin-data-wrapper"><a href="#" onclick="copyToClipboard('${binStr}');return false;" class="card-data-link">${binDisplayedText}</a></span>`;
                 }
-                const hexStr = card.hexData || '';
                 if (hexStr) {
-                    cellHTML += `<span class="hex-data-wrapper"><a href="#" onclick="copyToClipboard('${hexStr}');return false;" class="card-data-link">${hexStr}</a></span>`;
+                    let hexInner = `<a href="#" onclick="copyToClipboard('${hexStr}');return false;" class="card-data-link">${hexStr}</a>`;
+                    if (card.padCount && card.padCount > 0) {
+                        hexInner += ` <span style="color: var(--text); margin-left: 4px;">PAD: ${card.padCount}</span>`;
+                    }
+                    cellHTML += `<span class="hex-data-wrapper">${hexInner}</span>`;
                 }
                 cellHTML += `</span>`;
                 
@@ -427,9 +437,6 @@ function updateScanLog() {
                     if (parityText) {
                         cellHTML += `<span class="badge badge-gray badge-scan badge-parity" style="margin-right: 8px;">${parityText}</span>`;
                     }
-                }
-                if (card.padCount && card.padCount > 0) {
-                    cellHTML += `<span class="badge badge-gray badge-scan badge-pad" style="margin-right: 8px;">PAD: ${card.padCount}</span>`;
                 }
                 cellCardData.innerHTML = cellHTML;
             });

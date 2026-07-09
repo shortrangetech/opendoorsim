@@ -115,10 +115,11 @@ header {
     gap: 6px;
     cursor: pointer;
     user-select: none;
-    transition: max-width 0.4s ease, background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+    transition: width 0.4s ease, background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
     overflow: hidden;
     white-space: nowrap;
-    max-width: 140px; /* Default for RAW */
+    width: 140px;
+    /* Default for RAW */
 }
 
 #modeBox:hover:not(.mode-paused) {
@@ -126,15 +127,15 @@ header {
 }
 
 #modeBox.mode-raw {
-    max-width: 140px;
+    width: 140px;
 }
 
 #modeBox.mode-user {
-    max-width: 155px;
+    width: 155px;
 }
 
 #modeBox.mode-paused {
-    max-width: 175px;
+    width: 175px;
     cursor: not-allowed !important;
 }
 
@@ -795,7 +796,8 @@ button:hover {
     margin-right: 4px;
 }
 
-.bin-prefix, .hex-prefix {
+.bin-prefix,
+.hex-prefix {
     position: absolute;
     left: 0;
     top: 0;
@@ -819,7 +821,12 @@ button:hover {
     justify-items: start;
     overflow: hidden;
     white-space: nowrap;
-    transition: background-color 0.3s ease;
+    max-width: var(--bin-width);
+    transition: max-width 0.45s ease-in-out, background-color 0.3s ease;
+}
+
+#scanLogTable.data-mode-hex .card-data-badge {
+    max-width: var(--hex-width);
 }
 
 .bin-data-wrapper,
@@ -829,27 +836,19 @@ button:hover {
     overflow: hidden;
     white-space: nowrap;
     opacity: 1;
-    transition: max-width 0.4s ease, opacity 0.3s ease;
-}
-
-.bin-data-wrapper {
-    max-width: 450px;
-}
-
-.hex-data-wrapper {
-    max-width: 120px;
+    transition: opacity 0.4s ease-in-out;
 }
 
 /* Hide HEX elements in BIN mode */
 #scanLogTable:not(.data-mode-hex) .hex-data-wrapper {
-    max-width: 0 !important;
-    opacity: 0 !important;
+    opacity: 0;
+    pointer-events: none;
 }
 
 /* Hide BIN elements in HEX mode */
-.data-mode-hex .bin-data-wrapper {
-    max-width: 0 !important;
-    opacity: 0 !important;
+#scanLogTable.data-mode-hex .bin-data-wrapper {
+    opacity: 0;
+    pointer-events: none;
 }
 
 .badge-pad {
