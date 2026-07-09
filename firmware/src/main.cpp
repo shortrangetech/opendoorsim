@@ -2029,6 +2029,13 @@ void webServer() {
     request->send(200, "text/plain", isSystemPaused ? "PAUSED" : "ACTIVE");
   });
 
+  server.on("/toggleParity", HTTP_POST, [](AsyncWebServerRequest *request) {
+    enableParityCheck = !enableParityCheck;
+    saveSettingsToPreferences();
+    Serial.printf("[SYSTEM] Parity Check toggled via WebUI. New state: %s\n", enableParityCheck ? "ON" : "OFF");
+    request->send(200, "text/plain", enableParityCheck ? "ON" : "OFF");
+  });
+
   // --- /setMode: dedicated endpoint for toggling mode from the navbar button
   // ---
   AsyncCallbackJsonWebHandler *setModeHandler = new AsyncCallbackJsonWebHandler(

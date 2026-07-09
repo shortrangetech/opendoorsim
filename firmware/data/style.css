@@ -184,6 +184,15 @@ header {
     color: #fff;
 }
 
+#navBtnParity.parity-on {
+    color: #ff33a8; /* pink */
+}
+
+#navBtnParity.parity-on:hover {
+    color: #ff66c2;
+    transform: scale(1.05);
+}
+
 #navBtnReboot:hover {
     background-color: #8b1f1f;
     border-color: #8b1f1f;

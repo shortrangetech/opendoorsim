@@ -22,6 +22,7 @@ let learnerViewMode = false;
 let wiegandFormats = [];
 let showBits = true;
 let showParity = true;
+let parityCheckEnabled = false;
 let lastParityCheckSetting = null;
 let isPaused = false;
 
@@ -34,7 +35,6 @@ let originalCustomMessage = "";
 let originalLedValid = 1;
 let originalTamper = false;
 let originalDisableEncoder = false;
-let originalParityCheck = false;
 
 // Mode toggle state — prevents spam clicking out of sync with hardware
 let modePending = false;
@@ -60,7 +60,6 @@ function checkDirty() {
     const currFlip = document.getElementById('flipOled').checked;
     const currTamper = document.getElementById('enable_tamper_detect').checked;
     const currDisableEncoder = document.getElementById('disable_encoder').checked; // NEW
-    const currParityCheck = document.getElementById('enable_parity_check').checked;
     // 2. Compare
     let isDirty = false;
 
@@ -75,7 +74,6 @@ function checkDirty() {
     if (currFlip !== originalFlipOled) isDirty = true;
     if (currTamper !== originalTamper) isDirty = true;
     if (currDisableEncoder !== originalDisableEncoder) isDirty = true;
-    if (currParityCheck !== originalParityCheck) isDirty = true;
 
     // 3. Update UI
     unsavedChanges = isDirty;
@@ -259,8 +257,6 @@ function toggleShowParity() {
 }
 
 function syncParityToggleBadge() {
-    const checkbox = document.getElementById('enable_parity_check');
-    const parityCheckEnabled = checkbox ? checkbox.checked : false;
     const parityToggle = document.getElementById('badgeToggleParity');
     const table = document.getElementById('scanLogTable');
     
@@ -367,7 +363,6 @@ function updateScanLog() {
                 cellDecode.className = 'col-data';
                 if (hideData) cellDecode.classList.add('data-blurred');
                 const ps = card.parityStatus;
-                const parityCheckEnabled = document.getElementById('enable_parity_check') ? document.getElementById('enable_parity_check').checked : false;
                 const format = hasFormat ? wiegandFormats.find(f => f.bitCount === card.bitCount) : null;
                 const fcBadgeClass = format ? 'badge-fc' : 'badge-gray';
                 const cnBadgeClass = format ? 'badge-cn' : 'badge-gray';
@@ -726,7 +721,6 @@ function saveSettings() {
     const ssidInput = document.getElementById('ap_ssid').value;
     const hiddenInput = document.getElementById('ssid_hidden').checked;
     const disableEncoder = document.getElementById('disable_encoder').checked;
-    const enableParityCheck = document.getElementById('enable_parity_check').checked;
 
     if (!ssidInput || ssidInput.trim().length === 0) {
         alert("Cannot Save: SSID cannot be empty.");
@@ -788,8 +782,7 @@ function saveSettings() {
         flip_oled_display: currentFlip,
         enable_tamper_detect: enableTamperDetect,
         should_reboot: rebootRequired,
-        disable_encoder: disableEncoder,
-        enable_parity_check: enableParityCheck
+        disable_encoder: disableEncoder
     };
 
     fetch('/saveSettings', {
@@ -858,7 +851,7 @@ function updateSettingsUI(settings) {
     const enableTamperDetect = (settings.enable_tamper_detect !== undefined) ? settings.enable_tamper_detect : settings.enableTamperDetect;
     const version = settings.version || settings.version || '';
     const disableEncoder = (settings.disable_encoder !== undefined) ? settings.disable_encoder : false;
-    const enableParityCheck = (settings.enable_parity_check !== undefined) ? settings.enable_parity_check : false;
+    parityCheckEnabled = (settings.enable_parity_check !== undefined) ? settings.enable_parity_check : false;
 
     // Get Pause State
     isPaused = (settings.is_paused === true);
@@ -875,7 +868,6 @@ function updateSettingsUI(settings) {
     if (document.getElementById('versionValue')) document.getElementById('versionValue').textContent = version;
     if (document.getElementById('flipOled')) document.getElementById('flipOled').checked = settings.flip_oled_display;
     if (document.getElementById('disable_encoder')) document.getElementById('disable_encoder').checked = disableEncoder;
-    if (document.getElementById('enable_parity_check')) document.getElementById('enable_parity_check').checked = enableParityCheck;
 
     // 2. [NEW] Update Mode Banner (Top Right)
     const modeBox = document.getElementById('modeBox');
@@ -909,7 +901,17 @@ function updateSettingsUI(settings) {
         }
     }
 
-    // 4. STORE ORIGINAL VALUES
+    // 4. Update Parity Button State
+    const navBtnParity = document.getElementById('navBtnParity');
+    if (navBtnParity) {
+        if (parityCheckEnabled) {
+            navBtnParity.classList.add('parity-on');
+        } else {
+            navBtnParity.classList.remove('parity-on');
+        }
+    }
+
+    // 5. STORE ORIGINAL VALUES
     originalSsid = apSsid;
     originalPwd = apPass;
     originalHidden = (ssidHidden == 1 || ssidHidden === true);
@@ -922,7 +924,6 @@ function updateSettingsUI(settings) {
     originalLedValid = ledValid;
     originalTamper = enableTamperDetect;
     originalDisableEncoder = disableEncoder;
-    originalParityCheck = enableParityCheck;
 
     // Listeners
     const displaySelect = document.getElementById('activeDisplayType');
@@ -976,6 +977,24 @@ function toggleMode() {
         .finally(() => {
             modePending = false;
         });
+}
+
+function toggleParitySetting() {
+    fetch('/toggleParity', { method: 'POST' })
+        .then(response => response.text())
+        .then(state => {
+            parityCheckEnabled = (state === 'ON');
+            const navBtnParity = document.getElementById('navBtnParity');
+            if (navBtnParity) {
+                if (parityCheckEnabled) {
+                    navBtnParity.classList.add('parity-on');
+                } else {
+                    navBtnParity.classList.remove('parity-on');
+                }
+            }
+            syncParityToggleBadge();
+        })
+        .catch(err => console.error('Error toggling parity:', err));
 }
 
 function togglePause() {
@@ -1314,10 +1333,6 @@ document.getElementById('ledValid').addEventListener('change', checkDirty);
 document.getElementById('customMessage').addEventListener('input', checkDirty);
 document.getElementById('enable_tamper_detect').addEventListener('change', checkDirty);
 document.getElementById('disable_encoder').addEventListener('change', checkDirty);
-document.getElementById('enable_parity_check').addEventListener('change', () => {
-    checkDirty();
-    syncParityToggleBadge();
-});
 
 setInterval(updateScanLog, 5000);
 setInterval(fetchSettings, 5000);
