@@ -806,24 +806,6 @@ button:hover {
     border-right-width: 0 !important;
 }
 
-#badgeToggleParity {
-    max-width: 150px;
-    opacity: 1;
-    overflow: hidden;
-    transition: max-width 0.3s ease, margin-left 0.3s ease, margin-right 0.3s ease, padding 0.3s ease, opacity 0.3s ease, background-color 0.3s ease, color 0.3s ease;
-}
-
-#badgeToggleParity.hide-parity-toggle {
-    max-width: 0 !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-    opacity: 0 !important;
-    border-left-width: 0 !important;
-    border-right-width: 0 !important;
-}
-
 .badge-bitcount,
 .badge-parity {
     max-width: 80px;

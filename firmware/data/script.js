@@ -261,24 +261,13 @@ function syncParityToggleBadge() {
     const table = document.getElementById('scanLogTable');
     
     if (parityToggle) {
-        if (parityCheckEnabled) {
-            parityToggle.classList.remove('hide-parity-toggle');
-            if (lastParityCheckSetting === false) {
-                showParity = false;
-                parityToggle.className = 'badge badge-gray badge-clickable';
-                if (table) {
-                    table.classList.add('hide-parity-badge');
-                }
-            } else if (lastParityCheckSetting === null) {
-                showParity = true;
-                parityToggle.className = 'badge badge-purple badge-clickable';
-                if (table) {
-                    table.classList.remove('hide-parity-badge');
-                }
+        if (showParity) {
+            parityToggle.className = 'badge badge-purple badge-clickable';
+            if (table) {
+                table.classList.remove('hide-parity-badge');
             }
         } else {
-            showParity = false;
-            parityToggle.className = 'badge badge-gray badge-clickable hide-parity-toggle';
+            parityToggle.className = 'badge badge-gray badge-clickable';
             if (table) {
                 table.classList.add('hide-parity-badge');
             }
@@ -445,11 +434,15 @@ function updateScanLog() {
                 if (card.bitCount) {
                     cellHTML += `<span class="badge badge-gray badge-scan badge-bitcount" style="margin-right: 8px; text-transform: none;">${card.bitCount}b</span>`;
                 }
-                if (parityCheckEnabled && ps !== -1 && ps !== undefined) {
+                if (ps !== undefined) {
                     let parityText = '';
-                    if (ps === 1) parityText = 'PASS';
-                    else if (ps === 0) parityText = 'FAIL';
-                    else if (ps === 2) parityText = 'N/A';
+                    if (parityCheckEnabled && ps !== -1) {
+                        if (ps === 1) parityText = 'PASS';
+                        else if (ps === 0) parityText = 'FAIL';
+                        else if (ps === 2) parityText = 'N/A';
+                    } else {
+                        parityText = '--';
+                    }
                     
                     if (parityText) {
                         cellHTML += `<span class="badge badge-gray badge-scan badge-parity" style="margin-right: 8px;">${parityText}</span>`;
