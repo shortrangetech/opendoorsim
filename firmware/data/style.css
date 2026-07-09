@@ -87,16 +87,16 @@ header {
 
 .bezel-right {
     display: grid;
-    grid-template-columns: repeat(2, 46px);
-    grid-template-rows: repeat(3, 46px);
-    gap: 15px;
-    width: 107px;
-    height: 168px;
+    grid-template-columns: repeat(2, 48px);
+    grid-template-rows: repeat(3, 48px);
+    gap: 16px;
+    width: 112px;
+    height: 176px;
     flex-shrink: 0;
 }
 
 .buttons-bezel {
-    width: 157px;
+    width: 154px;
     height: 218px;
     box-sizing: border-box;
     display: flex;
@@ -106,8 +106,8 @@ header {
 }
 
 .bezel-right .navbar-btn {
-    width: 46px;
-    height: 46px;
+    width: 48px;
+    height: 48px;
     border-radius: 12px;
 }
 
@@ -117,8 +117,8 @@ header {
 }
 
 .bezel-btn-placeholder {
-    width: 46px;
-    height: 46px;
+    width: 48px;
+    height: 48px;
     border-radius: 12px;
     border: 1px dashed rgba(255, 255, 255, 0.1);
     background: transparent;
