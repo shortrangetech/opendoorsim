@@ -405,7 +405,19 @@ button:hover {
 
 /* --- BADGE SYSTEM (Consolidated) --- */
 
-/* 1. Base Badge Style (Shape & Text) */
+/* 1. Base Badge Style & Container */
+.badge-group {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.5em;
+    vertical-align: middle;
+    margin-left: 15px;
+}
+
+.badge-group .badge:not(:last-child) {
+    margin-right: 6px;
+}
+
 .badge,
 #userStatus,
 #tamperStatus,
