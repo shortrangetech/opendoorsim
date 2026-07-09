@@ -172,21 +172,21 @@ header {
 }
 
 #navBtnPause:hover {
-    background-color: #52009f;
-    border-color: #52009f;
-    color: #fff;
+    background-color: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg);
 }
 
 #navBtnPause.paused {
-    background-color: #52009f;
-    border-color: #52009f;
-    color: #fff;
+    background-color: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg);
 }
 
 #navBtnPause.paused:hover {
-    background-color: #7300e6;
-    border-color: #7300e6;
-    color: #fff;
+    background-color: #d19d00;
+    border-color: #d19d00;
+    color: var(--bg);
 }
 
 #navBtnKnob.knob-on {
@@ -760,10 +760,9 @@ button:hover {
 }
 
 .mode-paused {
-    background-color: #52009f !important;
-    /* Purple matches buttons */
-    border-color: #52009f !important;
-    color: #fff !important;
+    background-color: var(--accent) !important;
+    border-color: var(--accent) !important;
+    color: var(--bg) !important;
     transition: all 0.3s ease;
 }
 
@@ -775,9 +774,9 @@ button:hover {
 }
 
 .mode-user {
-    background-color: var(--accent) !important;
-    border-color: var(--accent) !important;
-    color: var(--bg) !important;
+    background-color: rgba(255, 255, 255, 0.7) !important;
+    border-color: rgba(255, 255, 255, 0.7) !important;
+    color: var(--card-bg) !important;
     transition: all 0.3s ease;
 }
 
