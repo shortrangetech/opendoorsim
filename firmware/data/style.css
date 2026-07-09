@@ -102,7 +102,7 @@ header {
     background: var(--card-bg);
     height: 42px;
     box-sizing: border-box;
-    padding: 0 5px;
+    padding: 0 15px;
     border-radius: 12px;
     border: 1px solid #2f2f2f;
     color: var(--text);
@@ -118,7 +118,7 @@ header {
     transition: width 0.4s ease, background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
     overflow: hidden;
     white-space: nowrap;
-    width: 140px;
+    width: 160px;
     /* Default for RAW */
     margin: 0 !important;
 }
@@ -128,15 +128,15 @@ header {
 }
 
 #modeBox.mode-raw {
-    width: 140px;
+    width: 160px;
 }
 
 #modeBox.mode-user {
-    width: 155px;
+    width: 180px;
 }
 
 #modeBox.mode-paused {
-    width: 175px;
+    width: 200px;
     cursor: not-allowed !important;
 }
 
