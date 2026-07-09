@@ -12,7 +12,6 @@
 
 <body>
     <header>
-        <img id="logo" src="logo512_big.png" alt="logo">
         <div class="header-banner">
             <span class="brand">OpenDoorSim</span>
             <nav class="header-center">
@@ -20,31 +19,9 @@
                 <a onclick="showSection('settings')">Settings</a>
             </nav>
             <div class="header-right">
-                <button id="navBtnKnob" class="navbar-btn" onclick="toggleKnobSetting()" title="Toggle Hardware Knob">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
-                        stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="11"></circle>
-                        <line x1="12" y1="1" x2="12" y2="12"></line>
-                    </svg>
-                </button>
-                <button id="navBtnParity" class="navbar-btn" onclick="toggleParitySetting()"
-                    title="Toggle Parity Check">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
-                        stroke-linejoin="round">
-                        <rect x="2" y="1" width="9" height="22" rx="2" ry="2"></rect>
-                        <path d="M10 4L3 20"></path>
-                        <path d="M18 1h3v22"></path>
-                    </svg>
-                </button>
-                <button id="navBtnTamper" class="navbar-btn" onclick="toggleTamperSetting()" title="Toggle Tamper Detect">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
-                        stroke-linejoin="round">
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                    </svg>
-                </button>
                 <div id="modeBox" class="mode-raw badge badge-clickable" onclick="toggleMode()" title="Toggle Mode">
                     MODE: <span id="modeValue">RAW</span></div>
-                <button id="navBtnPause" class="navbar-btn" onclick="togglePause()" title="Pause DoorSim">
+                <button id="navBtnPause" class="navbar-btn" onclick="togglePause()" title="Pause OpenDoorSim">
                     <svg viewBox="0 0 24 24" fill="currentColor">
                         <rect x="6" y="1" width="4" height="22" rx="1"></rect>
                         <rect x="14" y="1" width="4" height="22" rx="1"></rect>
@@ -65,8 +42,38 @@
         <div id="monitor">
             <div class="indent-section"
                 style="display: flex; justify-content: center; margin-top: 15px;">
-                <div class="screen-container" style="margin-bottom: 20px;">
-                    <canvas id="oledCanvas" width="128" height="64"></canvas>
+                <div class="device-bezel">
+                    <div class="bezel-left">
+                        <img id="logo" src="logo512_big.png" alt="logo">
+                    </div>
+                    <div class="screen-container">
+                        <canvas id="oledCanvas" width="128" height="64"></canvas>
+                    </div>
+                    <div class="bezel-right">
+                        <button id="navBtnParity" class="navbar-btn" onclick="toggleParitySetting()"
+                            title="Toggle Parity Check">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <rect x="2" y="1" width="9" height="22" rx="2" ry="2"></rect>
+                                <path d="M10 4L3 20"></path>
+                                <path d="M18 1h3v22"></path>
+                            </svg>
+                        </button>
+                        <button id="navBtnTamper" class="navbar-btn" onclick="toggleTamperSetting()" title="Toggle Tamper Detect">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                            </svg>
+                        </button>
+                        <button id="navBtnKnob" class="navbar-btn" onclick="toggleKnobSetting()" title="Toggle Hardware Knob">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="11"></circle>
+                                <line x1="12" y1="1" x2="12" y2="12"></line>
+                            </svg>
+                        </button>
+                        <div class="bezel-btn-placeholder"></div>
+                    </div>
                 </div>
             </div>
 
