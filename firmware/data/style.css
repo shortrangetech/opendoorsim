@@ -814,8 +814,9 @@ button:hover {
 }
 
 .card-data-badge {
-    display: inline-flex !important;
+    display: inline-grid !important;
     align-items: center;
+    justify-items: start;
     overflow: hidden;
     white-space: nowrap;
     transition: background-color 0.3s ease;
@@ -823,6 +824,7 @@ button:hover {
 
 .bin-data-wrapper,
 .hex-data-wrapper {
+    grid-area: 1 / 1;
     display: inline-block;
     overflow: hidden;
     white-space: nowrap;
