@@ -775,6 +775,13 @@ void loadSettingsFromPreferences() {
   disableEncoder = doc["disable_encoder"] | false;
   enableParityCheck = doc["enable_parity_check"] | false;
 
+  // On startup, if WiFi hotspot is disabled, force encoder to be ENABLED to prevent lock-out.
+  if (!apMode && disableEncoder) {
+    disableEncoder = false;
+    Serial.println("[SYSTEM] WiFi Access Point is OFF. Forcing rotary encoder to be ENABLED to prevent lock-out.");
+    saveSettingsToPreferences();
+  }
+
   unsigned int loadedMaxBits = doc["max_bits"] | (unsigned int)MAX_BITS_CONST;
   if (loadedMaxBits == 0)
     loadedMaxBits = MAX_BITS_CONST;
