@@ -20,6 +20,7 @@ struct CardData {
   char status[STATUS_MAX];
   char details[DETAILS_MAX];
   int parityStatus; // -1: disabled/unchecked, 0: fail, 1: pass
+  bool hasFormat;
 };
 
 struct User {

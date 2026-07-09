@@ -210,6 +210,7 @@ String firmwareVersion = "v0.9.0";
 // decoded facility code and card code
 unsigned long facilityCode = 0;
 unsigned long cardNumber = 0;
+bool hasFormat = false;
 
 // raw data string (fixed buffers)
 char rawCardData[RAW_DATA_MAX];
@@ -1122,6 +1123,7 @@ void saveLogToPreferences() {
     card["status"] = cardDataArray[i].status;
     card["details"] = cardDataArray[i].details;
     card["parityStatus"] = cardDataArray[i].parityStatus;
+    card["hasFormat"] = cardDataArray[i].hasFormat;
   }
 
   if (serializeJson(doc, file) == 0) {
@@ -1192,6 +1194,11 @@ void loadLogFromPreferences() {
       cardDataArray[i].details[sizeof(cardDataArray[i].details) - 1] = '\0';
 
       cardDataArray[i].parityStatus = card["parityStatus"] | -1;
+      if (card["hasFormat"].is<bool>()) {
+        cardDataArray[i].hasFormat = card["hasFormat"].as<bool>();
+      } else {
+        cardDataArray[i].hasFormat = (cardDataArray[i].facilityCode > 0 || cardDataArray[i].cardNumber > 0);
+      }
     }
   }
   Serial.print("[SYSTEM] Scan log loaded. Count: ");
@@ -1275,19 +1282,31 @@ void printCardData() {
       // Update card data status and details (use fixed buffers)
       strncpy(status, "Unauthorized", STATUS_MAX - 1);
       status[STATUS_MAX - 1] = '\0';
-      snprintf(details, DETAILS_MAX, "FC: %lu, CN: %lu", facilityCode,
-               cardNumber);
+      if (hasFormat) {
+        snprintf(details, DETAILS_MAX, "FC: %lu, CN: %lu", facilityCode,
+                 cardNumber);
+      } else {
+        snprintf(details, DETAILS_MAX, "FC: --, CN: --");
+      }
     }
   } else {
     // ranges for "valid" bitCount are a bit larger for debugging
-    if (bitCount > 20 && bitCount < 120) {
+    if (bitCount >= 12 && bitCount <= MAX_BITS_CONST) {
       // ignore data caused by noise
       Serial.print("[*] Bit length: ");
       Serial.println(bitCount);
       Serial.print("[*] Facility code: ");
-      Serial.println(facilityCode);
+      if (hasFormat) {
+        Serial.println(facilityCode);
+      } else {
+        Serial.println("--");
+      }
       Serial.print("[*] Card number: ");
-      Serial.println(cardNumber);
+      if (hasFormat) {
+        Serial.println(cardNumber);
+      } else {
+        Serial.println("--");
+      }
       Serial.print("[*] Raw: ");
       Serial.println(rawCardData);
 
@@ -1313,6 +1332,7 @@ void printCardData() {
   cardDataArray[cardDataIndex].bitCount = bitCount;
   cardDataArray[cardDataIndex].facilityCode = facilityCode;
   cardDataArray[cardDataIndex].cardNumber = cardNumber;
+  cardDataArray[cardDataIndex].hasFormat = hasFormat;
   strncpy(cardDataArray[cardDataIndex].rawCardData, rawCardData,
           RAW_DATA_MAX - 1);
   cardDataArray[cardDataIndex].rawCardData[RAW_DATA_MAX - 1] = '\0';
@@ -1496,8 +1516,11 @@ void processHIDCard() {
   if (format == nullptr) {
     Serial.println("[-] Unsupported bitCount for HID card");
     lastParityStatus = -1;
+    hasFormat = false;
     return;
   }
+
+  hasFormat = true;
 
   // Extract facility code and card number using the format
   facilityCode =
@@ -1542,10 +1565,11 @@ void processCardData() {
   Serial.print("[*] Pad: ");
   Serial.println(lastPadCount);
 
-  if (bitCount >= 26 && bitCount <= 96) {
+  if (bitCount >= 12 && bitCount <= MAX_BITS_CONST) {
     processHIDCard();
   } else {
     lastParityStatus = -1;
+    hasFormat = false;
   }
 }
 
@@ -1563,6 +1587,7 @@ void cleanupCardData() {
   bitCount = 0;
   facilityCode = 0;
   cardNumber = 0;
+  hasFormat = false;
   status[0] = '\0';
   details[0] = '\0';
   lastHexData[0] = '\0';
@@ -1694,11 +1719,19 @@ void printDisplayRawCard() {
     lcdDisplay->setCursor(0, 1);
     lcdDisplay->print("FC: ");
     lcdDisplay->setCursor(4, 1);
-    lcdDisplay->print(facilityCode);
+    if (hasFormat) {
+      lcdDisplay->print(facilityCode);
+    } else {
+      lcdDisplay->print("--");
+    }
     lcdDisplay->setCursor(9, 1);
     lcdDisplay->print(" CN: ");
     lcdDisplay->setCursor(14, 1);
-    lcdDisplay->print(cardNumber);
+    if (hasFormat) {
+      lcdDisplay->print(cardNumber);
+    } else {
+      lcdDisplay->print("--");
+    }
 
     lcdDisplay->setCursor(0, 2);
     lcdDisplay->print("P: ");
@@ -1717,9 +1750,17 @@ void printDisplayRawCard() {
     oledDisplay->println("b");
 
     oledDisplay->print("FC:");
-    oledDisplay->print(facilityCode);
+    if (hasFormat) {
+      oledDisplay->print(facilityCode);
+    } else {
+      oledDisplay->print("--");
+    }
     oledDisplay->print(" CN:");
-    oledDisplay->println(cardNumber);
+    if (hasFormat) {
+      oledDisplay->println(cardNumber);
+    } else {
+      oledDisplay->println("--");
+    }
 
     oledDisplay->print("P: ");
     oledDisplay->println(parityString);
@@ -1920,6 +1961,7 @@ void webServer() {
       card["status"] = cardDataArray[i].status;
       card["details"] = cardDataArray[i].details;
       card["parityStatus"] = cardDataArray[i].parityStatus;
+      card["hasFormat"] = cardDataArray[i].hasFormat;
     }
     String response;
     serializeJson(doc, response);
@@ -2287,6 +2329,7 @@ void webServer() {
       card["rawCardData"] = cardDataArray[i].rawCardData;
       card["hexData"] = cardDataArray[i].hexData;
       card["padCount"] = cardDataArray[i].padCount;
+      card["hasFormat"] = cardDataArray[i].hasFormat;
     }
     String response;
     serializeJson(doc, response);
@@ -2820,7 +2863,7 @@ void loop() {
         processCardData();
 
         forceMenuUpdate = false;
-        if (bitCount >= 26 && bitCount <= (MAX_BITS_CONST - 4)) {
+        if (bitCount >= 12 && bitCount <= MAX_BITS_CONST) {
           printCardData();
           printCardDataSerial();
         }

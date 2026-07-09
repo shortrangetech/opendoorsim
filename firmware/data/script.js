@@ -247,18 +247,18 @@ function updateScanLog() {
 
                 // Col 0: #
                 row.insertCell(0).textContent = index + 1;
-
                 // Col 1: Name — client-side lookup by FC+CN regardless of mode
                 const cellName = row.insertCell(1);
-                const fc = card.facilityCode ?? '';
-                const cn = card.cardNumber ?? '';
-                const matchedUser = usersCache.find(
+                const hasFormat = card.hasFormat !== false;
+                const fc = hasFormat ? (card.facilityCode ?? '') : '';
+                const cn = hasFormat ? (card.cardNumber ?? '') : '';
+                const matchedUser = hasFormat ? usersCache.find(
                     u => String(u.facilityCode) === String(fc) && String(u.cardNumber) === String(cn)
-                );
+                ) : null;
                 const parityFailed = (card.parityStatus === 0);
                 if (matchedUser && !parityFailed) {
                     cellName.textContent = matchedUser.name;
-                } else if (fc !== '' || cn !== '') {
+                } else if (hasFormat && (fc !== '' || cn !== '')) {
                     if (parityFailed) {
                         cellName.textContent = '—';
                     } else {
@@ -272,20 +272,17 @@ function updateScanLog() {
                 const cellDecode = row.insertCell(2);
                 cellDecode.className = 'col-data';
                 if (hideData) cellDecode.classList.add('data-blurred');
-                if (fc !== '' || cn !== '') {
-                    const ps = card.parityStatus;
-                    const parityCheckEnabled = document.getElementById('enable_parity_check') ? document.getElementById('enable_parity_check').checked : false;
-                    let parityText = '--';
-                    if (parityCheckEnabled) {
-                        if (ps === 1) parityText = 'PASS';
-                        else if (ps === 0) parityText = 'FAIL';
-                        else if (ps === 2) parityText = 'N/A';
-                    }
-                    cellDecode.innerHTML = `<span style="color: var(--muted); margin-right: 4px;">FC:</span><span class="badge badge-gray badge-scan" style="margin-right: 16px;">${fc}</span><span style="color: var(--muted); margin-right: 4px;">CN:</span><span class="badge badge-gray badge-scan" style="margin-right: 16px;">${cn}</span><span style="color: var(--muted); margin-right: 4px;">P:</span><span class="badge badge-gray badge-scan">${parityText}</span>`;
-                } else {
-                    cellDecode.innerHTML = '';
+                const ps = card.parityStatus;
+                const parityCheckEnabled = document.getElementById('enable_parity_check') ? document.getElementById('enable_parity_check').checked : false;
+                let parityText = '--';
+                if (parityCheckEnabled) {
+                    if (ps === 1) parityText = 'PASS';
+                    else if (ps === 0) parityText = 'FAIL';
+                    else if (ps === 2) parityText = 'N/A';
                 }
-
+                const fcDisp = hasFormat ? fc : '--';
+                const cnDisp = hasFormat ? cn : '--';
+                cellDecode.innerHTML = `<span style="color: var(--muted); margin-right: 4px;">FC:</span><span class="badge badge-gray badge-scan" style="margin-right: 16px;">${fcDisp}</span><span style="color: var(--muted); margin-right: 4px;">CN:</span><span class="badge badge-gray badge-scan" style="margin-right: 16px;">${cnDisp}</span><span style="color: var(--muted); margin-right: 4px;">P:</span><span class="badge badge-gray badge-scan">${parityText}</span>`;
                 // Col 3: Card Data — hex or binary + <num>b badge always + PAD badge in hex mode (col-data)
                 const cellCardData = row.insertCell(3);
                 cellCardData.className = 'col-data';
