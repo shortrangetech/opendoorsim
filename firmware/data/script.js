@@ -290,9 +290,26 @@ function toggleCardDataMode() {
     cardDataMode = (cardDataMode === 'hex') ? 'bin' : 'hex';
     const badge = document.getElementById('badgeCardData');
     if (badge) badge.textContent = cardDataMode === 'hex' ? 'DATA: HEX' : 'DATA: BIN';
+    
+    const learnerBadge = document.getElementById('badgeLearnerView');
     const table = document.getElementById('scanLogTable');
+
+    if (cardDataMode === 'hex') {
+        learnerViewMode = false;
+        if (learnerBadge) {
+            learnerBadge.classList.add('hide-learner-badge');
+            learnerBadge.className = 'badge badge-gray badge-clickable hide-learner-badge';
+        }
+    } else {
+        if (learnerBadge) {
+            learnerBadge.classList.remove('hide-learner-badge');
+            learnerBadge.className = 'badge badge-gray badge-clickable';
+        }
+    }
+
     if (table) {
         table.classList.toggle('data-mode-hex', cardDataMode === 'hex');
+        table.classList.toggle('learner-view-active', learnerViewMode);
     }
 }
 
