@@ -738,6 +738,14 @@ button:hover {
     height: 20px;
 }
 
+.hide-bits-badge .badge-bitcount {
+    display: none !important;
+}
+
+.hide-parity-badge .badge-parity {
+    display: none !important;
+}
+
 /* Table Row Highlights */
 .authorized {
     background: linear-gradient(90deg, #236b2b59, #2ea24a14);

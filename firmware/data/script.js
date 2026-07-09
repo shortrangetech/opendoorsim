@@ -20,6 +20,8 @@ let logExpanded = false;
 let usersCache = [];       // mirrors users list for client-side name lookup
 let learnerViewMode = false;
 let wiegandFormats = [];
+let showBits = true;
+let showParity = true;
 
 // FIX 1: Track if the user is currently editing the form
 let unsavedChanges = false;
@@ -230,6 +232,59 @@ function toggleLearnerView() {
     }
 }
 
+function toggleShowBits() {
+    showBits = !showBits;
+    const badge = document.getElementById('badgeToggleBits');
+    if (badge) {
+        badge.className = 'badge badge-clickable ' + (showBits ? 'badge-purple' : 'badge-gray');
+        badge.textContent = 'BITS: ' + (showBits ? 'ON' : 'OFF');
+    }
+    const table = document.getElementById('scanLogTable');
+    if (table) {
+        table.classList.toggle('hide-bits-badge', !showBits);
+    }
+}
+
+function toggleShowParity() {
+    showParity = !showParity;
+    const badge = document.getElementById('badgeToggleParity');
+    if (badge) {
+        badge.className = 'badge badge-clickable ' + (showParity ? 'badge-purple' : 'badge-gray');
+        badge.textContent = 'PARITY: ' + (showParity ? 'ON' : 'OFF');
+    }
+    const table = document.getElementById('scanLogTable');
+    if (table) {
+        table.classList.toggle('hide-parity-badge', !showParity);
+    }
+}
+
+function syncParityToggleBadge() {
+    const checkbox = document.getElementById('enable_parity_check');
+    const parityCheckEnabled = checkbox ? checkbox.checked : false;
+    const parityToggle = document.getElementById('badgeToggleParity');
+    const table = document.getElementById('scanLogTable');
+    
+    if (parityToggle) {
+        if (parityCheckEnabled) {
+            parityToggle.style.display = 'inline-block';
+            showParity = true;
+            parityToggle.className = 'badge badge-purple badge-clickable';
+            parityToggle.textContent = 'PARITY: ON';
+            if (table) {
+                table.classList.remove('hide-parity-badge');
+            }
+        } else {
+            parityToggle.style.display = 'none';
+            showParity = false;
+            parityToggle.className = 'badge badge-gray badge-clickable';
+            parityToggle.textContent = 'PARITY: OFF';
+            if (table) {
+                table.classList.add('hide-parity-badge');
+            }
+        }
+    }
+}
+
 function toggleCardDataMode() {
     cardDataMode = (cardDataMode === 'hex') ? 'bin' : 'hex';
     const badge = document.getElementById('badgeCardData');
@@ -288,19 +343,13 @@ function updateScanLog() {
                 if (hideData) cellDecode.classList.add('data-blurred');
                 const ps = card.parityStatus;
                 const parityCheckEnabled = document.getElementById('enable_parity_check') ? document.getElementById('enable_parity_check').checked : false;
-                let parityText = '--';
-                if (parityCheckEnabled) {
-                    if (ps === 1) parityText = 'PASS';
-                    else if (ps === 0) parityText = 'FAIL';
-                    else if (ps === 2) parityText = 'N/A';
-                }
                 const format = hasFormat ? wiegandFormats.find(f => f.bitCount === card.bitCount) : null;
                 const fcBadgeClass = format ? 'badge-fc' : 'badge-gray';
                 const cnBadgeClass = format ? 'badge-cn' : 'badge-gray';
                 const fcDisp = hasFormat ? fc : '--';
                 const cnDisp = hasFormat ? cn : '--';
-                cellDecode.innerHTML = `<span style="color: var(--muted); margin-right: 4px;">FC:</span><span class="badge ${fcBadgeClass} badge-scan" style="margin-right: 16px;">${fcDisp}</span><span style="color: var(--muted); margin-right: 4px;">CN:</span><span class="badge ${cnBadgeClass} badge-scan" style="margin-right: 16px;">${cnDisp}</span><span style="color: var(--muted); margin-right: 4px;">P:</span><span class="badge badge-gray badge-scan">${parityText}</span>`;
-                // Col 3: Card Data — hex or binary + <num>b badge always + PAD badge in hex mode (col-data)
+                cellDecode.innerHTML = `<span style="color: var(--muted); margin-right: 4px;">FC:</span><span class="badge ${fcBadgeClass} badge-scan" style="margin-right: 16px;">${fcDisp}</span><span style="color: var(--muted); margin-right: 4px;">CN:</span><span class="badge ${cnBadgeClass} badge-scan">${cnDisp}</span>`;
+                // Col 3: Card Data — hex or binary + <num>b badge always + parity badge (if enabled) + PAD badge in hex mode (col-data)
                 const cellCardData = row.insertCell(3);
                 cellCardData.className = 'col-data';
                 if (hideData) cellCardData.classList.add('data-blurred');
@@ -343,10 +392,20 @@ function updateScanLog() {
                     cellHTML = `<span style="color: var(--muted); margin-right: 4px;">${prefix}</span><span class="badge badge-gray badge-scan badge-clickable" style="margin-right: 4px;"><a href="#" onclick="copyToClipboard('${copyStr}');return false;" class="card-data-link">${displayedText}</a></span>`;
                 }
                 if (card.bitCount) {
-                    cellHTML += `<span class="badge badge-gray badge-scan" style="margin-right: 8px; text-transform: none;">${card.bitCount}b</span>`;
+                    cellHTML += `<span class="badge badge-gray badge-scan badge-bitcount" style="margin-right: 8px; text-transform: none;">${card.bitCount}b</span>`;
+                }
+                if (parityCheckEnabled && ps !== -1 && ps !== undefined) {
+                    let parityText = '';
+                    if (ps === 1) parityText = 'PASS';
+                    else if (ps === 0) parityText = 'FAIL';
+                    else if (ps === 2) parityText = 'N/A';
+                    
+                    if (parityText) {
+                        cellHTML += `<span class="badge badge-gray badge-scan badge-parity" style="margin-right: 8px;">${parityText}</span>`;
+                    }
                 }
                 if (cardDataMode === 'hex' && card.padCount && card.padCount > 0) {
-                    cellHTML += ` <span class="badge badge-gray badge-scan">PAD: ${card.padCount}</span>`;
+                    cellHTML += `<span class="badge badge-gray badge-scan">PAD: ${card.padCount}</span>`;
                 }
                 cellCardData.innerHTML = cellHTML;
             });
@@ -825,6 +884,7 @@ function updateSettingsUI(settings) {
 
     toggleFlipOption();
     checkDirty();
+    syncParityToggleBadge();
 }
 
 function toggleMode() {
@@ -1206,7 +1266,10 @@ document.getElementById('ledValid').addEventListener('change', checkDirty);
 document.getElementById('customMessage').addEventListener('input', checkDirty);
 document.getElementById('enable_tamper_detect').addEventListener('change', checkDirty);
 document.getElementById('disable_encoder').addEventListener('change', checkDirty);
-document.getElementById('enable_parity_check').addEventListener('change', checkDirty);
+document.getElementById('enable_parity_check').addEventListener('change', () => {
+    checkDirty();
+    syncParityToggleBadge();
+});
 
 setInterval(updateScanLog, 5000);
 setInterval(fetchSettings, 5000);
