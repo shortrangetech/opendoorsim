@@ -22,6 +22,8 @@ let learnerViewMode = false;
 let wiegandFormats = [];
 let showBits = true;
 let showParity = true;
+let lastParityCheckSetting = null;
+let isPaused = false;
 
 // FIX 1: Track if the user is currently editing the form
 let unsavedChanges = false;
@@ -237,7 +239,6 @@ function toggleShowBits() {
     const badge = document.getElementById('badgeToggleBits');
     if (badge) {
         badge.className = 'badge badge-clickable ' + (showBits ? 'badge-purple' : 'badge-gray');
-        badge.textContent = 'BITS: ' + (showBits ? 'ON' : 'OFF');
     }
     const table = document.getElementById('scanLogTable');
     if (table) {
@@ -250,7 +251,6 @@ function toggleShowParity() {
     const badge = document.getElementById('badgeToggleParity');
     if (badge) {
         badge.className = 'badge badge-clickable ' + (showParity ? 'badge-purple' : 'badge-gray');
-        badge.textContent = 'PARITY: ' + (showParity ? 'ON' : 'OFF');
     }
     const table = document.getElementById('scanLogTable');
     if (table) {
@@ -267,29 +267,33 @@ function syncParityToggleBadge() {
     if (parityToggle) {
         if (parityCheckEnabled) {
             parityToggle.style.display = 'inline-block';
-            showParity = true;
-            parityToggle.className = 'badge badge-purple badge-clickable';
-            parityToggle.textContent = 'PARITY: ON';
-            if (table) {
-                table.classList.remove('hide-parity-badge');
+            if (lastParityCheckSetting === false || lastParityCheckSetting === null) {
+                showParity = true;
+                parityToggle.className = 'badge badge-purple badge-clickable';
+                if (table) {
+                    table.classList.remove('hide-parity-badge');
+                }
             }
         } else {
             parityToggle.style.display = 'none';
             showParity = false;
             parityToggle.className = 'badge badge-gray badge-clickable';
-            parityToggle.textContent = 'PARITY: OFF';
             if (table) {
                 table.classList.add('hide-parity-badge');
             }
         }
     }
+    lastParityCheckSetting = parityCheckEnabled;
 }
 
 function toggleCardDataMode() {
     cardDataMode = (cardDataMode === 'hex') ? 'bin' : 'hex';
     const badge = document.getElementById('badgeCardData');
     if (badge) badge.textContent = cardDataMode === 'hex' ? 'DATA: HEX' : 'DATA: BIN';
-    updateScanLog();
+    const table = document.getElementById('scanLogTable');
+    if (table) {
+        table.classList.toggle('data-mode-hex', cardDataMode === 'hex');
+    }
 }
 
 function toggleLogExpand() {
@@ -304,6 +308,10 @@ function updateScanLog() {
     fetch('/getCards?t=' + Date.now())
         .then(r => r.json())
         .then(data => {
+            const table = document.getElementById('scanLogTable');
+            if (table) {
+                table.classList.toggle('data-mode-hex', cardDataMode === 'hex');
+            }
             scanLogTableBody.innerHTML = '';
             const slice = data.slice(-logLimit).reverse(); // newest first
 
@@ -349,48 +357,64 @@ function updateScanLog() {
                 const fcDisp = hasFormat ? fc : '--';
                 const cnDisp = hasFormat ? cn : '--';
                 cellDecode.innerHTML = `<span style="color: var(--muted); margin-right: 4px;">FC:</span><span class="badge ${fcBadgeClass} badge-scan" style="margin-right: 16px;">${fcDisp}</span><span style="color: var(--muted); margin-right: 4px;">CN:</span><span class="badge ${cnBadgeClass} badge-scan">${cnDisp}</span>`;
-                // Col 3: Card Data — hex or binary + <num>b badge always + parity badge (if enabled) + PAD badge in hex mode (col-data)
+                // Col 3: Card Data — hex or binary + <num>b badge always + parity badge (if enabled) + PAD badge (col-data)
                 const cellCardData = row.insertCell(3);
                 cellCardData.className = 'col-data';
                 if (hideData) cellCardData.classList.add('data-blurred');
-                const dataStr = cardDataMode === 'hex' ? card.hexData : card.rawCardData;
-                const copyStr = dataStr || '';
+                
                 let cellHTML = '';
-                if (copyStr) {
-                    const prefix = cardDataMode === 'hex' ? 'HEX:' : 'BIN:';
-                    let displayedText = copyStr;
-                    if (format && cardDataMode === 'bin') {
-                        const fcStart = format.facilityCodeStart - 1;
-                        const fcEnd = format.facilityCodeEnd;
-                        const cnStart = format.cardNumberStart - 1;
-                        const cnEnd = format.cardNumberEnd;
-                        
-                        let ranges = [
-                            { type: 'fc', start: fcStart, end: fcEnd },
-                            { type: 'cn', start: cnStart, end: cnEnd }
-                        ].sort((a, b) => a.start - b.start);
-                        
-                        let highlightedBin = "";
-                        let lastIdx = 0;
-                        for (let r of ranges) {
-                            if (r.start > lastIdx) {
-                                highlightedBin += copyStr.substring(lastIdx, r.start);
-                            }
-                            const className = r.type === 'fc' ? 'fc-highlight' : 'cn-highlight';
-                            if (r.start >= 0 && r.end <= copyStr.length && r.start < r.end) {
-                                highlightedBin += `<span class="${className}">${copyStr.substring(r.start, r.end)}</span>`;
-                            } else {
-                                highlightedBin += copyStr.substring(Math.max(0, r.start), Math.min(copyStr.length, r.end));
-                            }
-                            lastIdx = r.end;
+                
+                // 1. Construct BIN view elements
+                const binStr = card.rawCardData || '';
+                let binDisplayedText = binStr;
+                if (binStr && format) {
+                    const fcStart = format.facilityCodeStart - 1;
+                    const fcEnd = format.facilityCodeEnd;
+                    const cnStart = format.cardNumberStart - 1;
+                    const cnEnd = format.cardNumberEnd;
+                    
+                    let ranges = [
+                        { type: 'fc', start: fcStart, end: fcEnd },
+                        { type: 'cn', start: cnStart, end: cnEnd }
+                    ].sort((a, b) => a.start - b.start);
+                    
+                    let highlightedBin = "";
+                    let lastIdx = 0;
+                    for (let r of ranges) {
+                        if (r.start > lastIdx) {
+                            highlightedBin += binStr.substring(lastIdx, r.start);
                         }
-                        if (lastIdx < copyStr.length) {
-                            highlightedBin += copyStr.substring(lastIdx);
+                        const className = r.type === 'fc' ? 'fc-highlight' : 'cn-highlight';
+                        if (r.start >= 0 && r.end <= binStr.length && r.start < r.end) {
+                            highlightedBin += `<span class="${className}">${binStr.substring(r.start, r.end)}</span>`;
+                        } else {
+                            highlightedBin += binStr.substring(Math.max(0, r.start), Math.min(binStr.length, r.end));
                         }
-                        displayedText = highlightedBin;
+                        lastIdx = r.end;
                     }
-                    cellHTML = `<span style="color: var(--muted); margin-right: 4px;">${prefix}</span><span class="badge badge-gray badge-scan badge-clickable" style="margin-right: 4px;"><a href="#" onclick="copyToClipboard('${copyStr}');return false;" class="card-data-link">${displayedText}</a></span>`;
+                    if (lastIdx < binStr.length) {
+                        highlightedBin += binStr.substring(lastIdx);
+                    }
+                    binDisplayedText = highlightedBin;
                 }
+                
+                // Prefix container with absolute-positioned layers
+                cellHTML += `<span class="data-prefix">`;
+                cellHTML += `<span class="bin-prefix">BIN:</span>`;
+                cellHTML += `<span class="hex-prefix">HEX:</span>`;
+                cellHTML += `</span>`;
+                
+                // Single badge container with sliding wrappers inside
+                cellHTML += `<span class="badge badge-gray badge-scan badge-clickable card-data-badge" style="margin-right: 4px;">`;
+                if (binStr) {
+                    cellHTML += `<span class="bin-data-wrapper"><a href="#" onclick="copyToClipboard('${binStr}');return false;" class="card-data-link">${binDisplayedText}</a></span>`;
+                }
+                const hexStr = card.hexData || '';
+                if (hexStr) {
+                    cellHTML += `<span class="hex-data-wrapper"><a href="#" onclick="copyToClipboard('${hexStr}');return false;" class="card-data-link">${hexStr}</a></span>`;
+                }
+                cellHTML += `</span>`;
+                
                 if (card.bitCount) {
                     cellHTML += `<span class="badge badge-gray badge-scan badge-bitcount" style="margin-right: 8px; text-transform: none;">${card.bitCount}b</span>`;
                 }
@@ -404,8 +428,8 @@ function updateScanLog() {
                         cellHTML += `<span class="badge badge-gray badge-scan badge-parity" style="margin-right: 8px;">${parityText}</span>`;
                     }
                 }
-                if (cardDataMode === 'hex' && card.padCount && card.padCount > 0) {
-                    cellHTML += `<span class="badge badge-gray badge-scan">PAD: ${card.padCount}</span>`;
+                if (card.padCount && card.padCount > 0) {
+                    cellHTML += `<span class="badge badge-gray badge-scan badge-pad" style="margin-right: 8px;">PAD: ${card.padCount}</span>`;
                 }
                 cellCardData.innerHTML = cellHTML;
             });
@@ -813,7 +837,7 @@ function updateSettingsUI(settings) {
     const enableParityCheck = (settings.enable_parity_check !== undefined) ? settings.enable_parity_check : false;
 
     // Get Pause State
-    const isPaused = (settings.is_paused === true);
+    isPaused = (settings.is_paused === true);
 
     // 1. Populate UI Inputs
     if (document.getElementById('timeoutSelect')) document.getElementById('timeoutSelect').value = displayTimeout;
@@ -888,7 +912,7 @@ function updateSettingsUI(settings) {
 }
 
 function toggleMode() {
-    if (modePending) return; // Ignore clicks while waiting for hardware confirmation
+    if (modePending || isPaused) return; // Ignore clicks while waiting for hardware confirmation
 
     modePending = true;
     const newMode = (currentMode === 'raw') ? 'user' : 'raw';

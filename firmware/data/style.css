@@ -115,6 +115,27 @@ header {
     gap: 6px;
     cursor: pointer;
     user-select: none;
+    transition: max-width 0.4s ease, background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+    overflow: hidden;
+    white-space: nowrap;
+    max-width: 140px; /* Default for RAW */
+}
+
+#modeBox:hover:not(.mode-paused) {
+    transform: scale(1.05);
+}
+
+#modeBox.mode-raw {
+    max-width: 140px;
+}
+
+#modeBox.mode-user {
+    max-width: 155px;
+}
+
+#modeBox.mode-paused {
+    max-width: 175px;
+    cursor: not-allowed !important;
 }
 
 /* --- Navbar Buttons --- */
@@ -677,17 +698,16 @@ button:hover {
 }
 
 .mode-raw {
-    background-color: var(--authorized) !important;
-    border-color: var(--authorized) !important;
-    color: #e8f8ee !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border-color: #2f2f2f !important;
+    color: rgba(255, 255, 255, 0.7) !important;
     transition: all 0.3s ease;
 }
 
 .mode-user {
-    background-color: var(--unauthorized) !important;
-    border-color: var(--unauthorized) !important;
-
-    color: #fff0f0 !important;
+    background-color: var(--accent) !important;
+    border-color: var(--accent) !important;
+    color: var(--bg) !important;
     transition: all 0.3s ease;
 }
 
@@ -738,12 +758,113 @@ button:hover {
     height: 20px;
 }
 
+.badge-bitcount,
+.badge-parity {
+    max-width: 80px;
+    opacity: 1;
+    overflow: hidden;
+    transition: max-width 0.3s ease, margin-right 0.3s ease, padding 0.3s ease, opacity 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+}
+
 .hide-bits-badge .badge-bitcount {
-    display: none !important;
+    max-width: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    opacity: 0 !important;
+    border-left-width: 0 !important;
+    border-right-width: 0 !important;
 }
 
 .hide-parity-badge .badge-parity {
-    display: none !important;
+    max-width: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    opacity: 0 !important;
+    border-left-width: 0 !important;
+    border-right-width: 0 !important;
+}
+
+.data-prefix {
+    position: relative;
+    display: inline-block;
+    width: 35px;
+    height: 20px;
+    vertical-align: middle;
+    margin-right: 4px;
+}
+
+.bin-prefix, .hex-prefix {
+    position: absolute;
+    left: 0;
+    top: 0;
+    transition: opacity 0.3s ease;
+    color: var(--muted);
+}
+
+#scanLogTable:not(.data-mode-hex) .hex-prefix {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.data-mode-hex .bin-prefix {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.card-data-badge {
+    display: inline-flex !important;
+    align-items: center;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: background-color 0.3s ease;
+}
+
+.bin-data-wrapper,
+.hex-data-wrapper {
+    display: inline-block;
+    overflow: hidden;
+    white-space: nowrap;
+    opacity: 1;
+    transition: max-width 0.4s ease, opacity 0.3s ease;
+}
+
+.bin-data-wrapper {
+    max-width: 450px;
+}
+
+.hex-data-wrapper {
+    max-width: 120px;
+}
+
+/* Hide HEX elements in BIN mode */
+#scanLogTable:not(.data-mode-hex) .hex-data-wrapper {
+    max-width: 0 !important;
+    opacity: 0 !important;
+}
+
+/* Hide BIN elements in HEX mode */
+.data-mode-hex .bin-data-wrapper {
+    max-width: 0 !important;
+    opacity: 0 !important;
+}
+
+.badge-pad {
+    max-width: 100px;
+    opacity: 1;
+    overflow: hidden;
+    transition: max-width 0.3s ease, opacity 0.3s ease, margin-right 0.3s ease, padding 0.3s ease;
+}
+
+#scanLogTable:not(.data-mode-hex) .badge-pad {
+    max-width: 0 !important;
+    opacity: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    border-left-width: 0 !important;
+    border-right-width: 0 !important;
 }
 
 /* Table Row Highlights */
