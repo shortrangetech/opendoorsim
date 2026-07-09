@@ -1780,8 +1780,8 @@ void printDisplayRawCard() {
 
 void printStandbyMessage() {
   if (enableTamperDetect && tamperState) {
-    printDisplayText("     TAMPER ALERT!    ", "", "    THIS INCIDENT    ",
-                     "  WILL BE REPORTED!  ");
+    printDisplayText("    TAMPER ALERT!   ", "", "   THIS INCIDENT    ",
+                     " WILL BE REPORTED!  ");
     return;
   }
 
@@ -2052,7 +2052,11 @@ void webServer() {
 
   server.on("/toggleTamper", HTTP_POST, [](AsyncWebServerRequest *request) {
     enableTamperDetect = !enableTamperDetect;
+    if (!enableTamperDetect) {
+      tamperState = false;
+    }
     saveSettingsToPreferences();
+    forceMenuUpdate = true;
     Serial.printf("[SYSTEM] Tamper Detect toggled via WebUI. New state: %s\n", enableTamperDetect ? "ON" : "OFF");
     request->send(200, "text/plain", enableTamperDetect ? "ON" : "OFF");
   });
@@ -2772,6 +2776,9 @@ void processMenuAction() {
         if (val == &apMode && !apMode) {
           disableEncoder = false;
           Serial.println("[SYSTEM] WiFi hotspot turned off via encoder. Forcing encoder ENABLED.");
+        }
+        if (val == &enableTamperDetect && !enableTamperDetect) {
+          tamperState = false;
         }
         saveSettingsToPreferences();
       }
