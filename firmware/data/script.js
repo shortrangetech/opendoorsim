@@ -436,13 +436,10 @@ function updateScanLog() {
                 }
                 if (ps !== undefined) {
                     let parityText = '';
-                    if (parityCheckEnabled && ps !== -1) {
-                        if (ps === 1) parityText = 'PASS';
-                        else if (ps === 0) parityText = 'FAIL';
-                        else if (ps === 2) parityText = 'N/A';
-                    } else {
-                        parityText = '--';
-                    }
+                    if (ps === 1) parityText = 'PASS';
+                    else if (ps === 0) parityText = 'FAIL';
+                    else if (ps === 2) parityText = 'N/A';
+                    else if (ps === -1) parityText = '--';
                     
                     if (parityText) {
                         cellHTML += `<span class="badge badge-gray badge-scan badge-parity" style="margin-right: 8px;">${parityText}</span>`;
