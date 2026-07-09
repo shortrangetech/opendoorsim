@@ -2029,6 +2029,13 @@ void webServer() {
     request->send(200, "text/plain", isSystemPaused ? "PAUSED" : "ACTIVE");
   });
 
+  server.on("/toggleKnob", HTTP_POST, [](AsyncWebServerRequest *request) {
+    disableEncoder = !disableEncoder;
+    saveSettingsToPreferences();
+    Serial.printf("[SYSTEM] Knob disabled state toggled via WebUI. New state: %s\n", disableEncoder ? "DISABLED" : "ENABLED");
+    request->send(200, "text/plain", disableEncoder ? "OFF" : "ON");
+  });
+
   server.on("/toggleParity", HTTP_POST, [](AsyncWebServerRequest *request) {
     enableParityCheck = !enableParityCheck;
     saveSettingsToPreferences();
@@ -2105,8 +2112,8 @@ void webServer() {
         flipOledDisplay = jsonObj["flip_oled_display"] | flipOledDisplay;
         enableTamperDetect =
             jsonObj["enable_tamper_detect"] | enableTamperDetect;
-        disableEncoder = jsonObj["disable_encoder"] | false;
-        enableParityCheck = jsonObj["enable_parity_check"] | false;
+        disableEncoder = jsonObj["disable_encoder"] | disableEncoder;
+        enableParityCheck = jsonObj["enable_parity_check"] | enableParityCheck;
 
         // sync encoder menu variables
         // (tempDeviceModeInt is managed by /setMode; do not touch here)

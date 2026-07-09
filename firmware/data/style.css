@@ -188,6 +188,19 @@ header {
     color: #fff;
 }
 
+#navBtnKnob.knob-on {
+    background-color: var(--authorized);
+    border-color: var(--authorized);
+    color: #fff;
+}
+
+#navBtnKnob.knob-on:hover {
+    background-color: #2b8235;
+    border-color: #2b8235;
+    color: #fff;
+    transform: scale(1.05);
+}
+
 #navBtnParity.parity-on {
     background-color: #3b7ebb;
     border-color: #3b7ebb;

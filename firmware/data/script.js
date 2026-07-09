@@ -25,6 +25,8 @@ let showParity = true;
 let parityCheckEnabled = false;
 let lastParityCheckSetting = null;
 let isPaused = false;
+let knobEnabled = true;
+let knobPending = false;
 
 // FIX 1: Track if the user is currently editing the form
 let unsavedChanges = false;
@@ -34,7 +36,6 @@ let originalTimeout = 5000;
 let originalCustomMessage = "";
 let originalLedValid = 1;
 let originalTamper = false;
-let originalDisableEncoder = false;
 
 // Mode toggle state — prevents spam clicking out of sync with hardware
 let modePending = false;
@@ -59,7 +60,6 @@ function checkDirty() {
     const currDisplay = document.getElementById('activeDisplayType').value;
     const currFlip = document.getElementById('flipOled').checked;
     const currTamper = document.getElementById('enable_tamper_detect').checked;
-    const currDisableEncoder = document.getElementById('disable_encoder').checked; // NEW
     // 2. Compare
     let isDirty = false;
 
@@ -73,7 +73,6 @@ function checkDirty() {
     if (currDisplay != originalDisplayType) isDirty = true;
     if (currFlip !== originalFlipOled) isDirty = true;
     if (currTamper !== originalTamper) isDirty = true;
-    if (currDisableEncoder !== originalDisableEncoder) isDirty = true;
 
     // 3. Update UI
     unsavedChanges = isDirty;
@@ -715,7 +714,6 @@ function saveSettings() {
     const pwdInput = document.getElementById('ap_pwd').value;
     const ssidInput = document.getElementById('ap_ssid').value;
     const hiddenInput = document.getElementById('ssid_hidden').checked;
-    const disableEncoder = document.getElementById('disable_encoder').checked;
 
     if (!ssidInput || ssidInput.trim().length === 0) {
         alert("Cannot Save: SSID cannot be empty.");
@@ -777,7 +775,7 @@ function saveSettings() {
         flip_oled_display: currentFlip,
         enable_tamper_detect: enableTamperDetect,
         should_reboot: rebootRequired,
-        disable_encoder: disableEncoder
+        disable_encoder: !knobEnabled
     };
 
     fetch('/saveSettings', {
@@ -846,6 +844,7 @@ function updateSettingsUI(settings) {
     const enableTamperDetect = (settings.enable_tamper_detect !== undefined) ? settings.enable_tamper_detect : settings.enableTamperDetect;
     const version = settings.version || settings.version || '';
     const disableEncoder = (settings.disable_encoder !== undefined) ? settings.disable_encoder : false;
+    knobEnabled = !disableEncoder;
     parityCheckEnabled = (settings.enable_parity_check !== undefined) ? settings.enable_parity_check : false;
 
     // Get Pause State
@@ -862,7 +861,15 @@ function updateSettingsUI(settings) {
     if (document.getElementById('enable_tamper_detect')) document.getElementById('enable_tamper_detect').checked = enableTamperDetect;
     if (document.getElementById('versionValue')) document.getElementById('versionValue').textContent = version;
     if (document.getElementById('flipOled')) document.getElementById('flipOled').checked = settings.flip_oled_display;
-    if (document.getElementById('disable_encoder')) document.getElementById('disable_encoder').checked = disableEncoder;
+
+    const navBtnKnob = document.getElementById('navBtnKnob');
+    if (navBtnKnob) {
+        if (knobEnabled) {
+            navBtnKnob.classList.add('knob-on');
+        } else {
+            navBtnKnob.classList.remove('knob-on');
+        }
+    }
 
     // 2. [NEW] Update Mode Banner (Top Right)
     const modeBox = document.getElementById('modeBox');
@@ -918,7 +925,6 @@ function updateSettingsUI(settings) {
     originalCustomMessage = customMessage;
     originalLedValid = ledValid;
     originalTamper = enableTamperDetect;
-    originalDisableEncoder = disableEncoder;
 
     // Listeners
     const displaySelect = document.getElementById('activeDisplayType');
@@ -971,6 +977,50 @@ function toggleMode() {
         })
         .finally(() => {
             modePending = false;
+        });
+}
+
+function toggleKnobSetting() {
+    if (knobPending) return;
+    knobPending = true;
+
+    // optimistic UI update (grey/green)
+    const targetState = !knobEnabled;
+    const navBtnKnob = document.getElementById('navBtnKnob');
+    if (navBtnKnob) {
+        if (targetState) {
+            navBtnKnob.classList.add('knob-on');
+        } else {
+            navBtnKnob.classList.remove('knob-on');
+        }
+    }
+
+    fetch('/toggleKnob', { method: 'POST' })
+        .then(response => response.text())
+        .then(state => {
+            knobEnabled = (state === 'ON');
+            // enforce correct class based on actual state from backend
+            if (navBtnKnob) {
+                if (knobEnabled) {
+                    navBtnKnob.classList.add('knob-on');
+                } else {
+                    navBtnKnob.classList.remove('knob-on');
+                }
+            }
+        })
+        .catch(err => {
+            console.error('Error toggling knob:', err);
+            // revert optimistic UI update on error
+            if (navBtnKnob) {
+                if (knobEnabled) {
+                    navBtnKnob.classList.add('knob-on');
+                } else {
+                    navBtnKnob.classList.remove('knob-on');
+                }
+            }
+        })
+        .finally(() => {
+            knobPending = false;
         });
 }
 
@@ -1327,7 +1377,6 @@ document.getElementById('timeoutSelect').addEventListener('change', checkDirty);
 document.getElementById('ledValid').addEventListener('change', checkDirty);
 document.getElementById('customMessage').addEventListener('input', checkDirty);
 document.getElementById('enable_tamper_detect').addEventListener('change', checkDirty);
-document.getElementById('disable_encoder').addEventListener('change', checkDirty);
 
 setInterval(updateScanLog, 5000);
 setInterval(fetchSettings, 5000);
