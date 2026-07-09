@@ -29,7 +29,8 @@
                     </svg>
                 </button>
                 <button id="navBtnReboot" class="navbar-btn" onclick="rebootDevice()" title="Remote Reboot">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
                         <polyline points="23 4 23 10 17 10"></polyline>
                         <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
                     </svg>
@@ -59,7 +60,9 @@
                     <span id="badgeCardData" class="badge badge-purple badge-clickable" onclick="toggleCardDataMode()"
                         title="Toggle Hex / Binary view">DATA: BIN</span>
                     <span id="badgeHideData" class="badge badge-gray badge-clickable" onclick="toggleHideData()"
-                        title="Blur data columns to focus on names">HIDE DATA</span>
+                        title="Blur data columns to focus on names">BLUR DATA</span>
+                    <span id="badgeLearnerView" class="badge badge-gray badge-clickable" onclick="toggleLearnerView()"
+                        title="Highlight Facility Code and Card Number bit positions">DECODE COLORS</span>
                 </span>
             </h2>
             <div class="table-responsive">
@@ -69,7 +72,7 @@
                             <th>#</th>
                             <th id="thName">User</th>
                             <th class="col-data">Decode</th>
-                            <th class="col-data" id="thCardData">Card Data (click to copy)</th>
+                            <th class="col-data" id="thCardData">Card Data</th>
                         </tr>
                     </thead>
                     <tbody>

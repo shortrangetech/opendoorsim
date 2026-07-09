@@ -18,6 +18,8 @@ let cardDataMode = 'bin';  // 'hex' or 'bin' — DATA badge toggles this
 let logLimit = 10;
 let logExpanded = false;
 let usersCache = [];       // mirrors users list for client-side name lookup
+let learnerViewMode = false;
+let wiegandFormats = [];
 
 // FIX 1: Track if the user is currently editing the form
 let unsavedChanges = false;
@@ -216,6 +218,18 @@ function toggleHideData() {
     });
 }
 
+function toggleLearnerView() {
+    learnerViewMode = !learnerViewMode;
+    const badge = document.getElementById('badgeLearnerView');
+    if (badge) {
+        badge.className = 'badge badge-clickable ' + (learnerViewMode ? 'badge-purple' : 'badge-gray');
+    }
+    const table = document.getElementById('scanLogTable');
+    if (table) {
+        table.classList.toggle('learner-view-active', learnerViewMode);
+    }
+}
+
 function toggleCardDataMode() {
     cardDataMode = (cardDataMode === 'hex') ? 'bin' : 'hex';
     const badge = document.getElementById('badgeCardData');
@@ -280,9 +294,12 @@ function updateScanLog() {
                     else if (ps === 0) parityText = 'FAIL';
                     else if (ps === 2) parityText = 'N/A';
                 }
+                const format = hasFormat ? wiegandFormats.find(f => f.bitCount === card.bitCount) : null;
+                const fcBadgeClass = format ? 'badge-fc' : 'badge-gray';
+                const cnBadgeClass = format ? 'badge-cn' : 'badge-gray';
                 const fcDisp = hasFormat ? fc : '--';
                 const cnDisp = hasFormat ? cn : '--';
-                cellDecode.innerHTML = `<span style="color: var(--muted); margin-right: 4px;">FC:</span><span class="badge badge-gray badge-scan" style="margin-right: 16px;">${fcDisp}</span><span style="color: var(--muted); margin-right: 4px;">CN:</span><span class="badge badge-gray badge-scan" style="margin-right: 16px;">${cnDisp}</span><span style="color: var(--muted); margin-right: 4px;">P:</span><span class="badge badge-gray badge-scan">${parityText}</span>`;
+                cellDecode.innerHTML = `<span style="color: var(--muted); margin-right: 4px;">FC:</span><span class="badge ${fcBadgeClass} badge-scan" style="margin-right: 16px;">${fcDisp}</span><span style="color: var(--muted); margin-right: 4px;">CN:</span><span class="badge ${cnBadgeClass} badge-scan" style="margin-right: 16px;">${cnDisp}</span><span style="color: var(--muted); margin-right: 4px;">P:</span><span class="badge badge-gray badge-scan">${parityText}</span>`;
                 // Col 3: Card Data — hex or binary + <num>b badge always + PAD badge in hex mode (col-data)
                 const cellCardData = row.insertCell(3);
                 cellCardData.className = 'col-data';
@@ -292,10 +309,41 @@ function updateScanLog() {
                 let cellHTML = '';
                 if (copyStr) {
                     const prefix = cardDataMode === 'hex' ? 'HEX:' : 'BIN:';
-                    cellHTML = `<span style="color: var(--muted); margin-right: 4px;">${prefix}</span><span class="badge badge-gray badge-scan" style="margin-right: 12px;"><a href="#" onclick="copyToClipboard('${copyStr}');return false;" style="color: var(--accent); text-decoration: underline;">${copyStr}</a></span>`;
+                    let displayedText = copyStr;
+                    if (format && cardDataMode === 'bin') {
+                        const fcStart = format.facilityCodeStart - 1;
+                        const fcEnd = format.facilityCodeEnd;
+                        const cnStart = format.cardNumberStart - 1;
+                        const cnEnd = format.cardNumberEnd;
+                        
+                        let ranges = [
+                            { type: 'fc', start: fcStart, end: fcEnd },
+                            { type: 'cn', start: cnStart, end: cnEnd }
+                        ].sort((a, b) => a.start - b.start);
+                        
+                        let highlightedBin = "";
+                        let lastIdx = 0;
+                        for (let r of ranges) {
+                            if (r.start > lastIdx) {
+                                highlightedBin += copyStr.substring(lastIdx, r.start);
+                            }
+                            const className = r.type === 'fc' ? 'fc-highlight' : 'cn-highlight';
+                            if (r.start >= 0 && r.end <= copyStr.length && r.start < r.end) {
+                                highlightedBin += `<span class="${className}">${copyStr.substring(r.start, r.end)}</span>`;
+                            } else {
+                                highlightedBin += copyStr.substring(Math.max(0, r.start), Math.min(copyStr.length, r.end));
+                            }
+                            lastIdx = r.end;
+                        }
+                        if (lastIdx < copyStr.length) {
+                            highlightedBin += copyStr.substring(lastIdx);
+                        }
+                        displayedText = highlightedBin;
+                    }
+                    cellHTML = `<span style="color: var(--muted); margin-right: 4px;">${prefix}</span><span class="badge badge-gray badge-scan badge-clickable" style="margin-right: 4px;"><a href="#" onclick="copyToClipboard('${copyStr}');return false;" class="card-data-link">${displayedText}</a></span>`;
                 }
                 if (card.bitCount) {
-                    cellHTML += ` <span class="badge badge-gray badge-scan" style="margin-right: 8px;">${card.bitCount}b</span>`;
+                    cellHTML += `<span class="badge badge-gray badge-scan" style="margin-right: 8px; text-transform: none;">${card.bitCount}b</span>`;
                 }
                 if (cardDataMode === 'hex' && card.padCount && card.padCount > 0) {
                     cellHTML += ` <span class="badge badge-gray badge-scan">PAD: ${card.padCount}</span>`;
@@ -1166,7 +1214,19 @@ setInterval(fetchSettings, 5000);
 window.onload = function () {
     if (!screenInterval) screenInterval = setInterval(updateScreen, 150);
     fetchSettings();
-    updateUserTable().finally(() => {
-        updateScanLog();
-    });
+    
+    // Load wiegand formats
+    fetch('/wiegand_formats.json')
+        .then(r => r.json())
+        .then(data => {
+            if (data && data.wiegandFormats) {
+                wiegandFormats = data.wiegandFormats;
+            }
+        })
+        .catch(err => console.error('Error loading wiegand formats:', err))
+        .finally(() => {
+            updateUserTable().finally(() => {
+                updateScanLog();
+            });
+        });
 };

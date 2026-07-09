@@ -398,6 +398,7 @@ button:hover {
     line-height: normal;
     white-space: nowrap;
     vertical-align: middle;
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 /* 2. Color Variants (Matches JS class toggles) */
@@ -433,6 +434,54 @@ button:hover {
     background-color: #2b2b2b;
     color: var(--text);
     border: 1px solid #2f2f2f;
+}
+
+.badge-fc,
+.badge-cn {
+    background-color: #2b2b2b;
+    color: var(--text);
+    border: 1px solid #2f2f2f;
+}
+
+.learner-view-active .badge-fc {
+    background: #52009f;
+    color: #dfcdf0;
+    border: 1px solid #52009f;
+}
+
+.learner-view-active .badge-cn {
+    background-color: var(--accent);
+    color: var(--bg);
+    border: 1px solid var(--accent);
+}
+
+.fc-highlight,
+.card-data-link .fc-highlight {
+    color: var(--text) !important;
+    font-weight: 800;
+    transition: color 0.3s ease;
+}
+
+.cn-highlight,
+.card-data-link .cn-highlight {
+    color: var(--text) !important;
+    font-weight: 800;
+    transition: color 0.3s ease;
+}
+
+.learner-view-active .fc-highlight,
+.learner-view-active .card-data-link .fc-highlight {
+    color: #9f5afd !important;
+}
+
+.learner-view-active .cn-highlight,
+.learner-view-active .card-data-link .cn-highlight {
+    color: var(--accent) !important;
+}
+
+.card-data-link {
+    color: var(--text) !important;
+    text-decoration: underline;
 }
 
 .badge-scan {
@@ -691,11 +740,11 @@ button:hover {
 
 /* Table Row Highlights */
 .authorized {
-    background: linear-gradient(90deg, var(--authorized), #2ea24a33);
+    background: linear-gradient(90deg, #236b2b59, #2ea24a14);
 }
 
 .unauthorized {
-    background: linear-gradient(90deg, var(--unauthorized), #ff6b6b33);
+    background: linear-gradient(90deg, #8b1f1f59, #ff6b6b14);
 }
 
 #logExpandControl {
