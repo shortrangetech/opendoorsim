@@ -41,16 +41,16 @@
 
         <div id="monitor">
             <div class="indent-section"
-                style="display: flex; justify-content: center; margin-top: 15px;">
-                <div class="device-bezel">
+                style="display: flex; justify-content: center; margin-top: 15px; gap: 20px;">
+                <div class="device-bezel screens-bezel">
                     <div class="bezel-left">
-                        <button id="logoBtn" class="bezel-logo-btn">
-                            <img id="logo" src="logo512_big.png" alt="logo">
-                        </button>
+                        <img id="logo" src="logo512_big.png" alt="logo">
                     </div>
                     <div class="screen-container">
                         <canvas id="oledCanvas" width="128" height="64"></canvas>
                     </div>
+                </div>
+                <div class="device-bezel buttons-bezel">
                     <div class="bezel-right">
                         <button id="navBtnParity" class="navbar-btn" onclick="toggleParitySetting()"
                             title="Toggle Parity Check">
@@ -74,6 +74,8 @@
                                 <line x1="12" y1="1" x2="12" y2="12"></line>
                             </svg>
                         </button>
+                        <div class="bezel-btn-placeholder"></div>
+                        <div class="bezel-btn-placeholder"></div>
                         <div class="bezel-btn-placeholder"></div>
                     </div>
                 </div>

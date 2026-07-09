@@ -32,33 +32,13 @@ header {
 }
 
 #logo {
-    width: 100px;
-    height: 100px;
+    width: 120px;
+    height: 120px;
     border-radius: 0px;
     object-fit: contain;
     border: none;
     display: block;
-}
-
-.bezel-logo-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid #2f2f2f;
-    border-radius: 20px;
-    width: 136px;
-    height: 136px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    padding: 0;
-    box-sizing: border-box;
-    transition: all 0.2s ease;
-}
-
-.bezel-logo-btn:hover {
-    transform: scale(1.05);
-    background: rgba(255, 255, 255, 0.15);
-    border-color: #2f2f2f;
+    filter: brightness(0);
 }
 
 .brand {
@@ -107,29 +87,39 @@ header {
 
 .bezel-right {
     display: grid;
-    grid-template-columns: repeat(2, 63px);
-    grid-template-rows: repeat(2, 63px);
+    grid-template-columns: repeat(2, 46px);
+    grid-template-rows: repeat(3, 46px);
     gap: 15px;
-    width: 146px;
-    height: 146px;
+    width: 107px;
+    height: 168px;
     flex-shrink: 0;
 }
 
+.buttons-bezel {
+    width: 157px;
+    height: 218px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 !important;
+}
+
 .bezel-right .navbar-btn {
-    width: 63px;
-    height: 63px;
-    border-radius: 14px;
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
 }
 
 .bezel-right .navbar-btn svg {
-    width: 33px;
-    height: 33px;
+    width: 24px;
+    height: 24px;
 }
 
 .bezel-btn-placeholder {
-    width: 63px;
-    height: 63px;
-    border-radius: 14px;
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
     border: 1px dashed rgba(255, 255, 255, 0.1);
     background: transparent;
     box-sizing: border-box;
