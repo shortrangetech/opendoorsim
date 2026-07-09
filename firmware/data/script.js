@@ -35,11 +35,15 @@ let unsavedChanges = false;
 let originalTimeout = 5000;
 let originalCustomMessage = "";
 let originalLedValid = 1;
-let originalTamper = false;
 
 // Mode toggle state — prevents spam clicking out of sync with hardware
 let modePending = false;
 let currentMode = 'raw'; // mirrors last confirmed hardware mode
+
+// Tamper state
+let tamperEnabled = false;
+let tamperTripped = false;
+let tamperPending = false;
 
 // Virtual Screen Vars
 let screenInterval = null;
@@ -59,7 +63,6 @@ function checkDirty() {
     const currLed = document.getElementById('ledValid').value;
     const currDisplay = document.getElementById('activeDisplayType').value;
     const currFlip = document.getElementById('flipOled').checked;
-    const currTamper = document.getElementById('enable_tamper_detect').checked;
     // 2. Compare
     let isDirty = false;
 
@@ -72,7 +75,6 @@ function checkDirty() {
     if (currLed != originalLedValid) isDirty = true;
     if (currDisplay != originalDisplayType) isDirty = true;
     if (currFlip !== originalFlipOled) isDirty = true;
-    if (currTamper !== originalTamper) isDirty = true;
 
     // 3. Update UI
     unsavedChanges = isDirty;
@@ -686,27 +688,69 @@ function updateUserIndicator(settings) {
     if (hintEl) hintEl.style.display = isUserOn ? 'none' : 'block';
 }
 
-function updateTamperIndicator(settings) {
-    const container = document.getElementById('tamperIndicator');
-    const statusEl = document.getElementById('tamperStatus');
-    if (!container || !statusEl) return;
+function toggleTamperSetting() {
+    if (tamperPending) return;
+    tamperPending = true;
 
-    const isEnabled = settings.enable_tamper_detect ? true : false;
-    const isTripped = settings.tamper_tripped ? true : false;
-
-    statusEl.classList.remove('status-green', 'status-red', 'status-yellow');
-
-    if (!isEnabled) {
-        container.style.display = 'none';
-    } else {
-        container.style.display = 'block';
-        if (isTripped) {
-            statusEl.textContent = 'TAMPERING DETECTED!';
-            statusEl.classList.add('status-yellow');
+    // optimistic UI update
+    const targetState = !tamperEnabled;
+    const navBtnTamper = document.getElementById('navBtnTamper');
+    if (navBtnTamper) {
+        if (targetState) {
+            navBtnTamper.classList.add('tamper-on');
         } else {
-            statusEl.textContent = 'ENABLED';
-            statusEl.classList.add('status-green');
+            navBtnTamper.classList.remove('tamper-on');
         }
+    }
+
+    fetch('/toggleTamper', { method: 'POST' })
+        .then(response => response.text())
+        .then(state => {
+            tamperEnabled = (state === 'ON');
+            updateTamperButtonUI();
+        })
+        .catch(err => {
+            console.error('Error toggling tamper detect:', err);
+            updateTamperButtonUI();
+        })
+        .finally(() => {
+            tamperPending = false;
+        });
+}
+
+function updateTamperButtonUI() {
+    const navBtnTamper = document.getElementById('navBtnTamper');
+    if (!navBtnTamper) return;
+
+    // Remove all state classes first
+    navBtnTamper.classList.remove('tamper-on', 'tamper-tripped');
+
+    if (tamperEnabled) {
+        if (tamperTripped) {
+            navBtnTamper.classList.add('tamper-tripped');
+            navBtnTamper.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    <line x1="12" y1="8" x2="12" y2="12" stroke-width="3"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16" stroke-width="3"></line>
+                </svg>`;
+            navBtnTamper.setAttribute('title', 'Tampering Detected!');
+        } else {
+            navBtnTamper.classList.add('tamper-on');
+            navBtnTamper.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                    <path d="M8 12s1.5-2 4-2 4 2 4 2-1.5 2-4 2-4-2-4-2z" stroke-width="2"></path>
+                    <circle cx="12" cy="12" r="1.5" stroke-width="2"></circle>
+                </svg>`;
+            navBtnTamper.setAttribute('title', 'Tamper Detect: Enabled');
+        }
+    } else {
+        navBtnTamper.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>`;
+        navBtnTamper.setAttribute('title', 'Tamper Detect: Disabled');
     }
 }
 
@@ -762,7 +806,6 @@ function saveSettings() {
     const customMessage = document.getElementById('customMessage').value;
     const ledValid = document.getElementById('ledValid').value;
     const activeDisplayType = document.getElementById('activeDisplayType').value;
-    const enableTamperDetect = document.getElementById('enable_tamper_detect').checked;
 
     let settings = {
         display_timeout: parseInt(timeout, 10),
@@ -773,7 +816,7 @@ function saveSettings() {
         led_valid: parseInt(ledValid, 10),
         active_display_type: parseInt(activeDisplayType, 10),
         flip_oled_display: currentFlip,
-        enable_tamper_detect: enableTamperDetect,
+        enable_tamper_detect: tamperEnabled,
         should_reboot: rebootRequired,
         disable_encoder: !knobEnabled
     };
@@ -808,7 +851,9 @@ function fetchSettings(forceUpdateUI = false) {
         .then(response => response.json())
         .then(data => {
             updateUserIndicator(data);
-            updateTamperIndicator(data);
+            tamperEnabled = data.enable_tamper_detect ? true : false;
+            tamperTripped = data.tamper_tripped ? true : false;
+            updateTamperButtonUI();
 
             // FIX 1: Only update UI if there are NO unsaved changes 
             // OR if we forced it (like immediately after a save)
@@ -841,7 +886,6 @@ function updateSettingsUI(settings) {
     const ssidHidden = (settings.ssid_hidden !== undefined) ? settings.ssid_hidden : settings.ssidHidden;
     const customMessage = settings.custom_message || settings.customMessage || '';
     const activeDisplayType = settings.active_display_type || settings.activeDisplayType || '';
-    const enableTamperDetect = (settings.enable_tamper_detect !== undefined) ? settings.enable_tamper_detect : settings.enableTamperDetect;
     const version = settings.version || settings.version || '';
     const disableEncoder = (settings.disable_encoder !== undefined) ? settings.disable_encoder : false;
     knobEnabled = !disableEncoder;
@@ -858,7 +902,6 @@ function updateSettingsUI(settings) {
     if (document.getElementById('customMessage')) document.getElementById('customMessage').value = customMessage;
     if (document.getElementById('ledValid')) document.getElementById('ledValid').value = ledValid;
     if (document.getElementById('activeDisplayType')) document.getElementById('activeDisplayType').value = activeDisplayType;
-    if (document.getElementById('enable_tamper_detect')) document.getElementById('enable_tamper_detect').checked = enableTamperDetect;
     if (document.getElementById('versionValue')) document.getElementById('versionValue').textContent = version;
     if (document.getElementById('flipOled')) document.getElementById('flipOled').checked = settings.flip_oled_display;
 
@@ -924,7 +967,6 @@ function updateSettingsUI(settings) {
     originalTimeout = displayTimeout;
     originalCustomMessage = customMessage;
     originalLedValid = ledValid;
-    originalTamper = enableTamperDetect;
 
     // Listeners
     const displaySelect = document.getElementById('activeDisplayType');
@@ -1376,7 +1418,6 @@ document.getElementById('modeSelect') && document.getElementById('modeSelect').a
 document.getElementById('timeoutSelect').addEventListener('change', checkDirty);
 document.getElementById('ledValid').addEventListener('change', checkDirty);
 document.getElementById('customMessage').addEventListener('input', checkDirty);
-document.getElementById('enable_tamper_detect').addEventListener('change', checkDirty);
 
 setInterval(updateScanLog, 5000);
 setInterval(fetchSettings, 5000);

@@ -2050,6 +2050,13 @@ void webServer() {
     request->send(200, "text/plain", enableParityCheck ? "ON" : "OFF");
   });
 
+  server.on("/toggleTamper", HTTP_POST, [](AsyncWebServerRequest *request) {
+    enableTamperDetect = !enableTamperDetect;
+    saveSettingsToPreferences();
+    Serial.printf("[SYSTEM] Tamper Detect toggled via WebUI. New state: %s\n", enableTamperDetect ? "ON" : "OFF");
+    request->send(200, "text/plain", enableTamperDetect ? "ON" : "OFF");
+  });
+
   // --- /setMode: dedicated endpoint for toggling mode from the navbar button
   // ---
   AsyncCallbackJsonWebHandler *setModeHandler = new AsyncCallbackJsonWebHandler(

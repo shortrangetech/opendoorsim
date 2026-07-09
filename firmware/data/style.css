@@ -215,6 +215,32 @@ header {
     transform: scale(1.05);
 }
 
+#navBtnTamper.tamper-on {
+    background-color: #52009f;
+    border-color: #52009f;
+    color: #fff;
+}
+
+#navBtnTamper.tamper-on:hover {
+    background-color: #6e13bf;
+    border-color: #6e13bf;
+    color: #fff;
+    transform: scale(1.05);
+}
+
+#navBtnTamper.tamper-tripped {
+    background-color: var(--unauthorized);
+    border-color: var(--unauthorized);
+    color: #fff;
+}
+
+#navBtnTamper.tamper-tripped:hover {
+    background-color: #a62a2a;
+    border-color: #a62a2a;
+    color: #fff;
+    transform: scale(1.05);
+}
+
 #navBtnReboot:hover {
     background-color: #8b1f1f;
     border-color: #8b1f1f;
