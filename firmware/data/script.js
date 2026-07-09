@@ -1419,12 +1419,32 @@ document.getElementById('timeoutSelect').addEventListener('change', checkDirty);
 document.getElementById('ledValid').addEventListener('change', checkDirty);
 document.getElementById('customMessage').addEventListener('input', checkDirty);
 
-setInterval(updateScanLog, 5000);
-setInterval(fetchSettings, 5000);
-
 window.onload = function () {
     if (!screenInterval) screenInterval = setInterval(updateScreen, 150);
     fetchSettings();
+
+    // Initialize SSE (Server-Sent Events) for real-time push updates
+    if (!!window.EventSource) {
+        const source = new EventSource('/events');
+
+        source.addEventListener('settings', function(e) {
+            console.log("SSE: Settings update ping received");
+            fetchSettings();
+        }, false);
+
+        source.addEventListener('cards', function(e) {
+            console.log("SSE: Cards update ping received");
+            updateScanLog();
+        }, false);
+
+        source.addEventListener('error', function(e) {
+            if (e.target.readyState !== EventSource.OPEN) {
+                console.log("SSE: Connection lost, retrying...");
+            }
+        }, false);
+    } else {
+        console.warn("SSE: Your browser does not support Server-Sent Events.");
+    }
     
     // Load wiegand formats
     fetch('/wiegand_formats.json')

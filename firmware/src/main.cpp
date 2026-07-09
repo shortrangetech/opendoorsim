@@ -62,6 +62,7 @@ bool origApMode = true;
 int origSsidHidden = 0;
 
 AsyncWebServer server(80);
+AsyncEventSource events("/events");
 
 IPAddress local_IP(192, 168, 8, 8);
 IPAddress gateway(192, 168, 8, 8);
@@ -722,6 +723,7 @@ void saveSettingsToPreferences() {
   }
   file.close();
   Serial.println("[SYSTEM] Settings saved!");
+  events.send("ping", "settings");
 }
 
 void loadSettingsFromPreferences() {
@@ -1354,6 +1356,7 @@ void printCardData() {
   strncpy(cardDataArray[cardDataIndex].details, details, DETAILS_MAX - 1);
   cardDataArray[cardDataIndex].details[DETAILS_MAX - 1] = '\0';
   cardDataIndex++;
+  events.send("ping", "cards");
 
   pendingLogSave = true;
 
@@ -1978,6 +1981,7 @@ void webServer() {
   server.on("/clearCards", HTTP_POST, [](AsyncWebServerRequest *request) {
     cardDataIndex = 0;
     saveLogToPreferences();
+    events.send("ping", "cards");
     request->send(200, "text/plain", "OK");
   });
 
@@ -2033,6 +2037,7 @@ void webServer() {
     }
 
     forceMenuUpdate = true;
+    events.send("ping", "settings");
     request->send(200, "text/plain", isSystemPaused ? "PAUSED" : "ACTIVE");
   });
 
@@ -2553,6 +2558,8 @@ void webServer() {
   // Route to load style.css file, and script.js file
   server.serveStatic("/", LittleFS, "/");
 
+  server.addHandler(&events);
+
   server.begin();
 }
 
@@ -2579,6 +2586,7 @@ void checkTamper() {
         // Restore the standby screen
         printStandbyMessage();
       }
+      events.send("ping", "settings");
     }
   }
 }
