@@ -120,6 +120,7 @@ header {
     white-space: nowrap;
     width: 140px;
     /* Default for RAW */
+    margin: 0 !important;
 }
 
 #modeBox:hover:not(.mode-paused) {
@@ -158,6 +159,9 @@ header {
 
 .navbar-btn:hover {
     transform: scale(1.05);
+    background: rgba(255, 255, 255, 0.15);
+    border-color: #2f2f2f;
+    color: rgba(255, 255, 255, 0.9);
 }
 
 .navbar-btn svg {
@@ -185,11 +189,15 @@ header {
 }
 
 #navBtnParity.parity-on {
-    color: #ff33a8; /* pink */
+    background-color: #3b7ebb;
+    border-color: #3b7ebb;
+    color: #fff;
 }
 
 #navBtnParity.parity-on:hover {
-    color: #ff66c2;
+    background-color: #4c8fcc;
+    border-color: #4c8fcc;
+    color: #fff;
     transform: scale(1.05);
 }
 
@@ -788,6 +796,24 @@ button:hover {
 }
 
 #badgeLearnerView.hide-learner-badge {
+    max-width: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    opacity: 0 !important;
+    border-left-width: 0 !important;
+    border-right-width: 0 !important;
+}
+
+#badgeToggleParity {
+    max-width: 150px;
+    opacity: 1;
+    overflow: hidden;
+    transition: max-width 0.3s ease, margin-left 0.3s ease, margin-right 0.3s ease, padding 0.3s ease, opacity 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+}
+
+#badgeToggleParity.hide-parity-toggle {
     max-width: 0 !important;
     margin-left: 0 !important;
     margin-right: 0 !important;

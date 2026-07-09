@@ -262,7 +262,7 @@ function syncParityToggleBadge() {
     
     if (parityToggle) {
         if (parityCheckEnabled) {
-            parityToggle.style.display = 'inline-block';
+            parityToggle.classList.remove('hide-parity-toggle');
             if (lastParityCheckSetting === false || lastParityCheckSetting === null) {
                 showParity = true;
                 parityToggle.className = 'badge badge-purple badge-clickable';
@@ -271,9 +271,8 @@ function syncParityToggleBadge() {
                 }
             }
         } else {
-            parityToggle.style.display = 'none';
             showParity = false;
-            parityToggle.className = 'badge badge-gray badge-clickable';
+            parityToggle.className = 'badge badge-gray badge-clickable hide-parity-toggle';
             if (table) {
                 table.classList.add('hide-parity-badge');
             }
