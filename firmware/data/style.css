@@ -102,7 +102,7 @@ header {
     background: var(--card-bg);
     height: 42px;
     box-sizing: border-box;
-    padding: 0 10px;
+    padding: 0 5px;
     border-radius: 12px;
     border: 1px solid #2f2f2f;
     color: var(--text);
@@ -111,7 +111,7 @@ header {
     align-items: center;
     justify-content: center;
     min-width: 120px;
-    font-size: 1.2rem;
+    font-size: 1.4rem;
     gap: 6px;
     cursor: pointer;
     user-select: none;
