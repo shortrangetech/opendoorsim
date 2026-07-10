@@ -65,7 +65,7 @@ unsigned long decodeCardNumber(unsigned int start, unsigned int end);
 // Pure-binary mode: no card chunking helper
 String prefixPad(const String &in, const char c, const size_t len);
 String convertBinaryToHex(const String &binaryString, int &outPadCount);
-void processHIDCard();
+void processWiegandCard();
 void processCardData();
 void clearDatabits();
 void cleanupCardData();

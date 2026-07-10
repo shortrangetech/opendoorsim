@@ -95,13 +95,13 @@ const char *wiegandFormatsFile = "/wiegand_formats.json";
 #define SYS_I2C_SDA 21
 #define SYS_I2C_CLK 22
 
-// Reserved Pins For Future Use
-#define RESERVED_PIN1 13
-#define RESERVED_PIN2 14
-#define RESERVED_PIN3 18
-#define RESERVED_PIN4 19
-#define RESERVED_PIN5 22
-#define RESERVED_PIN6 23
+// Accessory Ports (Extra GPIO Breakout Pins)
+#define EX1_PIN 13
+#define EX2_PIN 14
+#define EX3_PIN 18
+#define EX4_PIN 19
+#define EX5_PIN 22
+#define EX6_PIN 23
 
 // Display type constants
 #define DISPLAY_LCD 1
@@ -206,7 +206,7 @@ int ledValid = 1;
 
 // Custom Display Message
 String customMessage = "     OPENDOORSIM     ";
-String firmwareVersion = "v0.9.0";
+String firmwareVersion = "v1.1";
 
 // decoded facility code and card code
 unsigned long facilityCode = 0;
@@ -783,10 +783,12 @@ void loadSettingsFromPreferences() {
   disableEncoder = doc["disable_encoder"] | false;
   enableParityCheck = doc["enable_parity_check"] | false;
 
-  // On startup, if WiFi hotspot is disabled, force encoder to be ENABLED to prevent lock-out.
+  // On startup, if WiFi hotspot is disabled, force encoder to be ENABLED to
+  // prevent lock-out.
   if (!apMode && disableEncoder) {
     disableEncoder = false;
-    Serial.println("[SYSTEM] WiFi Access Point is OFF. Forcing rotary encoder to be ENABLED to prevent lock-out.");
+    Serial.println("[SYSTEM] WiFi Access Point is OFF. Forcing rotary encoder "
+                   "to be ENABLED to prevent lock-out.");
     saveSettingsToPreferences();
   }
 
@@ -905,19 +907,24 @@ void loadWiegandFormats() {
         format["cardNumberStart"] | 0;
     wiegandFormats[wiegandFormatCounter].cardNumberEnd =
         format["cardNumberEnd"] | 0;
-    wiegandFormats[wiegandFormatCounter].parityEvenBit = format["parityEvenBit"] | -1;
+    wiegandFormats[wiegandFormatCounter].parityEvenBit =
+        format["parityEvenBit"] | -1;
     wiegandFormats[wiegandFormatCounter].parityEvenIndicesLength = 0;
-    
+
     if (wiegandFormats[wiegandFormatCounter].parityEvenBit > 0) {
       JsonVariant evenIndices = format["parityEvenIndices"];
       JsonVariant evenRange = format["parityEvenRange"];
-      
+
       if (evenIndices.is<JsonArray>()) {
         JsonArray arr = evenIndices.as<JsonArray>();
         for (JsonVariant val : arr) {
           int idx = val.as<int>();
-          if (idx > 0 && wiegandFormats[wiegandFormatCounter].parityEvenIndicesLength < 128) {
-            wiegandFormats[wiegandFormatCounter].parityEvenIndices[wiegandFormats[wiegandFormatCounter].parityEvenIndicesLength++] = idx;
+          if (idx > 0 &&
+              wiegandFormats[wiegandFormatCounter].parityEvenIndicesLength <
+                  128) {
+            wiegandFormats[wiegandFormatCounter]
+                .parityEvenIndices[wiegandFormats[wiegandFormatCounter]
+                                       .parityEvenIndicesLength++] = idx;
           }
         }
       } else if (evenRange.is<JsonArray>()) {
@@ -927,8 +934,11 @@ void loadWiegandFormats() {
           int end = arr[1].as<int>();
           if (start > 0 && end >= start) {
             for (int idx = start; idx <= end; idx++) {
-              if (wiegandFormats[wiegandFormatCounter].parityEvenIndicesLength < 128) {
-                wiegandFormats[wiegandFormatCounter].parityEvenIndices[wiegandFormats[wiegandFormatCounter].parityEvenIndicesLength++] = idx;
+              if (wiegandFormats[wiegandFormatCounter].parityEvenIndicesLength <
+                  128) {
+                wiegandFormats[wiegandFormatCounter]
+                    .parityEvenIndices[wiegandFormats[wiegandFormatCounter]
+                                           .parityEvenIndicesLength++] = idx;
               }
             }
           }
@@ -936,19 +946,24 @@ void loadWiegandFormats() {
       }
     }
 
-    wiegandFormats[wiegandFormatCounter].parityOddBit = format["parityOddBit"] | -1;
+    wiegandFormats[wiegandFormatCounter].parityOddBit =
+        format["parityOddBit"] | -1;
     wiegandFormats[wiegandFormatCounter].parityOddIndicesLength = 0;
-    
+
     if (wiegandFormats[wiegandFormatCounter].parityOddBit > 0) {
       JsonVariant oddIndices = format["parityOddIndices"];
       JsonVariant oddRange = format["parityOddRange"];
-      
+
       if (oddIndices.is<JsonArray>()) {
         JsonArray arr = oddIndices.as<JsonArray>();
         for (JsonVariant val : arr) {
           int idx = val.as<int>();
-          if (idx > 0 && wiegandFormats[wiegandFormatCounter].parityOddIndicesLength < 128) {
-            wiegandFormats[wiegandFormatCounter].parityOddIndices[wiegandFormats[wiegandFormatCounter].parityOddIndicesLength++] = idx;
+          if (idx > 0 &&
+              wiegandFormats[wiegandFormatCounter].parityOddIndicesLength <
+                  128) {
+            wiegandFormats[wiegandFormatCounter]
+                .parityOddIndices[wiegandFormats[wiegandFormatCounter]
+                                      .parityOddIndicesLength++] = idx;
           }
         }
       } else if (oddRange.is<JsonArray>()) {
@@ -958,8 +973,11 @@ void loadWiegandFormats() {
           int end = arr[1].as<int>();
           if (start > 0 && end >= start) {
             for (int idx = start; idx <= end; idx++) {
-              if (wiegandFormats[wiegandFormatCounter].parityOddIndicesLength < 128) {
-                wiegandFormats[wiegandFormatCounter].parityOddIndices[wiegandFormats[wiegandFormatCounter].parityOddIndicesLength++] = idx;
+              if (wiegandFormats[wiegandFormatCounter].parityOddIndicesLength <
+                  128) {
+                wiegandFormats[wiegandFormatCounter]
+                    .parityOddIndices[wiegandFormats[wiegandFormatCounter]
+                                          .parityOddIndicesLength++] = idx;
               }
             }
           }
@@ -1212,7 +1230,8 @@ void loadLogFromPreferences() {
       if (card["hasFormat"].is<bool>()) {
         cardDataArray[i].hasFormat = card["hasFormat"].as<bool>();
       } else {
-        cardDataArray[i].hasFormat = (cardDataArray[i].facilityCode > 0 || cardDataArray[i].cardNumber > 0);
+        cardDataArray[i].hasFormat = (cardDataArray[i].facilityCode > 0 ||
+                                      cardDataArray[i].cardNumber > 0);
       }
     }
   }
@@ -1381,13 +1400,16 @@ bool checkParityBits(const WiegandFormat *format) {
     for (int i = 0; i < format->parityEvenIndicesLength; i++) {
       int bitPos = format->parityEvenIndices[i];
       if (bitPos > 0 && bitPos <= (int)format->bitCount) {
-        if (databits[bitPos - 1]) count++;
+        if (databits[bitPos - 1])
+          count++;
       }
     }
     if (format->parityEvenBit <= (int)format->bitCount) {
-      if (databits[format->parityEvenBit - 1]) count++;
+      if (databits[format->parityEvenBit - 1])
+        count++;
     }
-    if (count % 2 != 0) return false;
+    if (count % 2 != 0)
+      return false;
   }
 
   // Check odd parity if defined
@@ -1396,13 +1418,16 @@ bool checkParityBits(const WiegandFormat *format) {
     for (int i = 0; i < format->parityOddIndicesLength; i++) {
       int bitPos = format->parityOddIndices[i];
       if (bitPos > 0 && bitPos <= (int)format->bitCount) {
-        if (databits[bitPos - 1]) count++;
+        if (databits[bitPos - 1])
+          count++;
       }
     }
     if (format->parityOddBit <= (int)format->bitCount) {
-      if (databits[format->parityOddBit - 1]) count++;
+      if (databits[format->parityOddBit - 1])
+        count++;
     }
-    if (count % 2 != 1) return false;
+    if (count % 2 != 1)
+      return false;
   }
 
   return true;
@@ -1410,23 +1435,23 @@ bool checkParityBits(const WiegandFormat *format) {
 
 // Process hid cards
 unsigned long decodeFacilityCode(unsigned int start, unsigned int end) {
-  unsigned long HIDFacilityCode = 0;
+  unsigned long decodedFacilityCode = 0;
   if (start > 0 && end >= start) {
     for (unsigned int i = start - 1; i <= end - 1; i++) {
-      HIDFacilityCode = (HIDFacilityCode << 1) | databits[i];
+      decodedFacilityCode = (decodedFacilityCode << 1) | databits[i];
     }
   }
-  return HIDFacilityCode;
+  return decodedFacilityCode;
 }
 
 unsigned long decodeCardNumber(unsigned int start, unsigned int end) {
-  unsigned long HIDCardNumber = 0;
+  unsigned long decodedCardNumber = 0;
   if (start > 0 && end >= start) {
     for (unsigned int i = start - 1; i <= end - 1; i++) {
-      HIDCardNumber = (HIDCardNumber << 1) | databits[i];
+      decodedCardNumber = (decodedCardNumber << 1) | databits[i];
     }
   }
-  return HIDCardNumber;
+  return decodedCardNumber;
 }
 
 // Card chunking logic removed for Pure Binary mode
@@ -1513,7 +1538,7 @@ void convertBinaryToHexC(const char *binaryString, int &outPadCount,
   outHex[outPos] = '\0';
 }
 
-void processHIDCard() {
+void processWiegandCard() {
   // bits to be decoded differently depending on card format length
   // see http://www.pagemac.com/projects/rfid/hid_data_formats
 
@@ -1530,7 +1555,7 @@ void processHIDCard() {
   }
 
   if (format == nullptr) {
-    Serial.println("[-] Unsupported bitCount for HID card");
+    Serial.println("[-] Unsupported bitCount for Card");
     lastParityStatus = -1;
     hasFormat = false;
     return;
@@ -1545,8 +1570,10 @@ void processHIDCard() {
 
   // Parity check
   if (enableParityCheck) {
-    bool hasEven = (format->parityEvenBit > 0 && format->parityEvenIndicesLength > 0);
-    bool hasOdd = (format->parityOddBit > 0 && format->parityOddIndicesLength > 0);
+    bool hasEven =
+        (format->parityEvenBit > 0 && format->parityEvenIndicesLength > 0);
+    bool hasOdd =
+        (format->parityOddBit > 0 && format->parityOddIndicesLength > 0);
     if (!hasEven && !hasOdd) {
       lastParityStatus = 2; // No parity information set
     } else {
@@ -1582,7 +1609,7 @@ void processCardData() {
   Serial.println(lastPadCount);
 
   if (bitCount >= 12 && bitCount <= MAX_BITS_CONST) {
-    processHIDCard();
+    processWiegandCard();
   } else {
     lastParityStatus = -1;
     hasFormat = false;
@@ -2050,14 +2077,17 @@ void webServer() {
   server.on("/toggleKnob", HTTP_POST, [](AsyncWebServerRequest *request) {
     disableEncoder = !disableEncoder;
     saveSettingsToPreferences();
-    Serial.printf("[SYSTEM] Knob disabled state toggled via WebUI. New state: %s\n", disableEncoder ? "DISABLED" : "ENABLED");
+    Serial.printf(
+        "[SYSTEM] Knob disabled state toggled via WebUI. New state: %s\n",
+        disableEncoder ? "DISABLED" : "ENABLED");
     request->send(200, "text/plain", disableEncoder ? "OFF" : "ON");
   });
 
   server.on("/toggleParity", HTTP_POST, [](AsyncWebServerRequest *request) {
     enableParityCheck = !enableParityCheck;
     saveSettingsToPreferences();
-    Serial.printf("[SYSTEM] Parity Check toggled via WebUI. New state: %s\n", enableParityCheck ? "ON" : "OFF");
+    Serial.printf("[SYSTEM] Parity Check toggled via WebUI. New state: %s\n",
+                  enableParityCheck ? "ON" : "OFF");
     request->send(200, "text/plain", enableParityCheck ? "ON" : "OFF");
   });
 
@@ -2068,7 +2098,8 @@ void webServer() {
     }
     saveSettingsToPreferences();
     forceMenuUpdate = true;
-    Serial.printf("[SYSTEM] Tamper Detect toggled via WebUI. New state: %s\n", enableTamperDetect ? "ON" : "OFF");
+    Serial.printf("[SYSTEM] Tamper Detect toggled via WebUI. New state: %s\n",
+                  enableTamperDetect ? "ON" : "OFF");
     request->send(200, "text/plain", enableTamperDetect ? "ON" : "OFF");
   });
 
@@ -2630,7 +2661,8 @@ void processMenuAction() {
     printDisplayText("      SAVING...      ", "    REBOOTING....    ", "", "");
     if (!apMode) {
       disableEncoder = false;
-      Serial.println("[SYSTEM] WiFi hotspot turned off. Forcing encoder ENABLED before reboot.");
+      Serial.println("[SYSTEM] WiFi hotspot turned off. Forcing encoder "
+                     "ENABLED before reboot.");
     }
     saveSettingsToPreferences();
     delay(1000);
@@ -2776,10 +2808,14 @@ void processMenuAction() {
         }
 
         int prevIndex = 0;
-        if (currentMenuLevel == menuItems_General) prevIndex = 2;
-        else if (currentMenuLevel == menuItems_Display) prevIndex = 3;
-        else if (currentMenuLevel == menuItems_Wifi) prevIndex = 4;
-        else if (currentMenuLevel == menuItems_User) prevIndex = 5;
+        if (currentMenuLevel == menuItems_General)
+          prevIndex = 2;
+        else if (currentMenuLevel == menuItems_Display)
+          prevIndex = 3;
+        else if (currentMenuLevel == menuItems_Wifi)
+          prevIndex = 4;
+        else if (currentMenuLevel == menuItems_User)
+          prevIndex = 5;
 
         // Normal Back Behavior (No changes, or not Wifi menu)
         currentMenuLevel = menuItems_Main;
@@ -2803,7 +2839,8 @@ void processMenuAction() {
         *val = !(*val);
         if (val == &apMode && !apMode) {
           disableEncoder = false;
-          Serial.println("[SYSTEM] WiFi hotspot turned off via encoder. Forcing encoder ENABLED.");
+          Serial.println("[SYSTEM] WiFi hotspot turned off via encoder. "
+                         "Forcing encoder ENABLED.");
         }
         if (val == &enableTamperDetect && !enableTamperDetect) {
           tamperState = false;
