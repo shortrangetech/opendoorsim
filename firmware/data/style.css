@@ -611,6 +611,18 @@ button:hover {
     margin-left: 15px;
     letter-spacing: normal;
     transform: translateY(-0.08em);
+    transition: opacity 0.3s ease, max-width 0.3s ease, margin-left 0.3s ease;
+    max-width: 1000px;
+    opacity: 1;
+}
+
+/* Hide badges on scans header when collapsed */
+h2.collapsible:not(.expanded) .badge-group {
+    opacity: 0;
+    max-width: 0;
+    margin-left: 0;
+    pointer-events: none;
+    overflow: hidden;
 }
 
 .badge-group .badge:not(:last-child) {
@@ -861,44 +873,99 @@ button:hover {
     user-select: none;
 }
 
-/* Retro CRT "Power LED" Indicator */
-.collapsible::before {
-    content: '';
+.collapsible .title-text {
+    position: relative;
+    top: -0.07em; /* Raise title text slightly to center with LED/badges */
+}
+
+/* Retro CRT "Power LED" Indicator Container */
+.retro-led {
+    position: relative;
     display: inline-block;
     width: 10px;
     height: 10px;
-    border-radius: 50%;
     margin-right: 12px;
-    background-color: #8a3a00;
-    box-shadow: 0 0 2px #8a3a00;
     flex-shrink: 0;
-    transition: background-color 0.3s ease, box-shadow 0.3s ease;
-    animation: amberPulse 2s infinite ease-in-out;
 }
 
-.collapsible.expanded::before {
-    background-color: var(--accent); /* Solid gold/amber */
+/* Pulsing amber (standby/collapsed state) */
+.retro-led::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background-color: #8a3a00;
+    box-shadow: 0 0 2px #8a3a00;
+    animation: amberPulse 4s infinite ease-in-out;
+    opacity: 1;
+    transition: opacity 0.5s ease;
+}
+
+/* Solid gold (active/expanded state) */
+.retro-led::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background-color: var(--accent);
     box-shadow: 0 0 10px var(--accent);
-    animation: none; /* Solid, no pulse */
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+/* Fade transition when header is expanded */
+.collapsible.expanded .retro-led::before {
+    opacity: 0;
+}
+
+.collapsible.expanded .retro-led::after {
+    opacity: 1;
 }
 
 @keyframes amberPulse {
-    0% {
+    0%, 25%, 100% {
         background-color: #8a3a00;
         box-shadow: 0 0 2px #8a3a00;
     }
-    50% {
+    65% {
         background-color: #ff7700;
         box-shadow: 0 0 8px #ff7700;
-    }
-    100% {
-        background-color: #8a3a00;
-        box-shadow: 0 0 2px #8a3a00;
     }
 }
 
 #userManagementHeader {
-    margin-top: 35px;
+    margin-top: 0;
+}
+
+/* Light divider line between sections */
+.section-line {
+    height: 1px;
+    background: #333;
+    margin: 20px 15px;
+}
+
+/* Light divider line below users section, disappears when expanded */
+.users-bottom-line {
+    height: 1px;
+    background: #333;
+    margin: 20px 15px;
+    opacity: 1;
+    transition: opacity 0.3s ease, height 0.3s ease, margin-top 0.3s ease, margin-bottom 0.3s ease;
+    overflow: hidden;
+}
+
+#usersContent.expanded + .users-bottom-line {
+    opacity: 0;
+    height: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    pointer-events: none;
 }
 
 .contentCollapsible {
