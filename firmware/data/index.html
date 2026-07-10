@@ -21,19 +21,6 @@
             <div class="header-right">
                 <div id="modeBox" class="mode-raw badge badge-clickable" onclick="toggleMode()" title="Toggle Mode">
                     MODE: <span id="modeValue">RAW</span></div>
-                <button id="navBtnPause" class="navbar-btn" onclick="togglePause()" title="Pause OpenDoorSim">
-                    <svg viewBox="0 0 24 24" fill="currentColor">
-                        <rect x="6" y="1" width="4" height="22" rx="1"></rect>
-                        <rect x="14" y="1" width="4" height="22" rx="1"></rect>
-                    </svg>
-                </button>
-                <button id="navBtnReboot" class="navbar-btn" onclick="rebootDevice()" title="Remote Reboot">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
-                        stroke-linejoin="round">
-                        <polyline points="25 5 25 11 19 11"></polyline>
-                        <path d="M19.8 19.8 a11 11 0 1 1 0 -15.6 L25 11"></path>
-                    </svg>
-                </button>
             </div>
         </div>
     </header>
@@ -52,6 +39,19 @@
                 </div>
                 <div class="device-bezel buttons-bezel">
                     <div class="bezel-right">
+                        <!-- Row 1: Placeholders -->
+                        <div class="bezel-btn-placeholder"></div>
+                        <div class="bezel-btn-placeholder"></div>
+                        <div class="bezel-btn-placeholder"></div>
+                        
+                        <!-- Row 2: Encoder, Parity, Tamper -->
+                        <button id="navBtnKnob" class="navbar-btn" onclick="toggleKnobSetting()" title="Toggle Hardware Knob">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="11"></circle>
+                                <line x1="12" y1="1" x2="12" y2="12"></line>
+                            </svg>
+                        </button>
                         <button id="navBtnParity" class="navbar-btn" onclick="toggleParitySetting()"
                             title="Toggle Parity Check">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
@@ -67,16 +67,22 @@
                                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                             </svg>
                         </button>
-                        <button id="navBtnKnob" class="navbar-btn" onclick="toggleKnobSetting()" title="Toggle Hardware Knob">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
-                                stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="11"></circle>
-                                <line x1="12" y1="1" x2="12" y2="12"></line>
+                        
+                        <!-- Row 3: Blank, Pause, Reboot -->
+                        <div class="bezel-btn-placeholder"></div>
+                        <button id="navBtnPause" class="navbar-btn" onclick="togglePause()" title="Pause OpenDoorSim">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <rect x="6" y="1" width="4" height="22" rx="1"></rect>
+                                <rect x="14" y="1" width="4" height="22" rx="1"></rect>
                             </svg>
                         </button>
-                        <div class="bezel-btn-placeholder"></div>
-                        <div class="bezel-btn-placeholder"></div>
-                        <div class="bezel-btn-placeholder"></div>
+                        <button id="navBtnReboot" class="navbar-btn" onclick="rebootDevice()" title="Remote Reboot">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <polyline points="25 5 25 11 19 11"></polyline>
+                                <path d="M19.8 19.8 a11 11 0 1 1 0 -15.6 L25 11"></path>
+                            </svg>
+                        </button>
                     </div>
                 </div>
             </div>

@@ -87,16 +87,16 @@ header {
 
 .bezel-right {
     display: grid;
-    grid-template-columns: repeat(2, 48px);
+    grid-template-columns: repeat(3, 48px);
     grid-template-rows: repeat(3, 48px);
     gap: 16px;
-    width: 112px;
+    width: 176px;
     height: 176px;
     flex-shrink: 0;
 }
 
 .buttons-bezel {
-    width: 154px;
+    width: 218px;
     height: 218px;
     box-sizing: border-box;
     display: flex;
