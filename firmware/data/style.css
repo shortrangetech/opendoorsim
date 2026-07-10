@@ -690,7 +690,7 @@ button:hover {
     /* Stop pulsing when hidden */
 }
 
-#unsavedBadge {
+.unsaved-badge {
     transition:
         max-width 0.4s ease,
         max-height 0.4s ease,
@@ -727,7 +727,7 @@ button:hover {
 }
 
 /* Collapsed State */
-#unsavedBadge.collapsed {
+.unsaved-badge.collapsed {
     max-width: 0;
     max-height: 0;
     padding: 0;
@@ -1201,31 +1201,40 @@ a {
 }
 
 .settings-menu-btn {
-    background: #141413;
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
     border: 1px solid #2f2f2f;
     border-radius: 12px;
-    color: var(--text);
+    height: 48px;
+    box-sizing: border-box;
+    padding: 0 16px;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    justify-content: center;
-    gap: 4px;
+    justify-content: flex-start;
+    gap: 12px;
     cursor: pointer;
     font-weight: 700;
-    font-size: 0.75rem;
+    font-size: 0.9rem;
     transition: all 0.2s ease;
-    padding: 0;
+    user-select: none;
 }
 
 .settings-menu-btn:hover {
-    border-color: var(--accent);
-    background: #1c1c1a;
-    transform: translateY(-2px);
+    transform: scale(1.05);
+    background: rgba(255, 255, 255, 0.15);
+    border-color: #2f2f2f;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.settings-menu-btn:active {
+    transform: scale(0.95);
 }
 
 .settings-menu-btn svg {
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
 }
 
 .settings-tab {

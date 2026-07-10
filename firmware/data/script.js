@@ -78,23 +78,20 @@ function checkDirty() {
 
     // 3. Update UI
     unsavedChanges = isDirty;
-    const saveBtn = document.querySelector('#settingsBezel button');
+    const saveBtns = document.querySelectorAll('#settingsBezel .save-settings-btn');
 
-    if (saveBtn) {
+    saveBtns.forEach(saveBtn => {
         // Ensure the button text is clean (no accidental duplication)
         if (saveBtn.childNodes.length === 0 || (saveBtn.firstChild.nodeType === 3 && saveBtn.firstChild.nodeValue !== "Save Settings")) {
             saveBtn.firstChild.nodeValue = "Save Settings";
         }
 
-        let badge = document.getElementById('unsavedBadge');
+        let badge = saveBtn.querySelector('.unsaved-badge');
 
         // Create badge if it doesn't exist
         if (!badge) {
             badge = document.createElement('span');
-            badge.id = 'unsavedBadge';
-            // We do NOT use the generic .badge class here to avoid style conflicts.
-            // The ID selector in CSS handles all the styling.
-            badge.className = 'collapsed';
+            badge.className = 'unsaved-badge collapsed';
             badge.textContent = 'UNSAVED';
             saveBtn.appendChild(badge);
         }
@@ -105,7 +102,7 @@ function checkDirty() {
         } else {
             badge.classList.add('collapsed');
         }
-    }
+    });
 }
 
 function updateScreen() {
