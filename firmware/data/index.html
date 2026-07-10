@@ -16,7 +16,6 @@
             <span class="brand">OpenDoorSim</span>
             <nav class="header-center">
                 <a onclick="showSectionWithRefresh('monitor')">Home</a>
-                <a onclick="showSection('settings')">Settings</a>
             </nav>
             <div class="header-right">
             </div>
@@ -96,6 +95,116 @@
                             </svg>
                         </button>
                     </div>
+                </div>
+                <div id="settingsBezel" class="device-bezel settings-bezel">
+                    <!-- Main Menu Grid -->
+                    <div id="settingsMenu" class="settings-menu-grid">
+                        <button class="settings-menu-btn" onclick="openSettingsTab('general')" style="grid-column: span 2;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                            General
+                        </button>
+                        <button class="settings-menu-btn" onclick="openSettingsTab('wifi')" style="grid-column: span 2;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>
+                            WiFi
+                        </button>
+                        <button class="settings-menu-btn" onclick="openSettingsTab('system')" style="grid-column: span 2;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                            System
+                        </button>
+                    </div>
+
+                    <!-- General Tab -->
+                    <div id="settingsGeneral" class="settings-tab hidden">
+                        <div class="settings-tab-header">
+                            <button class="back-btn" onclick="closeSettingsTab()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></button>
+                            <h3>General Settings</h3>
+                        </div>
+                        <div class="settings-tab-content">
+                            <input type="hidden" id="activeDisplayType" value="2">
+                            <div class="settings-field">
+                                <label for="timeoutSelect">Display Timeout</label>
+                                <select id="timeoutSelect">
+                                    <option value="5000">5 seconds</option>
+                                    <option value="7000">7 seconds</option>
+                                    <option value="15000">15 seconds</option>
+                                    <option value="20000">20 seconds</option>
+                                    <option value="30000">30 seconds</option>
+                                    <option value="60000">1 minute</option>
+                                    <option value="0">None</option>
+                                </select>
+                            </div>
+                            <div class="settings-field" id="flipOledContainer" style="display:none; align-items: center; gap: 8px;">
+                                <label for="flipOled">Flip OLED</label>
+                                <input type="checkbox" id="flipOled">
+                            </div>
+                        </div>
+                        <div class="settings-actions">
+                            <button class="save-settings-btn" onclick="saveSettings()">Save Settings</button>
+                        </div>
+                    </div>
+
+                    <!-- WiFi Tab -->
+                    <div id="settingsWifi" class="settings-tab hidden">
+                        <div class="settings-tab-header">
+                            <button class="back-btn" onclick="closeSettingsTab()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></button>
+                            <h3>WiFi Settings</h3>
+                        </div>
+                        <div class="settings-tab-content" id="apSettings">
+                            <div class="settings-field">
+                                <label for="ap_ssid">SSID</label>
+                                <input type="text" id="ap_ssid">
+                            </div>
+                            <div class="settings-field">
+                                <label for="ap_pwd">Password</label>
+                                <div class="password-wrapper" style="position: relative; display: flex; align-items: center;">
+                                    <input type="password" id="ap_pwd" style="padding-right: 35px; width: 100%;">
+                                    <span id="togglePwdBtn" onclick="togglePasswordVisibility()" style="position: absolute; right: 8px; cursor: pointer; display: flex; align-items: center;">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px;">
+                                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M1 1l22 22"></path>
+                                            <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path>
+                                        </svg>
+                                    </span>
+                                </div>
+                                <div id="pwdHint" class="hidden">
+                                    Password must be 8+ chars (or empty for open network)
+                                </div>
+                            </div>
+                            <div class="settings-field" style="display: flex; align-items: center; gap: 8px;">
+                                <label for="ssid_hidden">Hidden</label>
+                                <input type="checkbox" id="ssid_hidden">
+                            </div>
+                        </div>
+                        <div class="settings-actions">
+                            <button class="save-settings-btn" onclick="saveSettings()">Save Settings</button>
+                        </div>
+                    </div>
+
+                    <!-- System Tab -->
+                    <div id="settingsSystem" class="settings-tab hidden">
+                        <div class="settings-tab-header">
+                            <button class="back-btn" onclick="closeSettingsTab()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></button>
+                            <h3>System Settings</h3>
+                        </div>
+                        <div class="settings-tab-content">
+                            <div class="settings-field">
+                                <label for="customMessage">Welcome Message</label>
+                                <input type="text" id="customMessage" maxlength="20">
+                            </div>
+                            <div class="settings-field">
+                                <label for="ledValid">LED On Valid Card</label>
+                                <select id="ledValid">
+                                    <option value="1">Rapid Flash</option>
+                                    <option value="2">Long Flash</option>
+                                    <option value="0">None</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="settings-actions">
+                            <button class="save-settings-btn" onclick="saveSettings()">Save Settings</button>
+                        </div>
+                    </div>
+                    
+                    <div id="rebootWarning" class="hidden"></div>
                 </div>
             </div>
 
@@ -183,87 +292,7 @@
                     </div>
                 </div>
             </div>
-        </div>
-
-        <div id="settings" class="hidden">
-            <h1>Settings</h1>
-
-            <h2><br>General</h2>
-            <div class="indent-section">
-                <input type="hidden" id="activeDisplayType" value="2">
-
-                <span id="flipOledContainer" style="display:none; vertical-align: middle;">
-                    <label for="flipOled">Flip OLED:</label>
-                    <input type="checkbox" id="flipOled" style="vertical-align: middle;">
-                    <br><br>
-                </span>
-                <label for="timeoutSelect">Display Timeout:</label>
-                <select id="timeoutSelect">
-                    <option value="5000">5 seconds</option>
-                    <option value="7000">7 seconds</option>
-                    <option value="15000">15 seconds</option>
-                    <option value="20000">20 seconds</option>
-                    <option value="30000">30 seconds</option>
-                    <option value="60000">1 minute</option>
-                    <option value="0">None</option>
-                </select>
-
-            </div>
-            <h2><br>Wifi</h2>
-            <div id="apSettings" class="indent-section">
-                <label for="ap_ssid">SSID:</label>
-                <input type="text" id="ap_ssid">
-                <br><br>
-
-                <div class="input-group">
-                    <label for="ap_pwd">Password:</label>
-                    <div class="password-wrapper">
-                        <input type="password" id="ap_pwd" style="padding-right: 35px;">
-                        <span id="togglePwdBtn" onclick="togglePasswordVisibility()">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                                stroke-linecap="round" stroke-linejoin="round">
-                                <path
-                                    d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M1 1l22 22">
-                                </path>
-                                <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path>
-                            </svg>
-                        </span>
-                    </div>
-                    <div id="pwdHint" class="hidden">
-                        Password must be 8+ chars (or empty for open network)
-                    </div>
-
-                </div>
-
-                <div style="margin-top: 30px;">
-                    <label for="ssid_hidden">Hidden:</label>
-                    <input type="checkbox" id="ssid_hidden">
-                </div>
-            </div>
-
-            <h2><br>User Mode</h2>
-            <div class="indent-section">
-                <label for="customMessage">Welcome Message:</label>
-                <input type="text" id="customMessage" maxlength="20">
-                <br><br>
-
-                <div>
-                    <label for="ledValid">LED On Valid Card:</label>
-                    <select id="ledValid">
-                        <option value="1">Rapid Flash</option>
-                        <option value="2">Long Flash</option>
-                        <option value="0">None</option>
-                    </select>
-                </div>
-            </div>
-            <br>
-            <div class="settings-actions">
-                <button onclick="saveSettings()">Save Settings</button>
-                <div id="rebootWarning" class="hidden"></div>
-            </div>
-
             <div style="height:1px; background:#333; margin: 25px 0 15px 0;"></div>
-
             <div style="display:flex; justify-content:space-between; align-items:flex-end;">
                 <div id="versionInfo" style="color:var(--muted);font-size:0.85rem;">
                     Version: <span id="versionValue"></span><br>
@@ -271,6 +300,8 @@
                 </div>
             </div>
         </div>
+
+
     </div>
     <script src="script.js"></script>
 </body>

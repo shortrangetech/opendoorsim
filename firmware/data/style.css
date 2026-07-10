@@ -781,7 +781,7 @@ button:hover {
 }
 
 .hidden {
-    display: none;
+    display: none !important;
 }
 
 .collapsible {
@@ -1160,4 +1160,245 @@ a {
 
 .pulse-gold {
     animation: goldPulse 2s infinite ease-in-out;
+}
+
+/* --- Settings Bezel --- */
+.settings-bezel {
+    background-color: var(--header-bg);
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    height: 218px; /* Match existing buttons bezel height */
+    box-sizing: border-box;
+    
+    /* Animation: slide & fade out/in */
+    max-width: 0;
+    opacity: 0;
+    padding: 0;
+    border: none;
+    overflow: hidden;
+    visibility: hidden;
+    margin-left: -20px;
+    transition: max-width 0.4s ease, padding 0.4s ease, opacity 0.4s ease, margin-left 0.4s ease, border-color 0.4s ease, visibility 0.4s;
+    position: relative;
+}
+
+.settings-bezel.settings-open {
+    max-width: 410px; /* 368px content + 40px padding */
+    padding: 15px 20px;
+    opacity: 1;
+    border: 1px solid #3a3a3a;
+    visibility: visible;
+    margin-left: 0;
+}
+
+.settings-menu-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 48px);
+    grid-template-rows: repeat(3, 48px);
+    gap: 16px;
+    width: 368px;
+    height: 176px;
+}
+
+.settings-menu-btn {
+    background: #141413;
+    border: 1px solid #2f2f2f;
+    border-radius: 12px;
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 0.75rem;
+    transition: all 0.2s ease;
+    padding: 0;
+}
+
+.settings-menu-btn:hover {
+    border-color: var(--accent);
+    background: #1c1c1a;
+    transform: translateY(-2px);
+}
+
+.settings-menu-btn svg {
+    width: 20px;
+    height: 20px;
+}
+
+.settings-tab {
+    display: flex;
+    flex-direction: column;
+    width: 368px;
+    height: 188px; /* 218px - 30px padding */
+}
+
+.settings-tab-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #2f2f2f;
+    padding-bottom: 6px;
+}
+
+.settings-tab-header h3 {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--accent);
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.settings-tab-header .back-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: color 0.2s ease, background 0.2s ease;
+}
+
+.settings-tab-header .back-btn:hover {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.settings-tab-header .back-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.settings-tab-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex-grow: 1;
+    overflow-y: auto;
+    padding-right: 5px; /* space for scrollbar if needed */
+}
+
+.settings-actions {
+    margin-top: auto;
+    padding-top: 8px;
+}
+
+.settings-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.settings-field label {
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    font-weight: 700;
+}
+
+.settings-bezel input[type="text"],
+.settings-bezel input[type="password"],
+.settings-bezel select {
+    width: 100%;
+    padding: 6px 8px;
+    font-size: 0.85rem;
+    border-radius: 8px;
+    background: #141413;
+    border: 1px solid #2f2f2f;
+    color: var(--text);
+    box-sizing: border-box;
+    height: 32px;
+}
+
+.settings-bezel input[type="text"]:focus,
+.settings-bezel input[type="password"]:focus,
+.settings-bezel select:focus {
+    border-color: var(--accent);
+    outline: none;
+}
+
+.settings-bezel input[type="checkbox"] {
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--accent);
+    margin: 0;
+}
+
+.settings-bezel .password-wrapper {
+    width: 100%;
+    position: relative;
+    display: block;
+}
+
+.settings-bezel #togglePwdBtn {
+    color: var(--muted);
+    opacity: 0.7;
+}
+
+.settings-bezel #togglePwdBtn:hover {
+    color: var(--text);
+    opacity: 1;
+}
+
+.save-settings-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+    border: 1px solid #2f2f2f;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-weight: 700;
+    width: 100%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    height: 34px;
+}
+
+.save-settings-btn:hover {
+    transform: scale(1.02);
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+}
+
+.settings-bezel #pwdHint,
+.settings-bezel #rebootWarning {
+    position: absolute;
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    box-sizing: border-box;
+    white-space: normal;
+    text-transform: none;
+    font-weight: 600;
+    font-size: 0.75rem;
+    padding: 6px 10px;
+    background: var(--unauthorized);
+    color: #fff;
+    border: 1px solid #a62a2a;
+    pointer-events: none;
+}
+
+.settings-bezel #pwdHint {
+    bottom: -35px;
+    left: 0;
+    width: 250px;
+}
+
+.settings-bezel #rebootWarning {
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 250px;
+}
+
+.settings-bezel #pwdHint.hidden,
+.settings-bezel #rebootWarning.hidden {
+    display: none !important;
 }

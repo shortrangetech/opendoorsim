@@ -78,7 +78,7 @@ function checkDirty() {
 
     // 3. Update UI
     unsavedChanges = isDirty;
-    const saveBtn = document.querySelector('#settings button');
+    const saveBtn = document.querySelector('#settingsBezel button');
 
     if (saveBtn) {
         // Ensure the button text is clean (no accidental duplication)
@@ -625,10 +625,13 @@ function deleteUser(index) {
 }
 
 function showSection(section) {
-    document.getElementById('monitor').classList.add('hidden');
-    document.getElementById('settings').classList.add('hidden');
+    const monitor = document.getElementById('monitor');
+    if (monitor) monitor.classList.add('hidden');
+    const settings = document.getElementById('settings');
+    if (settings) settings.classList.add('hidden');
 
-    document.getElementById(section).classList.remove('hidden');
+    const target = document.getElementById(section);
+    if (target) target.classList.remove('hidden');
 
     // Manage the Polling Interval
     if (section === 'monitor') {
@@ -1419,10 +1422,40 @@ document.getElementById('timeoutSelect').addEventListener('change', checkDirty);
 document.getElementById('ledValid').addEventListener('change', checkDirty);
 document.getElementById('customMessage').addEventListener('input', checkDirty);
 
+function openSettingsTab(tabName) {
+    document.getElementById('settingsMenu').classList.add('hidden');
+    document.getElementById('settingsGeneral').classList.add('hidden');
+    document.getElementById('settingsWifi').classList.add('hidden');
+    document.getElementById('settingsSystem').classList.add('hidden');
+    
+    if (tabName === 'general') {
+        document.getElementById('settingsGeneral').classList.remove('hidden');
+    } else if (tabName === 'wifi') {
+        document.getElementById('settingsWifi').classList.remove('hidden');
+    } else if (tabName === 'system') {
+        document.getElementById('settingsSystem').classList.remove('hidden');
+    }
+}
+
+function closeSettingsTab() {
+    document.getElementById('settingsMenu').classList.remove('hidden');
+    document.getElementById('settingsGeneral').classList.add('hidden');
+    document.getElementById('settingsWifi').classList.add('hidden');
+    document.getElementById('settingsSystem').classList.add('hidden');
+}
+
 function toggleSettingsView() {
     const btn = document.getElementById('navBtnSettings');
-    if (btn) {
-        btn.classList.toggle('settings-active');
+    const bezel = document.getElementById('settingsBezel');
+    if (btn && bezel) {
+        const isOpen = bezel.classList.toggle('settings-open');
+        if (isOpen) {
+            btn.classList.add('settings-active');
+            fetchSettings(true); // Sync settings values when opening
+        } else {
+            btn.classList.remove('settings-active');
+            setTimeout(closeSettingsTab, 400); // Reset to menu after transition
+        }
     }
 }
 
