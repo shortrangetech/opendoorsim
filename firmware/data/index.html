@@ -99,25 +99,25 @@
                 <div id="settingsBezel" class="device-bezel settings-bezel">
                     <!-- Main Menu Grid -->
                     <div id="settingsMenu" class="settings-menu-grid">
-                        <button class="settings-menu-btn" onclick="openSettingsTab('general')" style="grid-column: span 3;">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                            General
+                        <button class="settings-menu-btn" onclick="openSettingsTab('display')" style="grid-column: span 3;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                            Display
                         </button>
                         <button class="settings-menu-btn" onclick="openSettingsTab('wifi')" style="grid-column: span 3;">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>
                             WiFi
                         </button>
-                        <button class="settings-menu-btn" onclick="openSettingsTab('system')" style="grid-column: span 3;">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
-                            System
+                        <button class="settings-menu-btn" onclick="openSettingsTab('user')" style="grid-column: span 3;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                            User
                         </button>
                     </div>
 
-                    <!-- General Tab -->
-                    <div id="settingsGeneral" class="settings-tab hidden">
+                    <!-- Display Tab -->
+                    <div id="settingsDisplay" class="settings-tab hidden">
                         <div class="settings-tab-header">
                             <button class="back-btn" onclick="closeSettingsTab()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></button>
-                            <h3>General Settings</h3>
+                            <h3>Display Settings</h3>
                         </div>
                         <div class="settings-tab-content">
                             <input type="hidden" id="activeDisplayType" value="2">
@@ -179,11 +179,11 @@
                         </div>
                     </div>
 
-                    <!-- System Tab -->
-                    <div id="settingsSystem" class="settings-tab hidden">
+                    <!-- User Tab -->
+                    <div id="settingsUser" class="settings-tab hidden">
                         <div class="settings-tab-header">
                             <button class="back-btn" onclick="closeSettingsTab()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></button>
-                            <h3>System Settings</h3>
+                            <h3>User Settings</h3>
                         </div>
                         <div class="settings-tab-content">
                             <div class="settings-field">

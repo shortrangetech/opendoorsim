@@ -1421,24 +1421,24 @@ document.getElementById('customMessage').addEventListener('input', checkDirty);
 
 function openSettingsTab(tabName) {
     document.getElementById('settingsMenu').classList.add('hidden');
-    document.getElementById('settingsGeneral').classList.add('hidden');
+    document.getElementById('settingsDisplay').classList.add('hidden');
     document.getElementById('settingsWifi').classList.add('hidden');
-    document.getElementById('settingsSystem').classList.add('hidden');
+    document.getElementById('settingsUser').classList.add('hidden');
     
-    if (tabName === 'general') {
-        document.getElementById('settingsGeneral').classList.remove('hidden');
+    if (tabName === 'display') {
+        document.getElementById('settingsDisplay').classList.remove('hidden');
     } else if (tabName === 'wifi') {
         document.getElementById('settingsWifi').classList.remove('hidden');
-    } else if (tabName === 'system') {
-        document.getElementById('settingsSystem').classList.remove('hidden');
+    } else if (tabName === 'user') {
+        document.getElementById('settingsUser').classList.remove('hidden');
     }
 }
 
 function closeSettingsTab() {
     document.getElementById('settingsMenu').classList.remove('hidden');
-    document.getElementById('settingsGeneral').classList.add('hidden');
+    document.getElementById('settingsDisplay').classList.add('hidden');
     document.getElementById('settingsWifi').classList.add('hidden');
-    document.getElementById('settingsSystem').classList.add('hidden');
+    document.getElementById('settingsUser').classList.add('hidden');
 }
 
 function toggleSettingsView() {
