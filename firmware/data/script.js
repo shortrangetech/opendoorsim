@@ -1078,6 +1078,14 @@ function toggleParitySetting() {
         .catch(err => console.error('Error toggling parity:', err));
 }
 
+function toggleFullscreenOled() {
+    const bezel = document.querySelector('.screens-bezel');
+    if (bezel) {
+        bezel.classList.toggle('fullscreen');
+        document.body.classList.toggle('fullscreen-active', bezel.classList.contains('fullscreen'));
+    }
+}
+
 function togglePause() {
     fetch('/togglePause', { method: 'POST' })
         .then(response => response.text())

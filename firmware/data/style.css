@@ -889,6 +889,90 @@ button:hover {
     /* Centers it if needed */
 }
 
+.screens-bezel {
+    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    cursor: pointer;
+    position: relative;
+}
+
+.screens-bezel.fullscreen {
+    position: fixed;
+    top: 50%;
+    left: 0;
+    width: 100vw;
+    height: auto;
+    transform: translateY(-50%);
+    z-index: 9999;
+    margin: 0;
+    border-radius: 0;
+    flex-direction: column;
+}
+
+.screens-bezel.fullscreen .bezel-left {
+    display: none;
+}
+
+.screens-bezel.fullscreen .screen-container {
+    width: 100%;
+    height: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 1;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+}
+
+.screens-bezel.fullscreen #oledCanvas {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+}
+
+.expand-icon {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    color: rgba(255, 255, 255, 0.5);
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 50%;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.expand-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+.screens-bezel:hover .expand-icon {
+    opacity: 1;
+}
+
+.screens-bezel.fullscreen .expand-icon {
+    display: none;
+}
+
+body.fullscreen-active {
+    overflow: hidden;
+}
+
+body.fullscreen-active header,
+body.fullscreen-active h2,
+body.fullscreen-active .table-responsive,
+body.fullscreen-active #logExpandControl,
+body.fullscreen-active .buttons-bezel,
+body.fullscreen-active .settings-bezel,
+body.fullscreen-active .contentCollapsible {
+    opacity: 0;
+    pointer-events: none;
+}
+
 #togglePwdBtn:hover {
     opacity: 1;
     color: #000;
