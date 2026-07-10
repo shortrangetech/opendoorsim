@@ -656,9 +656,11 @@ function showSectionWithRefresh(section) {
     }
 }
 
-function toggleCollapsible() {
-    const content = document.querySelector(".contentCollapsible");
-    content.style.display = content.style.display === "block" ? "none" : "block";
+function toggleSection(contentId, header) {
+    const content = document.getElementById(contentId);
+    if (!content) return;
+    content.classList.toggle('expanded');
+    header.classList.toggle('expanded');
 }
 
 function toggleFlipOption() {

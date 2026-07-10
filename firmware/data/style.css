@@ -858,6 +858,43 @@ button:hover {
     /* forces vertical centering */
     gap: 10px;
     /* adds clean spacing between text and badge */
+    user-select: none;
+}
+
+/* Retro CRT "Power LED" Indicator */
+.collapsible::before {
+    content: '';
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 12px;
+    background-color: #8a3a00;
+    box-shadow: 0 0 2px #8a3a00;
+    flex-shrink: 0;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    animation: amberPulse 2s infinite ease-in-out;
+}
+
+.collapsible.expanded::before {
+    background-color: var(--accent); /* Solid gold/amber */
+    box-shadow: 0 0 10px var(--accent);
+    animation: none; /* Solid, no pulse */
+}
+
+@keyframes amberPulse {
+    0% {
+        background-color: #8a3a00;
+        box-shadow: 0 0 2px #8a3a00;
+    }
+    50% {
+        background-color: #ff7700;
+        box-shadow: 0 0 8px #ff7700;
+    }
+    100% {
+        background-color: #8a3a00;
+        box-shadow: 0 0 2px #8a3a00;
+    }
 }
 
 #userManagementHeader {
@@ -865,8 +902,18 @@ button:hover {
 }
 
 .contentCollapsible {
-    display: none;
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.3s ease-in-out;
     overflow: hidden;
+}
+
+.contentCollapsible.expanded {
+    grid-template-rows: 1fr;
+}
+
+.collapsible-inner {
+    min-height: 0;
 }
 
 .password-wrapper {

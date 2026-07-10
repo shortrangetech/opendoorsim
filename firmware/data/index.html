@@ -200,7 +200,7 @@
             </div>
 
             <div class="data-sections">
-            <h2 class="collapsible" style="cursor:default; margin-top: 40px; margin-left: 15px; font-family: 'Michroma', sans-serif; letter-spacing: 0.15em;">
+            <h2 class="collapsible expanded" onclick="toggleSection('scansContent', this)" style="cursor:pointer; margin-top: 40px; margin-left: 15px; font-family: 'Michroma', sans-serif; letter-spacing: 0.15em;">
                 SCANS
                 <span class="badge-group">
                     <span id="badgeCardData" class="badge badge-purple badge-clickable" onclick="toggleCardDataMode()"
@@ -215,6 +215,8 @@
                         title="Toggle display of parity badge">SHOW PARITY</span>
                 </span>
             </h2>
+            <div id="scansContent" class="contentCollapsible expanded">
+                <div class="collapsible-inner">
             <div class="table-responsive">
                 <table id="scanLogTable">
                     <thead>
@@ -230,15 +232,16 @@
                 </table>
             </div>
             <div id="logExpandControl">
-                <span id="logExpandBtn" class="badge badge-gray badge-clickable" onclick="toggleLogExpand()">&#9660;
-                    Show 25</span>
-                <span id="logClearBtn" class="badge badge-gray badge-clickable badge-clear"
-                    onclick="clearLog()">CLEAR</span>
+                <span id="logExpandBtn" class="badge badge-gray badge-clickable" onclick="toggleLogExpand()">&#9660; Show 25</span>
+                <span id="logClearBtn" class="badge badge-gray badge-clickable badge-clear" onclick="clearLog()">CLEAR</span>
             </div>
-            <h2 id="userManagementHeader" class="collapsible" onclick="toggleCollapsible()" style="font-family: 'Michroma', sans-serif; letter-spacing: 0.15em; margin-left: 15px;">
+                </div>
+            </div>
+            <h2 id="userManagementHeader" class="collapsible" onclick="toggleSection('usersContent', this)" style="font-family: 'Michroma', sans-serif; letter-spacing: 0.15em; margin-left: 15px; cursor:pointer;">
                 USERS
             </h2>
-            <div class="contentCollapsible">
+            <div id="usersContent" class="contentCollapsible">
+                <div class="collapsible-inner">
                 <div class="table-responsive">
                     <table id="userTable">
                         <thead>
@@ -285,6 +288,7 @@
             </div>
         </div>
     </div>
+</div>
 </div>
 
     <footer class="main-footer">
