@@ -319,11 +319,78 @@ function toggleLogExpand() {
     logLimit = logExpanded ? 25 : 10;
     const btn = document.getElementById('logExpandBtn');
     if (btn) btn.innerHTML = logExpanded ? '&#9650; Show 10' : '&#9660; Show 25';
-    updateScanLog();
+
+    const container = document.getElementById('scanLogTableContainer');
+    if (!container) {
+        updateScanLog();
+        return;
+    }
+
+    const oldHeight = container.offsetHeight;
+
+    if (logExpanded) {
+        // --- EXPANDING (10 -> 25) ---
+        container.style.height = oldHeight + 'px';
+        container.style.overflow = 'hidden';
+
+        updateScanLog().then(() => {
+            // Force reflow
+            container.offsetHeight;
+
+            const newHeight = container.scrollHeight;
+            container.style.transition = 'height 0.3s ease-in-out';
+            container.style.height = newHeight + 'px';
+
+            const onTransitionEnd = function(e) {
+                if (e.propertyName === 'height') {
+                    container.style.height = '';
+                    container.style.overflow = '';
+                    container.style.transition = '';
+                    container.removeEventListener('transitionend', onTransitionEnd);
+                }
+            };
+            container.addEventListener('transitionend', onTransitionEnd);
+        });
+    } else {
+        // --- COLLAPSING (25 -> 10) ---
+        // 1. Temporarily hide extra rows to measure the target height
+        const rows = Array.from(scanLogTableBody.rows);
+        if (rows.length > 10) {
+            rows.slice(10).forEach(row => row.style.display = 'none');
+        }
+        const targetHeight = container.scrollHeight;
+
+        // 2. Restore their display so they remain visible while sliding out of view
+        if (rows.length > 10) {
+            rows.slice(10).forEach(row => row.style.display = '');
+        }
+
+        // 3. Lock starting height and hide overflow
+        container.style.height = oldHeight + 'px';
+        container.style.overflow = 'hidden';
+        container.offsetHeight; // force reflow
+
+        // 4. Animate to target height
+        container.style.transition = 'height 0.3s ease-in-out';
+        container.style.height = targetHeight + 'px';
+
+        const onTransitionEnd = function(e) {
+            if (e.propertyName === 'height') {
+                // Rebuild the DOM to exactly 10 rows now that transition is done
+                updateScanLog().then(() => {
+                    container.style.height = '';
+                    container.style.overflow = '';
+                    container.style.transition = '';
+                });
+                container.removeEventListener('transitionend', onTransitionEnd);
+            }
+        };
+        container.addEventListener('transitionend', onTransitionEnd);
+    }
 }
 
 function updateScanLog() {
-    fetch('/getCards?t=' + Date.now())
+    return fetch('/getCards?t=' + Date.now())
         .then(r => r.json())
         .then(data => {
             const table = document.getElementById('scanLogTable');

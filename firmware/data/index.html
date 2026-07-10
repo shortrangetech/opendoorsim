@@ -219,7 +219,7 @@
             </h2>
             <div id="scansContent" class="contentCollapsible">
                 <div class="collapsible-inner">
-            <div class="table-responsive">
+            <div class="table-responsive" id="scanLogTableContainer">
                 <table id="scanLogTable">
                     <thead>
                         <tr>
@@ -266,28 +266,27 @@
                     <span id="userClearBtn" class="badge badge-gray badge-clickable badge-clear"
                         onclick="clearUsers()">CLEAR</span>
                 </div>
-                <div style="margin-top: 20px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
-                    <h3 style="font-family: 'Michroma', sans-serif; letter-spacing: 0.15em; margin-left: 37px; text-transform: uppercase; margin-top: 0; margin-bottom: 0; white-space: nowrap;">Batch Tool</h3>
+                <div
+                    style="margin-top: 20px; background: #1b1b1b; padding: 15px 20px; border-radius: 8px; display: flex; flex-wrap: wrap; gap: 15px; align-items: center;">
+                    <h3 style="font-family: 'Michroma', sans-serif; letter-spacing: 0.15em; text-transform: uppercase; margin: 0 5px 0 0; white-space: nowrap;">Batch Tool</h3>
 
-                    <div
-                        style="background: #1b1b1b; padding: 15px; border-radius: 8px; display:flex; flex-wrap:wrap; gap: 15px; align-items: center; flex-grow: 1;">
+                    <div style="width: 1px; height: 30px; background: #444; margin: 0 5px;"></div>
 
-                        <div>
-                            <input type="file" id="usersUpload" accept=".json" style="max-width:200px;">
-                        </div>
-
-                        <button id="btnImport" onclick="uploadUserFile()">Import File</button>
-
-                        <div style="width:1px; height:30px; background:#444; margin:0 5px;"></div>
-
-                        <button onclick="confirmExport()">Export File</button>
-
-                        <div style="width:1px; height:30px; background:#444; margin:0 5px;"></div>
-
-                        <button class="button-secondary" onclick="confirmSampleDownload()">Download Sample File</button>
-
-                        <span id="uploadStatus" style="font-weight:bold; margin-left:5px; align-self: center;"></span>
+                    <div>
+                        <input type="file" id="usersUpload" accept=".json" style="max-width: 200px;">
                     </div>
+
+                    <button id="btnImport" onclick="uploadUserFile()">Import File</button>
+
+                    <div style="width: 1px; height: 30px; background: #444; margin: 0 5px;"></div>
+
+                    <button onclick="confirmExport()">Export File</button>
+
+                    <div style="width: 1px; height: 30px; background: #444; margin: 0 5px;"></div>
+
+                    <button class="button-secondary" onclick="confirmSampleDownload()">Download Sample File</button>
+
+                    <span id="uploadStatus" style="font-weight: bold; margin-left: 5px; align-self: center;"></span>
                 </div>
             </div>
         </div>
