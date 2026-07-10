@@ -959,7 +959,7 @@ button:hover {
     width: 100%;
     height: auto;
     aspect-ratio: 512 / 128;
-    object-fit: contain;
+    object-fit: fill;
 }
 
 .expand-icon {
