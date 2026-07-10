@@ -71,7 +71,7 @@ h1 {
     font-family: 'Michroma', sans-serif;
     font-size: 1.8rem;
     letter-spacing: 0.15em;
-    color: var(--text);
+    color: var(--muted);
     text-transform: uppercase;
     user-select: none;
 }
@@ -168,6 +168,8 @@ h1 {
     border: 1px solid #2f2f2f;
     color: var(--text);
     font-weight: 700;
+    font-family: 'Michroma', sans-serif;
+    letter-spacing: 0.08em;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -574,8 +576,9 @@ button:hover {
     display: inline-flex;
     align-items: center;
     font-size: 0.5em;
-    vertical-align: middle;
     margin-left: 15px;
+    letter-spacing: normal;
+    transform: translateY(-0.08em);
 }
 
 .badge-group .badge:not(:last-child) {
@@ -596,6 +599,7 @@ button:hover {
     white-space: nowrap;
     vertical-align: middle;
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+    letter-spacing: normal;
 }
 
 /* 2. Color Variants (Matches JS class toggles) */
@@ -1025,6 +1029,15 @@ body.fullscreen-active .contentCollapsible {
     pointer-events: none;
 }
 
+body.fullscreen-active .main-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 10000;
+    background: var(--bg);
+}
+
 #togglePwdBtn:hover {
     opacity: 1;
     color: #000;
@@ -1036,7 +1049,7 @@ body.fullscreen-active .contentCollapsible {
 }
 
 #badgeLearnerView {
-    max-width: 150px;
+    max-width: 200px;
     opacity: 1;
     overflow: hidden;
     transition: max-width 0.3s ease, margin-left 0.3s ease, margin-right 0.3s ease, padding 0.3s ease, opacity 0.3s ease, background-color 0.3s ease, color 0.3s ease;
@@ -1305,6 +1318,8 @@ a {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
     height: 218px; /* Match existing buttons bezel height */
     box-sizing: border-box;
+    font-family: 'Michroma', sans-serif;
+    letter-spacing: 0.08em;
     
     /* Animation: slide & fade out/in */
     max-width: 0;
@@ -1316,6 +1331,12 @@ a {
     margin-left: -20px;
     transition: max-width 0.4s ease, padding 0.4s ease, opacity 0.4s ease, margin-left 0.4s ease, border-color 0.4s ease, visibility 0.4s;
     position: relative;
+}
+
+.settings-bezel input,
+.settings-bezel select,
+.settings-bezel textarea {
+    letter-spacing: normal;
 }
 
 .settings-bezel.settings-open {

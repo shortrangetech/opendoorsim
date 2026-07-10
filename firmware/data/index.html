@@ -33,7 +33,7 @@
                     <div class="bezel-right">
                         <!-- Row 1: Mode Toggle Box -->
                         <div id="modeBox" class="mode-raw badge badge-clickable" onclick="toggleMode()" title="Toggle Mode">
-                            MODE: <span id="modeValue">RAW</span></div>
+                            <span id="modeValue">RAW</span></div>
                         
                         <!-- Row 2: Encoder, Parity, Tamper -->
                         <button id="navBtnKnob" class="navbar-btn" onclick="toggleKnobSetting()" title="Toggle Hardware Knob">
@@ -203,7 +203,7 @@
             </div>
 
             <div class="data-sections">
-            <h2 class="collapsible" style="cursor:default; margin-top: 40px; font-family: 'Michroma', sans-serif;">
+            <h2 class="collapsible" style="cursor:default; margin-top: 40px; margin-left: 15px; font-family: 'Michroma', sans-serif; letter-spacing: 0.15em;">
                 SCANS
                 <span class="badge-group">
                     <span id="badgeCardData" class="badge badge-purple badge-clickable" onclick="toggleCardDataMode()"
@@ -238,9 +238,8 @@
                 <span id="logClearBtn" class="badge badge-gray badge-clickable badge-clear"
                     onclick="clearLog()">CLEAR</span>
             </div>
-            <h2 id="userManagementHeader" class="collapsible" onclick="toggleCollapsible()" style="font-family: 'Michroma', sans-serif;">
+            <h2 id="userManagementHeader" class="collapsible" onclick="toggleCollapsible()" style="font-family: 'Michroma', sans-serif; letter-spacing: 0.15em; margin-left: 15px;">
                 USERS
-                <span class="badge badge-gray badge-clickable"> click to expand / collapse</span>
             </h2>
             <div class="contentCollapsible">
                 <div class="table-responsive">
