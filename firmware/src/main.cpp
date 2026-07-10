@@ -256,19 +256,25 @@ MenuItem menuItems_Wifi[] = {
     {"View Info", ITEM_ACTION, nullptr, 0, 0, nullptr, 0}};
 
 // 3. General Submenu
+// 3a. Display Submenu
+MenuItem menuItems_Display[] = {
+    {"Back", ITEM_ACTION, nullptr, 0, 0, nullptr, 0},
+    {"Timeout", ITEM_SELECT, &tempTimeoutIndex, 0, 5, nullptr, 0},
+    {"Flip Screen", ITEM_TOGGLE, &flipOledDisplay, 0, 1, nullptr, 0}};
+
+// 3. General Submenu
 MenuItem menuItems_General[] = {
     {"Back", ITEM_ACTION, nullptr, 0, 0, nullptr, 0},
     {"Mode", ITEM_SELECT, &tempDeviceModeInt, 0, 1, nullptr, 0},
-    {"Timeout", ITEM_SELECT, &tempTimeoutIndex, 0, 5, nullptr, 0},
-    {"Tamper", ITEM_TOGGLE, &enableTamperDetect, 0, 1, nullptr, 0},
-    {"Flip Screen", ITEM_TOGGLE, &flipOledDisplay, 0, 1, nullptr, 0},
-    {"Parity Chk", ITEM_TOGGLE, &enableParityCheck, 0, 1, nullptr, 0}};
+    {"Parity Chk", ITEM_TOGGLE, &enableParityCheck, 0, 1, nullptr, 0},
+    {"Tamper", ITEM_TOGGLE, &enableTamperDetect, 0, 1, nullptr, 0}};
 
 // 4. Main Menu
 MenuItem menuItems_Main[] = {
     {"Return to Doorsim", ITEM_EXIT, nullptr, 0, 0, nullptr, 0},
     {"VIEW DATA", ITEM_ACTION, nullptr, 0, 0, nullptr, 0},
     {"GENERAL", ITEM_SUBMENU, nullptr, 0, 0, menuItems_General, 0},
+    {"DISPLAY", ITEM_SUBMENU, nullptr, 0, 0, menuItems_Display, 0},
     {"WIFI", ITEM_SUBMENU, nullptr, 0, 0, menuItems_Wifi, 0},
     {"USER MODE", ITEM_SUBMENU, nullptr, 0, 0, menuItems_User, 0},
     {"REBOOT", ITEM_ACTION, nullptr, 0, 0, nullptr, 0}};
@@ -385,7 +391,7 @@ void handleMenuInput() {
         currentMenuState = STATE_MENU_NAV;
         currentMenuLevel = menuItems_Main;
         currentMenuSize = sizeof(menuItems_Main) / sizeof(menuItems_Main[0]);
-        selectedIndex = 3;
+        selectedIndex = 4;
         scrollOffset = 0;
         forceMenuUpdate = true;
       } else if (currentMenuState == STATE_CONFIRM_SCREEN_REBOOT) {
@@ -393,7 +399,7 @@ void handleMenuInput() {
         currentMenuState = STATE_MENU_NAV;
         currentMenuLevel = menuItems_Main;
         currentMenuSize = sizeof(menuItems_Main) / sizeof(menuItems_Main[0]);
-        selectedIndex = 2;
+        selectedIndex = 3;
         scrollOffset = 0;
         forceMenuUpdate = true;
       }
@@ -2731,8 +2737,10 @@ void processMenuAction() {
     case ITEM_SUBMENU:
       currentMenuLevel = item->submenu;
       if (String(item->label) == "GENERAL") {
-        currentMenuSize = 6;
-        // Capture flip setting on entry (mirrors Wifi origApMode pattern)
+        currentMenuSize = 4;
+      } else if (String(item->label) == "DISPLAY") {
+        currentMenuSize = 3;
+        // Capture flip setting on entry
         origFlipOled = flipOledDisplay;
       } else if (String(item->label) == "WIFI") {
         currentMenuSize = 4;
@@ -2748,8 +2756,8 @@ void processMenuAction() {
     case ITEM_ACTION:
       if (String(item->label) == "Back") {
 
-        // --- GENERAL CHANGE DETECTION (Flip Screen) ---
-        if (currentMenuLevel == menuItems_General) {
+        // --- DISPLAY CHANGE DETECTION (Flip Screen) ---
+        if (currentMenuLevel == menuItems_Display) {
           if (flipOledDisplay != origFlipOled) {
             currentMenuState = STATE_CONFIRM_SCREEN_REBOOT;
             forceMenuUpdate = true;
@@ -2769,10 +2777,16 @@ void processMenuAction() {
           }
         }
 
+        int prevIndex = 0;
+        if (currentMenuLevel == menuItems_General) prevIndex = 2;
+        else if (currentMenuLevel == menuItems_Display) prevIndex = 3;
+        else if (currentMenuLevel == menuItems_Wifi) prevIndex = 4;
+        else if (currentMenuLevel == menuItems_User) prevIndex = 5;
+
         // Normal Back Behavior (No changes, or not Wifi menu)
         currentMenuLevel = menuItems_Main;
         currentMenuSize = sizeof(menuItems_Main) / sizeof(menuItems_Main[0]);
-        selectedIndex = 0;
+        selectedIndex = prevIndex;
         scrollOffset = 0;
       } else if (String(item->label) == "REBOOT")
         currentMenuState = STATE_CONFIRM_REBOOT;

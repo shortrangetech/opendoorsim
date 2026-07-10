@@ -797,7 +797,6 @@ function saveSettings(rebootRequired = false) {
                     checkDirty();
                     alert('Settings saved! Device is REBOOTING now. Please reconnect.');
                 } else {
-                    alert('Settings saved successfully.');
                     // RESET DIRTY FLAG ON SUCCESSFUL SAVE
                     unsavedChanges = false;
                     fetchSettings(true);
