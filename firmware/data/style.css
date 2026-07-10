@@ -308,6 +308,17 @@ header {
     color: #fff;
 }
 
+#navBtnCancel {
+    grid-column: span 2;
+    width: auto !important; /* Allow it to span multiple columns cleanly */
+}
+
+#navBtnCancel:hover {
+    background-color: #8b1f1f;
+    border-color: #8b1f1f;
+    color: #fff;
+}
+
 #navBtnSettings.settings-active {
     background-color: rgba(255, 255, 255, 0.7);
     border-color: rgba(255, 255, 255, 0.7);

@@ -88,6 +88,10 @@ function checkDirty() {
     const rebootRequired = wifiChanged || displayChanged;
 
     const gearBtn = document.getElementById('navBtnSettings');
+    const cancelBtn = document.getElementById('navBtnCancel');
+    const pauseBtn = document.getElementById('navBtnPause');
+    const rebootBtn = document.getElementById('navBtnReboot');
+
     if (gearBtn) {
         if (unsavedChanges) {
             if (rebootRequired) {
@@ -97,8 +101,14 @@ function checkDirty() {
                 gearBtn.classList.add('solid-gold');
                 gearBtn.classList.remove('pulse-gold');
             }
+            if (cancelBtn) cancelBtn.classList.remove('hidden');
+            if (pauseBtn) pauseBtn.classList.add('hidden');
+            if (rebootBtn) rebootBtn.classList.add('hidden');
         } else {
             gearBtn.classList.remove('solid-gold', 'pulse-gold');
+            if (cancelBtn) cancelBtn.classList.add('hidden');
+            if (pauseBtn) pauseBtn.classList.remove('hidden');
+            if (rebootBtn) rebootBtn.classList.remove('hidden');
         }
     }
 }
@@ -1467,6 +1477,7 @@ function discardSettingsChanges() {
     if (pwdHintEl) pwdHintEl.classList.add('hidden');
 
     unsavedChanges = false;
+    checkDirty();
 }
 
 window.onload = function () {
