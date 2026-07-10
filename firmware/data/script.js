@@ -793,6 +793,8 @@ function saveSettings(rebootRequired = false) {
         .then(response => {
             if (response.ok) {
                 if (rebootRequired) {
+                    unsavedChanges = false;
+                    checkDirty();
                     alert('Settings saved! Device is REBOOTING now. Please reconnect.');
                 } else {
                     alert('Settings saved successfully.');
@@ -905,39 +907,69 @@ function updateSettingsUI(settings, forceFormUpdate = false) {
 
     if (document.getElementById('versionValue')) document.getElementById('versionValue').textContent = version;
 
-    // 1. Populate UI Inputs only if there are no unsaved changes OR if forced
-    const shouldUpdateForm = !unsavedChanges || forceFormUpdate;
-    if (shouldUpdateForm) {
-        if (document.getElementById('timeoutSelect')) document.getElementById('timeoutSelect').value = displayTimeout;
+    // 1. Populate UI Inputs and store original values on a per-field basis
+    const currSsid = document.getElementById('ap_ssid')?.value;
+    const currPwd = document.getElementById('ap_pwd')?.value;
+    const currHidden = document.getElementById('ssid_hidden')?.checked;
+    const currTimeout = document.getElementById('timeoutSelect')?.value;
+    const currMsg = document.getElementById('customMessage')?.value;
+    const currLed = document.getElementById('ledValid')?.value;
+    const currDisplay = document.getElementById('activeDisplayType')?.value;
+    const currFlip = document.getElementById('flipOled')?.checked;
+
+    // Update SSID
+    if (forceFormUpdate || currSsid === originalSsid) {
         if (document.getElementById('ap_ssid')) document.getElementById('ap_ssid').value = apSsid;
-        if (document.getElementById('ap_pwd')) document.getElementById('ap_pwd').value = apPass;
-        if (document.getElementById('ssid_hidden') && typeof ssidHidden !== 'undefined') document.getElementById('ssid_hidden').checked = ssidHidden;
-        if (document.getElementById('customMessage')) document.getElementById('customMessage').value = customMessage;
-        if (document.getElementById('ledValid')) document.getElementById('ledValid').value = ledValid;
-        if (document.getElementById('activeDisplayType')) document.getElementById('activeDisplayType').value = activeDisplayType;
-        if (document.getElementById('flipOled')) document.getElementById('flipOled').checked = settings.flip_oled_display;
-
-        // 5. STORE ORIGINAL VALUES
         originalSsid = apSsid;
-        originalPwd = apPass;
-        originalHidden = (ssidHidden == 1 || ssidHidden === true);
-        originalDisplayType = activeDisplayType;
-        originalFlipOled = settings.flip_oled_display;
-
-        // New globals
-        originalTimeout = displayTimeout;
-        originalCustomMessage = customMessage;
-        originalLedValid = ledValid;
-
-        // Listeners
-        const displaySelect = document.getElementById('activeDisplayType');
-        if (displaySelect) {
-            displaySelect.addEventListener('change', toggleFlipOption);
-        }
-
-        toggleFlipOption();
-        checkDirty();
     }
+    // Update Password
+    if (forceFormUpdate || currPwd === originalPwd) {
+        if (document.getElementById('ap_pwd')) document.getElementById('ap_pwd').value = apPass;
+        originalPwd = apPass;
+    }
+    // Update Hidden
+    const backendHidden = (ssidHidden == 1 || ssidHidden === true);
+    if (forceFormUpdate || currHidden === originalHidden) {
+        if (document.getElementById('ssid_hidden') && typeof ssidHidden !== 'undefined') {
+            document.getElementById('ssid_hidden').checked = backendHidden;
+        }
+        originalHidden = backendHidden;
+    }
+    // Update Timeout
+    if (forceFormUpdate || currTimeout == originalTimeout) {
+        if (document.getElementById('timeoutSelect')) document.getElementById('timeoutSelect').value = displayTimeout;
+        originalTimeout = displayTimeout;
+    }
+    // Update Custom Message
+    if (forceFormUpdate || currMsg === originalCustomMessage) {
+        if (document.getElementById('customMessage')) document.getElementById('customMessage').value = customMessage;
+        originalCustomMessage = customMessage;
+    }
+    // Update LED Valid
+    if (forceFormUpdate || currLed == originalLedValid) {
+        if (document.getElementById('ledValid')) document.getElementById('ledValid').value = ledValid;
+        originalLedValid = ledValid;
+    }
+    // Update Display Type
+    if (forceFormUpdate || currDisplay == originalDisplayType) {
+        if (document.getElementById('activeDisplayType')) document.getElementById('activeDisplayType').value = activeDisplayType;
+        originalDisplayType = activeDisplayType;
+    }
+    // Update Flip OLED
+    if (forceFormUpdate || currFlip === originalFlipOled) {
+        if (document.getElementById('flipOled')) document.getElementById('flipOled').checked = settings.flip_oled_display;
+        originalFlipOled = settings.flip_oled_display;
+    }
+
+    // Listeners and side effects
+    const displaySelect = document.getElementById('activeDisplayType');
+    if (displaySelect) {
+        displaySelect.removeEventListener('change', toggleFlipOption);
+        displaySelect.addEventListener('change', toggleFlipOption);
+    }
+
+    toggleFlipOption();
+    checkDirty();
 
     syncParityToggleBadge();
 }
@@ -968,7 +1000,7 @@ function toggleMode() {
         })
         .then(data => {
             // Confirmed — fetch settings to fully sync UI
-            fetchSettings(true);
+            fetchSettings();
         })
         .catch(err => {
             console.error('Mode toggle failed:', err);
@@ -1052,7 +1084,7 @@ function togglePause() {
         .then(response => response.text())
         .then(status => {
             // Trigger a settings fetch to update the UI button state immediately
-            fetchSettings(true);
+            fetchSettings();
         })
         .catch(err => alert("Error toggling pause state."));
 }
@@ -1482,7 +1514,7 @@ function discardSettingsChanges() {
 
 window.onload = function () {
     if (!screenInterval) screenInterval = setInterval(updateScreen, 150);
-    fetchSettings();
+    fetchSettings(true);
 
     // Initialize SSE (Server-Sent Events) for real-time push updates
     if (!!window.EventSource) {

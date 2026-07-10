@@ -2088,7 +2088,11 @@ void webServer() {
         // ownership of the display and the timeout path restores it cleanly.
 
         saveSettingsToPreferences();
-        showSettingsSaved();
+        if (currentMenuState == STATE_STANDBY) {
+          showSettingsSaved();
+        } else {
+          forceMenuUpdate = true;
+        }
         Serial.printf("[SYSTEM] Mode changed to: %s via WebUI navbar\n",
                       deviceMode.c_str());
 
@@ -2158,7 +2162,11 @@ void webServer() {
         bool clientSaysReboot = jsonObj["should_reboot"] | false;
 
         saveSettingsToPreferences();
-        showSettingsSaved();
+        if (currentMenuState == STATE_STANDBY) {
+          showSettingsSaved();
+        } else {
+          forceMenuUpdate = true;
+        }
 
         // --- Send Response ---
         request->send(200, "application/json", "{\"status\":\"success\"}");
