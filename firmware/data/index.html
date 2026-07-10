@@ -11,21 +11,11 @@
 </head>
 
 <body>
-    <header>
-        <div class="header-banner">
-            <span class="brand">OpenDoorSim</span>
-            <nav class="header-center">
-                <a onclick="showSectionWithRefresh('monitor')">Home</a>
-            </nav>
-            <div class="header-right">
-            </div>
-        </div>
-    </header>
     <div class="content">
 
         <div id="monitor">
             <div class="indent-section"
-                style="display: flex; justify-content: center; margin-top: 15px; gap: 20px;">
+                style="display: flex; justify-content: center; margin: 20px 0; gap: 20px;">
                 <div class="device-bezel screens-bezel" onclick="toggleFullscreenOled()">
                     <div class="bezel-left">
                         <img id="logo" src="logo512_big.png" alt="logo">
@@ -295,18 +285,19 @@
                         <span id="uploadStatus" style="font-weight:bold; margin-left:5px; align-self: center;"></span>
                     </div>
                 </div>
-            </div>
-            <div style="height:1px; background:#333; margin: 25px 0 15px 0;"></div>
-            <div style="display:flex; justify-content:space-between; align-items:flex-end;">
-                <div id="versionInfo" style="color:var(--muted);font-size:0.85rem;">
-                    Version: <span id="versionValue"></span><br>
-                    by shortrange.tech
-                </div>
+        </div>
+    </div>
+
+    <footer class="main-footer">
+        <div class="footer-line"></div>
+        <div class="footer-container">
+            <div class="brand-title">OPENDOORSIM</div>
+            <div id="versionInfo">
+                Version: <span id="versionValue"></span><br>
+                by shortrange.tech
             </div>
         </div>
-
-
-    </div>
+    </footer>
     <script src="script.js"></script>
 </body>
 
