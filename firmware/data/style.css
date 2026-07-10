@@ -152,8 +152,9 @@ header {
 }
 
 #modeBox {
+    grid-column: span 3;
     background: var(--card-bg);
-    height: 42px;
+    height: 48px;
     box-sizing: border-box;
     padding: 0 15px;
     border-radius: 12px;
@@ -163,16 +164,14 @@ header {
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 120px;
     font-size: 1.4rem;
     gap: 6px;
     cursor: pointer;
     user-select: none;
-    transition: width 0.4s ease, background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
     overflow: hidden;
     white-space: nowrap;
-    width: 160px;
-    /* Default for RAW */
+    width: 100%;
     margin: 0 !important;
 }
 
@@ -180,16 +179,7 @@ header {
     transform: scale(1.05);
 }
 
-#modeBox.mode-raw {
-    width: 160px;
-}
-
-#modeBox.mode-user {
-    width: 180px;
-}
-
 #modeBox.mode-paused {
-    width: 200px;
     cursor: not-allowed !important;
 }
 
