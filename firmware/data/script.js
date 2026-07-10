@@ -78,31 +78,29 @@ function checkDirty() {
 
     // 3. Update UI
     unsavedChanges = isDirty;
-    const saveBtns = document.querySelectorAll('#settingsBezel .save-settings-btn');
 
-    saveBtns.forEach(saveBtn => {
-        // Ensure the button text is clean (no accidental duplication)
-        if (saveBtn.childNodes.length === 0 || (saveBtn.firstChild.nodeType === 3 && saveBtn.firstChild.nodeValue !== "Save Settings")) {
-            saveBtn.firstChild.nodeValue = "Save Settings";
-        }
+    const pwdChanged = (currPwd !== originalPwd);
+    const ssidChanged = (currSsid !== originalSsid);
+    const hiddenChanged = (currHidden !== originalHidden);
+    const wifiChanged = (pwdChanged || ssidChanged || hiddenChanged);
 
-        let badge = saveBtn.querySelector('.unsaved-badge');
+    const displayChanged = (currDisplay != originalDisplayType) || (currFlip !== originalFlipOled);
+    const rebootRequired = wifiChanged || displayChanged;
 
-        // Create badge if it doesn't exist
-        if (!badge) {
-            badge = document.createElement('span');
-            badge.className = 'unsaved-badge collapsed';
-            badge.textContent = 'UNSAVED';
-            saveBtn.appendChild(badge);
-        }
-
-        // Toggle Visibility
+    const gearBtn = document.getElementById('navBtnSettings');
+    if (gearBtn) {
         if (unsavedChanges) {
-            badge.classList.remove('collapsed');
+            if (rebootRequired) {
+                gearBtn.classList.remove('solid-gold');
+                gearBtn.classList.add('pulse-gold');
+            } else {
+                gearBtn.classList.add('solid-gold');
+                gearBtn.classList.remove('pulse-gold');
+            }
         } else {
-            badge.classList.add('collapsed');
+            gearBtn.classList.remove('solid-gold', 'pulse-gold');
         }
-    });
+    }
 }
 
 function updateScreen() {
@@ -665,9 +663,7 @@ function toggleFlipOption() {
         // Logic: If user clicks LCD, force Flip to FALSE
         if (flipCheckbox.checked) {
             flipCheckbox.checked = false;
-            // Run dirty check so the "UNSAVED" badge appears immediately
-            checkDirty(); // TODO: Combine checkDirty and checkChanges because they really do the same thing
-            checkChanges();
+            checkDirty();
         }
     } else {
         // OLED Mode selected
@@ -754,54 +750,12 @@ function updateTamperButtonUI() {
     }
 }
 
-function saveSettings() {
+function saveSettings(rebootRequired = false) {
     const pwdInput = document.getElementById('ap_pwd').value;
     const ssidInput = document.getElementById('ap_ssid').value;
     const hiddenInput = document.getElementById('ssid_hidden').checked;
 
-    if (!ssidInput || ssidInput.trim().length === 0) {
-        alert("Cannot Save: SSID cannot be empty.");
-        document.getElementById('ap_ssid').focus();
-        return;
-    }
-
-    if (pwdInput.includes(" ")) {
-        alert("Cannot Save: Password cannot contain spaces.");
-        document.getElementById('ap_pwd').focus();
-        return;
-    }
-
-    if (pwdInput.length > 0 && pwdInput.length < 8) {
-        alert("Cannot Save: Password must be empty (Open Network) or at least 8 characters.");
-        document.getElementById('ap_pwd').focus();
-        return;
-    }
-
-    const pwdChanged = (pwdInput !== originalPwd);
-    const ssidChanged = (ssidInput !== originalSsid);
-    const hiddenChanged = (hiddenInput !== originalHidden);
-    const wifiChanged = (pwdChanged || ssidChanged || hiddenChanged);
-
-    const currentDisplay = parseInt(document.getElementById('activeDisplayType').value, 10);
     const currentFlip = document.getElementById('flipOled').checked;
-
-    const displayChanged = (currentDisplay !== originalDisplayType) || (currentFlip !== originalFlipOled);
-    const rebootRequired = wifiChanged || displayChanged;
-
-    if (wifiChanged) {
-        if (pwdChanged) {
-            const userConfirmed = prompt("Wifi password has been changed. Please re-type the new password to confirm:");
-            if (userConfirmed === null) return;
-            if (userConfirmed !== pwdInput) {
-                alert("Passwords do not match. Settings NOT saved.");
-                return;
-            }
-        }
-        else if (!confirm("WiFi settings have changed. The device will reboot. Continue?")) {
-            return;
-        }
-    }
-
     const timeout = document.getElementById('timeoutSelect').value;
     const customMessage = document.getElementById('customMessage').value;
     const ledValid = document.getElementById('ledValid').value;
@@ -836,7 +790,7 @@ function saveSettings() {
                     unsavedChanges = false;
                     fetchSettings(true);
                 }
-                document.getElementById('rebootWarning').style.display = 'none';
+
             } else {
                 alert('Failed to save settings');
             }
@@ -855,21 +809,15 @@ function fetchSettings(forceUpdateUI = false) {
             tamperTripped = data.tamper_tripped ? true : false;
             updateTamperButtonUI();
 
-            // FIX 1: Only update UI if there are NO unsaved changes 
-            // OR if we forced it (like immediately after a save)
-            if (unsavedChanges && !forceUpdateUI) {
-                console.log("Skipping UI update: Unsaved changes present.");
-                return;
-            }
-
-            updateSettingsUI(data);
+            // Always call updateSettingsUI to keep global status states updated
+            updateSettingsUI(data, forceUpdateUI);
         })
         .catch(error => console.error('Error fetching settings:', error));
 }
 
 // --- script.js ---
 
-function updateSettingsUI(settings) {
+function updateSettingsUI(settings, forceFormUpdate = false) {
     const mode = settings.device_mode || settings.mode || '';
 
     // FIX: Falsey 0 logic included here
@@ -893,17 +841,6 @@ function updateSettingsUI(settings) {
 
     // Get Pause State
     isPaused = (settings.is_paused === true);
-
-    // 1. Populate UI Inputs
-    if (document.getElementById('timeoutSelect')) document.getElementById('timeoutSelect').value = displayTimeout;
-    if (document.getElementById('ap_ssid')) document.getElementById('ap_ssid').value = apSsid;
-    if (document.getElementById('ap_pwd')) document.getElementById('ap_pwd').value = apPass;
-    if (document.getElementById('ssid_hidden') && typeof ssidHidden !== 'undefined') document.getElementById('ssid_hidden').checked = ssidHidden;
-    if (document.getElementById('customMessage')) document.getElementById('customMessage').value = customMessage;
-    if (document.getElementById('ledValid')) document.getElementById('ledValid').value = ledValid;
-    if (document.getElementById('activeDisplayType')) document.getElementById('activeDisplayType').value = activeDisplayType;
-    if (document.getElementById('versionValue')) document.getElementById('versionValue').textContent = version;
-    if (document.getElementById('flipOled')) document.getElementById('flipOled').checked = settings.flip_oled_display;
 
     const navBtnKnob = document.getElementById('navBtnKnob');
     if (navBtnKnob) {
@@ -956,26 +893,42 @@ function updateSettingsUI(settings) {
         }
     }
 
-    // 5. STORE ORIGINAL VALUES
-    originalSsid = apSsid;
-    originalPwd = apPass;
-    originalHidden = (ssidHidden == 1 || ssidHidden === true);
-    originalDisplayType = activeDisplayType;
-    originalFlipOled = settings.flip_oled_display;
+    if (document.getElementById('versionValue')) document.getElementById('versionValue').textContent = version;
 
-    // New globals
-    originalTimeout = displayTimeout;
-    originalCustomMessage = customMessage;
-    originalLedValid = ledValid;
+    // 1. Populate UI Inputs only if there are no unsaved changes OR if forced
+    const shouldUpdateForm = !unsavedChanges || forceFormUpdate;
+    if (shouldUpdateForm) {
+        if (document.getElementById('timeoutSelect')) document.getElementById('timeoutSelect').value = displayTimeout;
+        if (document.getElementById('ap_ssid')) document.getElementById('ap_ssid').value = apSsid;
+        if (document.getElementById('ap_pwd')) document.getElementById('ap_pwd').value = apPass;
+        if (document.getElementById('ssid_hidden') && typeof ssidHidden !== 'undefined') document.getElementById('ssid_hidden').checked = ssidHidden;
+        if (document.getElementById('customMessage')) document.getElementById('customMessage').value = customMessage;
+        if (document.getElementById('ledValid')) document.getElementById('ledValid').value = ledValid;
+        if (document.getElementById('activeDisplayType')) document.getElementById('activeDisplayType').value = activeDisplayType;
+        if (document.getElementById('flipOled')) document.getElementById('flipOled').checked = settings.flip_oled_display;
 
-    // Listeners
-    const displaySelect = document.getElementById('activeDisplayType');
-    if (displaySelect) {
-        displaySelect.addEventListener('change', toggleFlipOption);
+        // 5. STORE ORIGINAL VALUES
+        originalSsid = apSsid;
+        originalPwd = apPass;
+        originalHidden = (ssidHidden == 1 || ssidHidden === true);
+        originalDisplayType = activeDisplayType;
+        originalFlipOled = settings.flip_oled_display;
+
+        // New globals
+        originalTimeout = displayTimeout;
+        originalCustomMessage = customMessage;
+        originalLedValid = ledValid;
+
+        // Listeners
+        const displaySelect = document.getElementById('activeDisplayType');
+        if (displaySelect) {
+            displaySelect.addEventListener('change', toggleFlipOption);
+        }
+
+        toggleFlipOption();
+        checkDirty();
     }
 
-    toggleFlipOption();
-    checkDirty();
     syncParityToggleBadge();
 }
 
@@ -1281,38 +1234,7 @@ function rebootDevice() {
     }
 }
 
-function checkChanges() {
-    const warningEl = document.getElementById('rebootWarning');
-    const pwdHintEl = document.getElementById('pwdHint');
 
-    const currentPwd = document.getElementById('ap_pwd').value;
-    const currentSsid = document.getElementById('ap_ssid').value;
-    const currentHidden = document.getElementById('ssid_hidden').checked;
-
-    const displayEl = document.getElementById('activeDisplayType');
-    const flipEl = document.getElementById('flipOled');
-
-    const currentDisplay = displayEl ? parseInt(displayEl.value, 10) : originalDisplayType;
-    const currentFlip = flipEl ? flipEl.checked : originalFlipOled;
-
-    if (currentPwd.length > 0 && currentPwd.length < 8) {
-        pwdHintEl.classList.remove('hidden');
-    } else {
-        pwdHintEl.classList.add('hidden');
-    }
-
-    const wifiChanged = (currentPwd !== originalPwd) || (currentSsid !== originalSsid) || (currentHidden !== originalHidden);
-    const displayChanged = (currentDisplay !== originalDisplayType) || (currentFlip !== originalFlipOled);
-
-    if (wifiChanged || displayChanged) {
-        warningEl.textContent = "Important settings have been changed! Device will reboot after saving.";
-        warningEl.classList.remove('hidden');
-        warningEl.style.display = '';
-    } else {
-        warningEl.classList.add('hidden');
-        warningEl.style.display = '';
-    }
-}
 
 function editUser(index) {
     const user = usersCache[index];
@@ -1408,11 +1330,11 @@ function togglePasswordVisibility() {
     }
 }
 
-document.getElementById('ap_ssid').addEventListener('input', () => { checkDirty(); checkChanges(); });
-document.getElementById('ap_pwd').addEventListener('input', () => { checkDirty(); checkChanges(); });
-document.getElementById('ssid_hidden').addEventListener('change', () => { checkDirty(); checkChanges(); });
-document.getElementById('activeDisplayType').addEventListener('change', () => { checkDirty(); checkChanges(); });
-document.getElementById('flipOled').addEventListener('change', () => { checkDirty(); checkChanges(); });
+document.getElementById('ap_ssid').addEventListener('input', () => { checkDirty(); });
+document.getElementById('ap_pwd').addEventListener('input', () => { checkDirty(); });
+document.getElementById('ssid_hidden').addEventListener('change', () => { checkDirty(); });
+document.getElementById('activeDisplayType').addEventListener('change', () => { checkDirty(); });
+document.getElementById('flipOled').addEventListener('change', () => { checkDirty(); });
 
 document.getElementById('modeSelect') && document.getElementById('modeSelect').addEventListener('change', checkDirty);
 document.getElementById('timeoutSelect').addEventListener('change', checkDirty);
@@ -1445,15 +1367,106 @@ function toggleSettingsView() {
     const btn = document.getElementById('navBtnSettings');
     const bezel = document.getElementById('settingsBezel');
     if (btn && bezel) {
-        const isOpen = bezel.classList.toggle('settings-open');
+        const isOpen = bezel.classList.contains('settings-open');
         if (isOpen) {
-            btn.classList.add('settings-active');
-            fetchSettings(true); // Sync settings values when opening
+            // We are closing the settings view!
+            if (unsavedChanges) {
+                // Determine if reboot is required
+                const currSsid = document.getElementById('ap_ssid').value;
+                const currPwd = document.getElementById('ap_pwd').value;
+                const currHidden = document.getElementById('ssid_hidden').checked;
+                const currDisplay = document.getElementById('activeDisplayType').value;
+                const currFlip = document.getElementById('flipOled').checked;
+
+                const pwdChanged = (currPwd !== originalPwd);
+                const ssidChanged = (currSsid !== originalSsid);
+                const hiddenChanged = (currHidden !== originalHidden);
+                const wifiChanged = (pwdChanged || ssidChanged || hiddenChanged);
+                const displayChanged = (currDisplay != originalDisplayType) || (currFlip !== originalFlipOled);
+                const rebootRequired = wifiChanged || displayChanged;
+
+                if (rebootRequired) {
+                    // Validations first!
+                    if (!currSsid || currSsid.trim().length === 0) {
+                        alert("Cannot Save: SSID cannot be empty.");
+                        openSettingsTab('wifi');
+                        document.getElementById('ap_ssid').focus();
+                        return; // Keep settings open
+                    }
+                    if (currPwd.includes(" ")) {
+                        alert("Cannot Save: Password cannot contain spaces.");
+                        openSettingsTab('wifi');
+                        document.getElementById('ap_pwd').focus();
+                        return;
+                    }
+                    if (currPwd.length > 0 && currPwd.length < 8) {
+                        alert("Cannot Save: Password must be empty (Open Network) or at least 8 characters.");
+                        openSettingsTab('wifi');
+                        document.getElementById('ap_pwd').focus();
+                        return;
+                    }
+
+                    // WiFi Password Confirmation
+                    if (pwdChanged) {
+                        const userConfirmed = prompt("Wifi password has been changed. Please re-type the new password to confirm:");
+                        if (userConfirmed === null) {
+                            return; // Keep settings open
+                        }
+                        if (userConfirmed !== currPwd) {
+                            alert("Passwords do not match. Settings NOT saved.");
+                            return;
+                        }
+                    }
+
+                    // Reboot confirmation
+                    if (!confirm("WiFi or Display settings have changed. The device will reboot. Continue?")) {
+                        // User canceled reboot: discard changes and close
+                        discardSettingsChanges();
+                        closeBezel();
+                        return;
+                    }
+                }
+
+                // Save settings
+                saveSettings(rebootRequired);
+            }
+            closeBezel();
         } else {
-            btn.classList.remove('settings-active');
-            setTimeout(closeSettingsTab, 400); // Reset to menu after transition
+            // We are opening it!
+            btn.classList.add('settings-active');
+            bezel.classList.add('settings-open');
+            fetchSettings(true); // Sync settings values when opening
         }
     }
+}
+
+function closeBezel() {
+    const btn = document.getElementById('navBtnSettings');
+    const bezel = document.getElementById('settingsBezel');
+    if (btn && bezel) {
+        bezel.classList.remove('settings-open');
+        btn.classList.remove('settings-active');
+        btn.classList.remove('solid-gold', 'pulse-gold');
+        setTimeout(closeSettingsTab, 400); // Reset to menu after transition
+    }
+}
+
+function discardSettingsChanges() {
+    document.getElementById('ap_ssid').value = originalSsid;
+    document.getElementById('ap_pwd').value = originalPwd;
+    document.getElementById('ssid_hidden').checked = originalHidden;
+    document.getElementById('timeoutSelect').value = originalTimeout;
+    document.getElementById('customMessage').value = originalCustomMessage;
+    document.getElementById('ledValid').value = originalLedValid;
+    document.getElementById('activeDisplayType').value = originalDisplayType;
+    document.getElementById('flipOled').checked = originalFlipOled;
+
+    toggleFlipOption();
+
+    const pwdHintEl = document.getElementById('pwdHint');
+    if (pwdHintEl) pwdHintEl.classList.add('hidden');
+
+    unsavedChanges = false;
 }
 
 window.onload = function () {

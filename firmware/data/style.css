@@ -309,9 +309,37 @@ header {
 }
 
 #navBtnSettings.settings-active {
-    background-color: rgba(255, 255, 255, 0.7) !important;
-    border-color: rgba(255, 255, 255, 0.7) !important;
-    color: var(--card-bg) !important;
+    background-color: rgba(255, 255, 255, 0.7);
+    border-color: rgba(255, 255, 255, 0.7);
+    color: var(--card-bg);
+}
+
+#navBtnSettings.solid-gold {
+    background-color: var(--accent) !important;
+    border-color: var(--accent) !important;
+    color: var(--bg) !important;
+}
+
+#navBtnSettings.pulse-gold {
+    animation: goldPulse 1.5s infinite ease-in-out !important;
+}
+
+@keyframes goldPulse {
+    0% {
+        background-color: var(--accent);
+        border-color: var(--accent);
+        color: var(--bg);
+    }
+    50% {
+        background-color: rgba(255, 255, 255, 0.7);
+        border-color: rgba(255, 255, 255, 0.7);
+        color: var(--card-bg);
+    }
+    100% {
+        background-color: var(--accent);
+        border-color: var(--accent);
+        color: var(--bg);
+    }
 }
 
 
@@ -533,7 +561,6 @@ button:hover {
 .badge,
 #userStatus,
 #tamperStatus,
-#rebootWarning,
 #pwdHint {
     display: inline-block;
     padding: 4px 8px;
@@ -560,8 +587,7 @@ button:hover {
 /* Red / Unauthorized / Warning */
 .badge-red,
 .user-off,
-.status-red,
-#rebootWarning {
+.status-red {
     background: var(--unauthorized);
     color: #fff0f0;
 }
@@ -666,7 +692,6 @@ button:hover {
 }
 
 /* 3. Pop-Up Animation Logic (Reboot Warning & Password Hint) */
-#rebootWarning,
 #pwdHint {
     margin-left: 10px;
     transition: all 0.5s ease-in-out;
@@ -678,7 +703,6 @@ button:hover {
 }
 
 /* Override the default hidden behavior to allow animation */
-#rebootWarning.hidden,
 #pwdHint.hidden {
     display: inline-block !important;
     max-width: 0;
@@ -736,25 +760,7 @@ button:hover {
     border: none;
 }
 
-/* 4. Pulse Animation */
-@keyframes fadePulse {
-    0% {
-        opacity: 1;
-    }
 
-    50% {
-        opacity: 0.5;
-    }
-
-    100% {
-        opacity: 1;
-    }
-}
-
-/* Only the reboot warning pulses */
-#rebootWarning {
-    animation: fadePulse 2s infinite ease-in-out;
-}
 
 /* --- Utilities & Containers --- */
 .settings-actions,
