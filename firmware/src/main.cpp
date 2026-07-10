@@ -123,7 +123,7 @@ Adafruit_SSD1306 *oledDisplay = nullptr;
 
 // Active display variable
 // 1 for LCD, 2 for OLED 128x64
-int activeDisplayType = DISPLAY_LCD;
+int activeDisplayType = DISPLAY_OLED_64;
 bool flipOledDisplay = false;
 int oledRotation =
     0; // Tracks the active hardware OLED rotation (0, 1, 2, or 3)

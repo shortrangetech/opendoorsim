@@ -116,6 +116,12 @@ header {
     height: 24px;
 }
 
+#navBtnTamper svg,
+#navBtnSettings svg {
+    transform: scale(1.1);
+    transform-origin: center;
+}
+
 .bezel-btn-placeholder {
     width: 48px;
     height: 48px;
@@ -300,6 +306,12 @@ header {
     background-color: #b32424;
     border-color: #b32424;
     color: #fff;
+}
+
+#navBtnSettings.settings-active {
+    background-color: rgba(255, 255, 255, 0.7) !important;
+    border-color: rgba(255, 255, 255, 0.7) !important;
+    color: var(--card-bg) !important;
 }
 
 

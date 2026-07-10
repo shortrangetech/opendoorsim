@@ -65,8 +65,7 @@
                             </svg>
                         </button>
                         
-                        <!-- Row 3: Blank, Pause, Reboot -->
-                        <div class="bezel-btn-placeholder"></div>
+                        <!-- Row 3: Pause, Reboot, Settings -->
                         <button id="navBtnPause" class="navbar-btn" onclick="togglePause()" title="Pause OpenDoorSim">
                             <svg viewBox="0 0 24 24" fill="currentColor">
                                 <rect x="6" y="1" width="4" height="22" rx="1"></rect>
@@ -78,6 +77,22 @@
                                 stroke-linejoin="round">
                                 <polyline points="25 5 25 11 19 11"></polyline>
                                 <path d="M19.8 19.8 a11 11 0 1 1 0 -15.6 L25 11"></path>
+                            </svg>
+                        </button>
+                        <button id="navBtnSettings" class="navbar-btn" onclick="toggleSettingsView()" title="Settings">
+                            <svg viewBox="0 0 24 24">
+                                <defs>
+                                    <mask id="gear-mask">
+                                        <rect width="24" height="24" fill="white" />
+                                        <circle cx="12" cy="12" r="3.5" fill="black" />
+                                    </mask>
+                                </defs>
+                                <g mask="url(#gear-mask)" fill="currentColor">
+                                    <circle cx="12" cy="12" r="7.5" />
+                                    <rect x="10" y="2" width="4" height="20" rx="1" />
+                                    <rect x="10" y="2" width="4" height="20" rx="1" transform="rotate(60 12 12)" />
+                                    <rect x="10" y="2" width="4" height="20" rx="1" transform="rotate(120 12 12)" />
+                                </g>
                             </svg>
                         </button>
                     </div>
@@ -175,18 +190,13 @@
 
             <h2><br>General</h2>
             <div class="indent-section">
-                <label for="activeDisplayType">Display Type:</label>
-                <select id="activeDisplayType">
-                    <option value="1">LCD 20x4</option>
-                    <option value="2">OLED 128x64</option>
-                </select>
+                <input type="hidden" id="activeDisplayType" value="2">
 
-                <span id="flipOledContainer" style="margin-left:20px; display:none; vertical-align: middle;">
+                <span id="flipOledContainer" style="display:none; vertical-align: middle;">
                     <label for="flipOled">Flip OLED:</label>
                     <input type="checkbox" id="flipOled" style="vertical-align: middle;">
+                    <br><br>
                 </span>
-
-                <br><br>
                 <label for="timeoutSelect">Display Timeout:</label>
                 <select id="timeoutSelect">
                     <option value="5000">5 seconds</option>

@@ -1419,6 +1419,13 @@ document.getElementById('timeoutSelect').addEventListener('change', checkDirty);
 document.getElementById('ledValid').addEventListener('change', checkDirty);
 document.getElementById('customMessage').addEventListener('input', checkDirty);
 
+function toggleSettingsView() {
+    const btn = document.getElementById('navBtnSettings');
+    if (btn) {
+        btn.classList.toggle('settings-active');
+    }
+}
+
 window.onload = function () {
     if (!screenInterval) screenInterval = setInterval(updateScreen, 150);
     fetchSettings();
