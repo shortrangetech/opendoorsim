@@ -353,19 +353,16 @@ function toggleLogExpand() {
         });
     } else {
         // --- COLLAPSING (25 -> 10) ---
-        // 1. Temporarily hide extra rows to measure the target height
+        // Calculate target height using bounding boxes to avoid layout thrashing and scroll jumps
         const rows = Array.from(scanLogTableBody.rows);
+        let targetHeight = container.scrollHeight;
         if (rows.length > 10) {
-            rows.slice(10).forEach(row => row.style.display = 'none');
-        }
-        const targetHeight = container.scrollHeight;
-
-        // 2. Restore their display so they remain visible while sliding out of view
-        if (rows.length > 10) {
-            rows.slice(10).forEach(row => row.style.display = '');
+            const containerRect = container.getBoundingClientRect();
+            const row10Rect = rows[9].getBoundingClientRect();
+            targetHeight = row10Rect.bottom - containerRect.top;
         }
 
-        // 3. Lock starting height and hide overflow
+        // Lock starting height and hide overflow
         container.style.height = oldHeight + 'px';
         container.style.overflow = 'hidden';
         container.offsetHeight; // force reflow
@@ -376,12 +373,14 @@ function toggleLogExpand() {
 
         const onTransitionEnd = function(e) {
             if (e.propertyName === 'height') {
-                // Rebuild the DOM to exactly 10 rows now that transition is done
-                updateScanLog().then(() => {
-                    container.style.height = '';
-                    container.style.overflow = '';
-                    container.style.transition = '';
-                });
+                // Transition finished: hide the extra rows synchronously
+                const rowsAfter = Array.from(scanLogTableBody.rows);
+                if (rowsAfter.length > 10) {
+                    rowsAfter.slice(10).forEach(row => row.style.display = 'none');
+                }
+                container.style.height = '';
+                container.style.overflow = '';
+                container.style.transition = '';
                 container.removeEventListener('transitionend', onTransitionEnd);
             }
         };
