@@ -77,8 +77,8 @@ h1 {
 }
 
 #logo {
-    width: 38px;
-    height: 38px;
+    width: 34px;
+    height: 34px;
     border-radius: 0px;
     object-fit: contain;
     border: none;
@@ -312,8 +312,19 @@ h1 {
     color: #fff;
 }
 
+#navBtnPause {
+    grid-row: 3;
+    grid-column: 1;
+}
+
+#navBtnReboot {
+    grid-row: 3;
+    grid-column: 2;
+}
+
 #navBtnCancel {
-    grid-column: span 2;
+    grid-row: 3;
+    grid-column: 1 / span 2;
     width: auto !important; /* Allow it to span multiple columns cleanly */
 }
 
@@ -321,6 +332,26 @@ h1 {
     background-color: #8b1f1f;
     border-color: #8b1f1f;
     color: #fff;
+}
+
+#navBtnSettings {
+    grid-row: 3;
+    grid-column: 3;
+}
+
+/* Bezel-right buttons transitions and layout stacking */
+.bezel-right .navbar-btn {
+    transition: opacity 0.3s ease, transform 0.3s ease, background-color 0.2s ease, color 0.2s ease;
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+}
+
+.bezel-right .navbar-btn.hidden {
+    display: flex !important;
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.8);
 }
 
 #navBtnSettings.settings-active {
