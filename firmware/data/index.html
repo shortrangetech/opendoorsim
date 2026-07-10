@@ -15,7 +15,7 @@
 
         <div id="monitor">
             <div class="indent-section"
-                style="display: flex; justify-content: center; margin: 20px 0; gap: 20px;">
+                style="display: flex; justify-content: center; margin: 20px 0 40px 0; gap: 20px;">
                 <div class="device-bezel screens-bezel" onclick="toggleFullscreenOled()">
                     <div class="screen-container">
                         <canvas id="oledCanvas" width="128" height="64"></canvas>
@@ -201,23 +201,23 @@
 
             <div class="data-sections">
             <div class="section-line"></div>
-            <h2 class="collapsible expanded" onclick="toggleSection('scansContent', this)" style="cursor:pointer; margin-top: 15px; margin-left: 15px; font-family: 'Michroma', sans-serif; letter-spacing: 0.15em;">
+            <h2 class="collapsible" onclick="toggleSection('scansContent', this)" style="cursor:pointer; margin-left: 15px; font-family: 'Michroma', sans-serif; letter-spacing: 0.15em;">
                 <span class="retro-led"></span>
                 <span class="title-text">SCANS</span>
                 <span class="badge-group">
-                    <span id="badgeCardData" class="badge badge-purple badge-clickable" onclick="toggleCardDataMode()"
+                    <span id="badgeCardData" class="badge badge-purple badge-clickable" onclick="toggleCardDataMode(event)"
                         title="Toggle Hex / Binary view">DATA: BIN</span>
-                    <span id="badgeHideData" class="badge badge-gray badge-clickable" onclick="toggleHideData()"
+                    <span id="badgeHideData" class="badge badge-gray badge-clickable" onclick="toggleHideData(event)"
                         title="Blur data columns to focus on names">BLUR DATA</span>
-                    <span id="badgeLearnerView" class="badge badge-gray badge-clickable" onclick="toggleLearnerView()"
+                    <span id="badgeLearnerView" class="badge badge-gray badge-clickable" onclick="toggleLearnerView(event)"
                         title="Highlight Facility Code and Card Number bit positions">DECODE COLORS</span>
-                    <span id="badgeToggleBits" class="badge badge-purple badge-clickable" onclick="toggleShowBits()"
+                    <span id="badgeToggleBits" class="badge badge-purple badge-clickable" onclick="toggleShowBits(event)"
                         title="Toggle display of bit count badge">SHOW BIT COUNT</span>
-                    <span id="badgeToggleParity" class="badge badge-purple badge-clickable" onclick="toggleShowParity()"
+                    <span id="badgeToggleParity" class="badge badge-purple badge-clickable" onclick="toggleShowParity(event)"
                         title="Toggle display of parity badge">SHOW PARITY</span>
                 </span>
             </h2>
-            <div id="scansContent" class="contentCollapsible expanded">
+            <div id="scansContent" class="contentCollapsible">
                 <div class="collapsible-inner">
             <div class="table-responsive">
                 <table id="scanLogTable">
@@ -266,11 +266,11 @@
                     <span id="userClearBtn" class="badge badge-gray badge-clickable badge-clear"
                         onclick="clearUsers()">CLEAR</span>
                 </div>
-                <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;">
-                    <h3>Batch Tool</h3>
+                <div style="margin-top: 20px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+                    <h3 style="font-family: 'Michroma', sans-serif; letter-spacing: 0.15em; margin-left: 37px; text-transform: uppercase; margin-top: 0; margin-bottom: 0; white-space: nowrap;">Batch Tool</h3>
 
                     <div
-                        style="background: #1b1b1b; padding: 15px; border-radius: 8px; display:flex; flex-wrap:wrap; gap: 15px; align-items: center;">
+                        style="background: #1b1b1b; padding: 15px; border-radius: 8px; display:flex; flex-wrap:wrap; gap: 15px; align-items: center; flex-grow: 1;">
 
                         <div>
                             <input type="file" id="usersUpload" accept=".json" style="max-width:200px;">

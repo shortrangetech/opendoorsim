@@ -216,7 +216,8 @@ function updateScreen() {
         .catch(err => console.error("Firefox Fetch Error:", err));
 }
 
-function toggleHideData() {
+function toggleHideData(e) {
+    if (e) e.stopPropagation();
     hideData = !hideData;
     const badge = document.getElementById('badgeHideData');
     if (badge) badge.className = 'badge badge-clickable ' + (hideData ? 'badge-purple' : 'badge-gray');
@@ -226,7 +227,8 @@ function toggleHideData() {
     });
 }
 
-function toggleLearnerView() {
+function toggleLearnerView(e) {
+    if (e) e.stopPropagation();
     learnerViewMode = !learnerViewMode;
     const badge = document.getElementById('badgeLearnerView');
     if (badge) {
@@ -238,7 +240,8 @@ function toggleLearnerView() {
     }
 }
 
-function toggleShowBits() {
+function toggleShowBits(e) {
+    if (e) e.stopPropagation();
     showBits = !showBits;
     const badge = document.getElementById('badgeToggleBits');
     if (badge) {
@@ -250,7 +253,8 @@ function toggleShowBits() {
     }
 }
 
-function toggleShowParity() {
+function toggleShowParity(e) {
+    if (e) e.stopPropagation();
     showParity = !showParity;
     const badge = document.getElementById('badgeToggleParity');
     if (badge) {
@@ -282,7 +286,8 @@ function syncParityToggleBadge() {
     lastParityCheckSetting = parityCheckEnabled;
 }
 
-function toggleCardDataMode() {
+function toggleCardDataMode(e) {
+    if (e) e.stopPropagation();
     cardDataMode = (cardDataMode === 'hex') ? 'bin' : 'hex';
     const badge = document.getElementById('badgeCardData');
     if (badge) badge.textContent = cardDataMode === 'hex' ? 'DATA: HEX' : 'DATA: BIN';

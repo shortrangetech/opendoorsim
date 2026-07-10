@@ -325,7 +325,8 @@ h1 {
 #navBtnCancel {
     grid-row: 3;
     grid-column: 1 / span 2;
-    width: auto !important; /* Allow it to span multiple columns cleanly */
+    width: auto !important;
+    /* Allow it to span multiple columns cleanly */
 }
 
 #navBtnCancel:hover {
@@ -376,11 +377,13 @@ h1 {
         border-color: var(--accent);
         color: var(--bg);
     }
+
     50% {
         background-color: rgba(255, 255, 255, 0.7);
         border-color: rgba(255, 255, 255, 0.7);
         color: var(--card-bg);
     }
+
     100% {
         background-color: var(--accent);
         border-color: var(--accent);
@@ -871,11 +874,13 @@ h2.collapsible:not(.expanded) .badge-group {
     gap: 10px;
     /* adds clean spacing between text and badge */
     user-select: none;
+    margin-top: 20px !important;
+    margin-bottom: 5px !important;
 }
 
 .collapsible .title-text {
-    position: relative;
-    top: -0.07em; /* Raise title text slightly to center with LED/badges */
+    margin-top: -0.12em;
+    margin-bottom: 0.12em;
 }
 
 /* Retro CRT "Power LED" Indicator Container */
@@ -899,9 +904,12 @@ h2.collapsible:not(.expanded) .badge-group {
     border-radius: 50%;
     background-color: #8a3a00;
     box-shadow: 0 0 2px #8a3a00;
-    animation: amberPulse 4s infinite ease-in-out;
     opacity: 1;
     transition: opacity 0.5s ease;
+}
+
+.collapsible:not(.expanded) .retro-led::before {
+    animation: amberPulse 4s infinite ease-in-out;
 }
 
 /* Solid gold (active/expanded state) */
@@ -929,10 +937,14 @@ h2.collapsible:not(.expanded) .badge-group {
 }
 
 @keyframes amberPulse {
-    0%, 25%, 100% {
+
+    0%,
+    25%,
+    100% {
         background-color: #8a3a00;
         box-shadow: 0 0 2px #8a3a00;
     }
+
     65% {
         background-color: #ff7700;
         box-shadow: 0 0 8px #ff7700;
@@ -960,7 +972,7 @@ h2.collapsible:not(.expanded) .badge-group {
     overflow: hidden;
 }
 
-#usersContent.expanded + .users-bottom-line {
+#usersContent.expanded+.users-bottom-line {
     opacity: 0;
     height: 0;
     margin-top: 0;
@@ -1084,6 +1096,7 @@ h2.collapsible:not(.expanded) .badge-group {
         transform: translate(-50%, -50%) scale(0.85);
         opacity: 0;
     }
+
     to {
         transform: translate(-50%, -50%) scale(1);
         opacity: 1;
@@ -1095,6 +1108,7 @@ h2.collapsible:not(.expanded) .badge-group {
         transform: scale(0.9);
         opacity: 0;
     }
+
     to {
         transform: scale(1);
         opacity: 1;
@@ -1155,7 +1169,7 @@ h2.collapsible:not(.expanded) .badge-group {
 
 /* Page content fade transitions */
 header,
-.content > *,
+.content>*,
 .device-bezel {
     transition: opacity 0.3s ease;
 }
@@ -1382,6 +1396,7 @@ a {
         align-items: flex-start;
         gap: 15px;
     }
+
     #versionInfo {
         text-align: left;
     }
@@ -1462,11 +1477,12 @@ a {
     background-color: var(--header-bg);
     border-radius: 16px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-    height: 218px; /* Match existing buttons bezel height */
+    height: 218px;
+    /* Match existing buttons bezel height */
     box-sizing: border-box;
     font-family: 'Michroma', sans-serif;
     letter-spacing: 0.08em;
-    
+
     /* Animation: slide & fade out/in */
     max-width: 0;
     opacity: 0;
@@ -1486,7 +1502,8 @@ a {
 }
 
 .settings-bezel.settings-open {
-    max-width: 410px; /* 368px content + 40px padding */
+    max-width: 410px;
+    /* 368px content + 40px padding */
     padding: 15px 20px;
     opacity: 1;
     border: 1px solid #3a3a3a;
@@ -1544,7 +1561,8 @@ a {
     display: flex;
     flex-direction: column;
     width: 368px;
-    height: 188px; /* 218px - 30px padding */
+    height: 188px;
+    /* 218px - 30px padding */
 }
 
 .settings-tab-header {
@@ -1594,7 +1612,8 @@ a {
     gap: 8px;
     flex-grow: 1;
     overflow-y: auto;
-    padding-right: 5px; /* space for scrollbar if needed */
+    padding-right: 5px;
+    /* space for scrollbar if needed */
 }
 
 .settings-actions {
