@@ -875,7 +875,7 @@ h2.collapsible:not(.expanded) .badge-group {
     /* adds clean spacing between text and badge */
     user-select: none;
     margin-top: 20px !important;
-    margin-bottom: 5px !important;
+    margin-bottom: 10px !important;
 }
 
 .collapsible .title-text {

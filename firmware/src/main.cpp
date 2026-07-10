@@ -2090,15 +2090,13 @@ void webServer() {
         deviceMode = reqMode;
         // Keep encoder menu in sync
         tempDeviceModeInt = (deviceMode == "user") ? 1 : 0;
-        // NOTE: do NOT set forceMenuUpdate here — showSettingsSaved() takes
-        // ownership of the display and the timeout path restores it cleanly.
 
         saveSettingsToPreferences();
         if (currentMenuState == STATE_STANDBY) {
-          showSettingsSaved();
-        } else {
-          forceMenuUpdate = true;
+          displayingCard = false;
+          isSystemMessage = false;
         }
+        forceMenuUpdate = true;
         Serial.printf("[SYSTEM] Mode changed to: %s via WebUI navbar\n",
                       deviceMode.c_str());
 
