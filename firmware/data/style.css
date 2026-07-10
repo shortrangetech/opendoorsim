@@ -874,6 +874,7 @@ button:hover {
     border: 4px solid #141413;
     display: inline-block;
     line-height: 0;
+    position: relative;
 }
 
 #oledCanvas {
@@ -890,50 +891,88 @@ button:hover {
 }
 
 .screens-bezel {
-    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
     cursor: pointer;
     position: relative;
 }
 
-.screens-bezel.fullscreen {
+.screens-bezel.fullscreen,
+.screens-bezel.closing {
     position: fixed;
     top: 50%;
-    left: 0;
-    width: 100vw;
+    left: 50%;
+    width: 90vw;
+    max-width: calc((90vh - 100px) * 4);
     height: auto;
-    transform: translateY(-50%);
+    transform: translate(-50%, -50%);
     z-index: 9999;
     margin: 0;
-    border-radius: 0;
+    border-radius: 16px;
+    background-color: var(--header-bg);
+    padding: 20px;
     flex-direction: column;
 }
 
-.screens-bezel.fullscreen .bezel-left {
+.screens-bezel.fullscreen {
+    animation: grow 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+
+.screens-bezel.closing {
+    animation: shrink 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+
+@keyframes grow {
+    from {
+        transform: translate(-50%, -50%) scale(0.85);
+        opacity: 0;
+    }
+    to {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes shrink {
+    from {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+    to {
+        transform: translate(-50%, -50%) scale(0.85);
+        opacity: 0;
+    }
+}
+
+.screens-bezel.fullscreen .bezel-left,
+.screens-bezel.closing .bezel-left {
     display: none;
 }
 
-.screens-bezel.fullscreen .screen-container {
+.screens-bezel.fullscreen .screen-container,
+.screens-bezel.closing .screen-container {
     width: 100%;
     height: auto;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-grow: 1;
-    border: none;
-    border-radius: 0;
-    padding: 0;
+    border: 4px solid #141413;
+    border-radius: 12px;
+    padding: 20px;
+    box-sizing: border-box;
 }
 
-.screens-bezel.fullscreen #oledCanvas {
+.screens-bezel.fullscreen #oledCanvas,
+.screens-bezel.closing #oledCanvas {
     width: 100%;
     height: auto;
+    aspect-ratio: 512 / 128;
     object-fit: contain;
 }
 
 .expand-icon {
     position: absolute;
-    bottom: 10px;
-    right: 10px;
+    bottom: 25px;
+    right: 25px;
     opacity: 0;
     transition: opacity 0.2s ease;
     color: rgba(255, 255, 255, 0.5);
@@ -954,7 +993,8 @@ button:hover {
     opacity: 1;
 }
 
-.screens-bezel.fullscreen .expand-icon {
+.screens-bezel.fullscreen .expand-icon,
+.screens-bezel.closing .expand-icon {
     display: none;
 }
 

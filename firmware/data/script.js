@@ -1080,9 +1080,22 @@ function toggleParitySetting() {
 
 function toggleFullscreenOled() {
     const bezel = document.querySelector('.screens-bezel');
-    if (bezel) {
-        bezel.classList.toggle('fullscreen');
-        document.body.classList.toggle('fullscreen-active', bezel.classList.contains('fullscreen'));
+    if (!bezel) return;
+
+    if (bezel.classList.contains('fullscreen')) {
+        bezel.classList.remove('fullscreen');
+        bezel.classList.add('closing');
+        document.body.classList.remove('fullscreen-active');
+        
+        // Remove 'closing' class once the animation finishes
+        bezel.addEventListener('animationend', function handler() {
+            bezel.classList.remove('closing');
+            bezel.removeEventListener('animationend', handler);
+        }, { once: true });
+    } else {
+        bezel.classList.remove('closing');
+        bezel.classList.add('fullscreen');
+        document.body.classList.add('fullscreen-active');
     }
 }
 
