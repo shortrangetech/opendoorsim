@@ -17,9 +17,6 @@
             <div class="indent-section"
                 style="display: flex; justify-content: center; margin: 20px 0; gap: 20px;">
                 <div class="device-bezel screens-bezel" onclick="toggleFullscreenOled()">
-                    <div class="bezel-left">
-                        <img id="logo" src="logo512_big.png" alt="logo">
-                    </div>
                     <div class="screen-container">
                         <canvas id="oledCanvas" width="128" height="64"></canvas>
                         <div class="expand-icon">
@@ -294,9 +291,12 @@
         <div class="footer-line"></div>
         <div class="footer-container">
             <div class="brand-title">OPENDOORSIM</div>
-            <div id="versionInfo">
-                Version: <span id="versionValue"></span><br>
-                by shortrange.tech
+            <div class="version-wrapper" style="display: flex; align-items: center; gap: 15px;">
+                <div id="versionInfo">
+                    Version: <span id="versionValue"></span><br>
+                    by shortrange.tech
+                </div>
+                <img id="logo" src="logo512_big.png" alt="logo">
             </div>
         </div>
     </footer>

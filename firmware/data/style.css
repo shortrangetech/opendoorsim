@@ -77,13 +77,14 @@ h1 {
 }
 
 #logo {
-    width: 120px;
-    height: 120px;
+    width: 38px;
+    height: 38px;
     border-radius: 0px;
     object-fit: contain;
     border: none;
     display: block;
-    filter: brightness(0);
+    filter: brightness(0) invert(60%);
+    transform: translateY(-2px);
 }
 
 /* --- Device Bezel --- */
@@ -1049,10 +1050,10 @@ body.fullscreen-active .main-footer {
 }
 
 #badgeLearnerView {
-    max-width: 200px;
+    max-width: 250px;
     opacity: 1;
     overflow: hidden;
-    transition: max-width 0.3s ease, margin-left 0.3s ease, margin-right 0.3s ease, padding 0.3s ease, opacity 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+    transition: max-width 0.3s ease, margin-left 0.3s ease, margin-right 0.3s ease, padding 0.3s ease, opacity 0.3s ease, background-color 0.3s ease, color 0.3s ease, transform 0.2s ease;
 }
 
 #badgeLearnerView.hide-learner-badge {
