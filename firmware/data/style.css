@@ -389,6 +389,15 @@ select {
     box-sizing: border-box;
 }
 
+.data-sections {
+    font-size: 1.2em;
+}
+
+.data-sections button,
+.data-sections input {
+    font-size: 1em;
+}
+
 /* Responsive container for horizontal scroll on narrow screens */
 .table-responsive {
     width: 100%;
@@ -536,7 +545,7 @@ button:hover {
     background-color: #8b1f1f;
     color: #fff;
     border-color: #8b1f1f;
-    font-size: 0.85rem;
+    font-size: 0.85em;
 }
 
 .button-danger:hover {
@@ -549,7 +558,7 @@ button:hover {
     background-color: #52009f;
     color: #fff;
     border-color: #52009f;
-    font-size: 0.85rem;
+    font-size: 0.85em;
 }
 
 .button-purple:hover {
@@ -581,7 +590,7 @@ button:hover {
     padding: 4px 8px;
     border-radius: 8px;
     font-weight: 900;
-    font-size: 0.85rem;
+    font-size: 0.85em;
     text-transform: uppercase;
     line-height: normal;
     white-space: nowrap;
@@ -751,7 +760,7 @@ button:hover {
     /* NEW: Bold and Slightly Larger */
     font-weight: 800;
     /* Extra Bold */
-    font-size: 0.85rem;
+    font-size: 0.85em;
     /* Increased from 0.75rem */
 
     /* Active State (Grown) */
