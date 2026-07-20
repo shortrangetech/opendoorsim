@@ -1,7 +1,7 @@
 # OpenDoorSim — Personal RFID Lab
 
 <p align="center">
-    <img src="images/logo.png" alt="OpenDoorSim Logo">
+    <img src="images/logo.png" alt="OpenDoorSim Logo" width="33%">
 </p>
 
 OpenDoorSim is your personal **open-source PACS / RFID lab!**. OpenDoorSim simulates Physical Access Control Systems (PACS) by connecting to real readers, so you can **hack the real thing!** At-home experiments, big CTFs, hands-on workshops, banger demos and advanced research are a breeze! It works with **any Wiegand or (soon) OSDP reader**, and fits easily in your bag. Sporting a **fresh web UI with a mirrored virtual display**, an **on-device hardware menu**, and multiple **modes** to make life easy, you may find it hard to put down... 
@@ -10,9 +10,6 @@ OpenDoorSim is your personal **open-source PACS / RFID lab!**. OpenDoorSim simul
 
 ## Features
 
-<p align="center">
-    <img src="images/ThinBanner.jpg" alt="OpenDoorSim Banner">
-</p>
 
 - Use any Wiegand or (soon) OSDP reader!
 - Powered by 5V USB-C
@@ -23,7 +20,11 @@ OpenDoorSim is your personal **open-source PACS / RFID lab!**. OpenDoorSim simul
 - Rugged 3D printed case
 - Batch User Management
 
-[ youtube video here ]
+<p align="center">
+  <a href="https://youtu.be/uSH2qY0MCnA">
+    <img src="https://img.youtube.com/vi/uSH2qY0MCnA/maxresdefault.jpg" alt="OpenDoorSim Demo Video" width="70%">
+  </a>
+</p>
 
 ## Quick start
 
