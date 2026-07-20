@@ -1,92 +1,298 @@
 {
   "wiegandFormats": [
     {
+      "description": "26 BIT STANDARD H10301",
       "bitCount": 26,
-      "facilityCodeStart": 1,
+      "facilityCodeStart": 2,
       "facilityCodeEnd": 9,
-      "cardNumberStart": 9,
+      "cardNumberStart": 10,
       "cardNumberEnd": 25,
-      "description": "Standard 26-bit HID format"
+      "parityEvenBit": 1,
+      "parityOddBit": 26,
+      "parityEvenRange": [
+        2,
+        13
+      ],
+      "parityOddRange": [
+        14,
+        25
+      ]
     },
     {
+      "description": "27 BIT HID INDALA H10307",
       "bitCount": 27,
       "facilityCodeStart": 1,
       "facilityCodeEnd": 13,
-      "cardNumberStart": 13,
-      "cardNumberEnd": 27,
-      "description": "27-bit HID format"
+      "cardNumberStart": 14,
+      "cardNumberEnd": 27
     },
     {
+      "description": "28 BIT WIEGAND 2804",
+      "bitCount": 28,
+      "facilityCodeStart": 5,
+      "facilityCodeEnd": 12,
+      "cardNumberStart": 13,
+      "cardNumberEnd": 27,
+      "parityEvenBit": 1,
+      "parityOddBit": 28,
+      "parityEvenRange": [
+        2,
+        14
+      ],
+      "parityOddRange": [
+        1,
+        27
+      ]
+    },
+    {
+      "description": "29 BIT INDALA",
       "bitCount": 29,
       "facilityCodeStart": 1,
       "facilityCodeEnd": 13,
-      "cardNumberStart": 13,
-      "cardNumberEnd": 29,
-      "description": "29-bit HID format"
+      "cardNumberStart": 14,
+      "cardNumberEnd": 29
     },
     {
+      "description": "30 BIT ATS WIEGAND",
       "bitCount": 30,
-      "facilityCodeStart": 1,
+      "facilityCodeStart": 2,
       "facilityCodeEnd": 13,
-      "cardNumberStart": 13,
+      "cardNumberStart": 14,
       "cardNumberEnd": 29,
-      "description": "30-bit HID format"
+      "parityEvenBit": 1,
+      "parityOddBit": 30,
+      "parityEvenRange": [
+        2,
+        13
+      ],
+      "parityOddRange": [
+        14,
+        29
+      ]
     },
     {
+      "description": "31 BIT HID ADT",
       "bitCount": 31,
-      "facilityCodeStart": 1,
+      "facilityCodeStart": 2,
       "facilityCodeEnd": 5,
-      "cardNumberStart": 5,
-      "cardNumberEnd": 28,
-      "description": "31-bit HID format"
+      "cardNumberStart": 6,
+      "cardNumberEnd": 28
     },
     {
+      "description": "32 BIT WIEGAND",
       "bitCount": 32,
       "facilityCodeStart": 5,
       "facilityCodeEnd": 16,
       "cardNumberStart": 17,
-      "cardNumberEnd": 32,
-      "description": "32-bit Wiegand format (modified, not standard HID)"
+      "cardNumberEnd": 32
     },
     {
+      "description": "33 BIT HID D10202",
       "bitCount": 33,
-      "facilityCodeStart": 1,
+      "facilityCodeStart": 2,
       "facilityCodeEnd": 8,
-      "cardNumberStart": 8,
+      "cardNumberStart": 9,
       "cardNumberEnd": 32,
-      "description": "33-bit HID format"
+      "parityEvenBit": 1,
+      "parityOddBit": 33,
+      "parityEvenRange": [
+        2,
+        17
+      ],
+      "parityOddRange": [
+        17,
+        32
+      ]
     },
     {
+      "description": "34 BIT HID STANDARD H10306",
       "bitCount": 34,
-      "facilityCodeStart": 1,
+      "facilityCodeStart": 2,
       "facilityCodeEnd": 17,
-      "cardNumberStart": 17,
+      "cardNumberStart": 18,
       "cardNumberEnd": 33,
-      "description": "34-bit HID format"
+      "parityEvenBit": 1,
+      "parityOddBit": 34,
+      "parityEvenRange": [
+        2,
+        17
+      ],
+      "parityOddRange": [
+        18,
+        33
+      ]
     },
     {
+      "description": "35 BIT HID CORPORATE 1000",
       "bitCount": 35,
-      "facilityCodeStart": 2,
+      "facilityCodeStart": 3,
       "facilityCodeEnd": 14,
-      "cardNumberStart": 14,
+      "cardNumberStart": 15,
       "cardNumberEnd": 34,
-      "description": "35-bit HID format"
+      "parityEvenBit": 2,
+      "parityOddBit": 1,
+      "parityEvenIndices": [
+        3,
+        4,
+        6,
+        7,
+        9,
+        10,
+        12,
+        13,
+        15,
+        16,
+        18,
+        19,
+        21,
+        22,
+        24,
+        25,
+        27,
+        28,
+        30,
+        31,
+        33,
+        34
+      ],
+      "parityOddRange": [
+        2,
+        35
+      ]
     },
     {
+      "description": "36 BIT HID SIEMENS",
       "bitCount": 36,
-      "facilityCodeStart": 21,
-      "facilityCodeEnd": 33,
-      "cardNumberStart": 1,
-      "cardNumberEnd": 17,
-      "description": "36-bit HID format (facility code in different position)"
+      "facilityCodeStart": 2,
+      "facilityCodeEnd": 19,
+      "cardNumberStart": 20,
+      "cardNumberEnd": 35,
+      "parityEvenBit": 36,
+      "parityOddBit": 1,
+      "parityEvenIndices": [
+        2,
+        3,
+        5,
+        6,
+        8,
+        9,
+        11,
+        12,
+        14,
+        15,
+        17,
+        18,
+        20,
+        21,
+        23,
+        24,
+        26,
+        27,
+        29,
+        30,
+        32,
+        33,
+        35
+      ],
+      "parityOddIndices": [
+        2,
+        4,
+        5,
+        7,
+        8,
+        10,
+        11,
+        13,
+        14,
+        16,
+        17,
+        19,
+        20,
+        22,
+        23,
+        25,
+        26,
+        28,
+        29,
+        31,
+        32,
+        34,
+        35
+      ]
     },
     {
+      "description": "48 BIT HID CORPORATE 1000 H2004064",
       "bitCount": 48,
-      "facilityCodeStart": 2,
+      "facilityCodeStart": 3,
       "facilityCodeEnd": 23,
-      "cardNumberStart": 23,
+      "cardNumberStart": 24,
       "cardNumberEnd": 46,
-      "description": "HID 48-bit Corporate 1000 format (H2004064)"
+      "parityEvenBit": 2,
+      "parityOddBit": 48,
+      "parityEvenIndices": [
+        4,
+        5,
+        7,
+        8,
+        10,
+        11,
+        13,
+        14,
+        16,
+        17,
+        19,
+        20,
+        22,
+        23,
+        25,
+        26,
+        28,
+        29,
+        31,
+        32,
+        34,
+        35,
+        37,
+        38,
+        40,
+        41,
+        43,
+        44,
+        46,
+        47
+      ],
+      "parityOddIndices": [
+        3,
+        4,
+        6,
+        7,
+        9,
+        10,
+        12,
+        13,
+        15,
+        16,
+        18,
+        19,
+        21,
+        22,
+        24,
+        25,
+        27,
+        28,
+        30,
+        31,
+        33,
+        34,
+        36,
+        37,
+        39,
+        40,
+        42,
+        43,
+        45,
+        46
+      ]
     }
   ]
 }

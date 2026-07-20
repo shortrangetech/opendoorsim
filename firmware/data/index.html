@@ -5,233 +5,310 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Card Data</title>
-    <link rel="stylesheet" href="style.css">    
+    <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="logo512_big.png">
     <link rel="apple-touch-icon" href="logo512_big.png">
 </head>
 
 <body>
-    <header>
-        <img id="logo" src="logo512_big.png" alt="logo">
-        <div class="header-banner">
-            <span class="brand">OpenDoorSim</span>
-            <nav class="header-center">
-                <a onclick="showSection('log')">Raw Mode</a>
-                <a onclick="showSectionWithRefresh('monitor')">CTF Mode</a>
-                <a onclick="showSection('settings')">Settings</a>
-            </nav>
-            <div class="header-right">
-                <div id="modeBox">MODE: <span id="modeValue">RAW</span></div>
-            </div>
-        </div>
-    </header>
     <div class="content">
-        <div id="log" class="hidden">
-            <h1>
-                Raw Log
-                <span style="font-size: 0.5em; vertical-align: middle; margin-left: 15px;">
-                    <span id="badgeSortNew" class="badge badge-purple badge-clickable" onclick="setSort('new')">Newest Cards First</span>
-                    <span id="badgeSortOld" class="badge badge-gray badge-clickable" onclick="setSort('old')">Oldest Cards First</span>
-                </span>
-            </h1>
-            <table id="cardTable">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Bit Length</th>
-                        <th>Facility Code</th>
-                        <th>Card Number</th>
-                        <th>Raw Binary Data (click to copy)</th>
-                        <th>Hex Data (click to copy)</th>
-                        <th>Padding</th>
-                    </tr>
-                </thead>
-                <tbody>
-                </tbody>
-            </table>
-        </div>
-        <div id="monitor">
-            <h1>CTF Monitor</h1>
 
-            <div class="indent-section">
-                <div id="ctfIndicator" style="margin-bottom:8px;">
-                    CTF Mode Status: <strong id="ctfStatus">OFF</strong>
+        <div id="monitor">
+            <div class="indent-section"
+                style="display: flex; justify-content: center; margin: 20px 0 40px 0; gap: 20px;">
+                <div class="device-bezel screens-bezel" onclick="toggleFullscreenOled()">
+                    <div class="screen-container">
+                        <canvas id="oledCanvas" width="128" height="64"></canvas>
+                        <div class="expand-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                            </svg>
+                        </div>
+                    </div>
                 </div>
-                <div id="ctfHint" style="color:gray; font-size:0.9em; display:none;">
-                    CTF mode is off. To enable CTF mode, change mode in settings.
+                <div class="device-bezel buttons-bezel">
+                    <div class="bezel-right">
+                        <!-- Row 1: Mode Toggle Box -->
+                        <div id="modeBox" class="mode-raw badge badge-clickable" onclick="toggleMode()" title="Toggle Mode">
+                            <span id="modeValue">RAW</span></div>
+                        
+                        <!-- Row 2: Encoder, Parity, Tamper -->
+                        <button id="navBtnKnob" class="navbar-btn" onclick="toggleKnobSetting()" title="Toggle Hardware Knob">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="11"></circle>
+                                <line x1="12" y1="1" x2="12" y2="12"></line>
+                            </svg>
+                        </button>
+                        <button id="navBtnParity" class="navbar-btn" onclick="toggleParitySetting()"
+                            title="Toggle Parity Check">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <rect x="2" y="1" width="9" height="22" rx="2" ry="2"></rect>
+                                <path d="M10 4L3 20"></path>
+                                <path d="M18 1h3v22"></path>
+                            </svg>
+                        </button>
+                        <button id="navBtnTamper" class="navbar-btn" onclick="toggleTamperSetting()" title="Toggle Tamper Detect">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                            </svg>
+                        </button>
+                        
+                        <!-- Row 3: Pause, Reboot, Settings -->
+                        <button id="navBtnCancel" class="navbar-btn hidden" onclick="discardSettingsChanges()" title="Discard Changes">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                        <button id="navBtnPause" class="navbar-btn" onclick="togglePause()" title="Pause OpenDoorSim">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <rect x="6" y="1" width="4" height="22" rx="1"></rect>
+                                <rect x="14" y="1" width="4" height="22" rx="1"></rect>
+                            </svg>
+                        </button>
+                        <button id="navBtnReboot" class="navbar-btn" onclick="rebootDevice()" title="Remote Reboot">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <polyline points="25 5 25 11 19 11"></polyline>
+                                <path d="M19.8 19.8 a11 11 0 1 1 0 -15.6 L25 11"></path>
+                            </svg>
+                        </button>
+                        <button id="navBtnSettings" class="navbar-btn" onclick="toggleSettingsView()" title="Settings">
+                            <svg viewBox="0 0 24 24">
+                                <defs>
+                                    <mask id="gear-mask">
+                                        <rect width="24" height="24" fill="white" />
+                                        <circle cx="12" cy="12" r="3.5" fill="black" />
+                                    </mask>
+                                </defs>
+                                <g mask="url(#gear-mask)" fill="currentColor">
+                                    <circle cx="12" cy="12" r="7.5" />
+                                    <rect x="10" y="2" width="4" height="20" rx="1" />
+                                    <rect x="10" y="2" width="4" height="20" rx="1" transform="rotate(60 12 12)" />
+                                    <rect x="10" y="2" width="4" height="20" rx="1" transform="rotate(120 12 12)" />
+                                </g>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
-                <div id="tamperIndicator" style="margin-bottom:8px;">
-                    <br>
-                    Tamper Status: <strong id="tamperStatus">CHECKING...</strong>
+                <div id="settingsBezel" class="device-bezel settings-bezel">
+                    <!-- Main Menu Grid -->
+                    <div id="settingsMenu" class="settings-menu-grid">
+                        <button class="settings-menu-btn" onclick="openSettingsTab('display')" style="grid-column: span 3;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                            Display
+                        </button>
+                        <button class="settings-menu-btn" onclick="openSettingsTab('wifi')" style="grid-column: span 3;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>
+                            WiFi
+                        </button>
+                        <button class="settings-menu-btn" onclick="openSettingsTab('user')" style="grid-column: span 3;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                            User
+                        </button>
+                    </div>
+
+                    <!-- Display Tab -->
+                    <div id="settingsDisplay" class="settings-tab hidden">
+                        <div class="settings-tab-header">
+                            <button class="back-btn" onclick="closeSettingsTab()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></button>
+                            <h3>Display Settings</h3>
+                        </div>
+                        <div class="settings-tab-content">
+                            <input type="hidden" id="activeDisplayType" value="2">
+                            <div class="settings-field">
+                                <label for="timeoutSelect">Display Timeout</label>
+                                <select id="timeoutSelect">
+                                    <option value="5000">5 seconds</option>
+                                    <option value="7000">7 seconds</option>
+                                    <option value="15000">15 seconds</option>
+                                    <option value="20000">20 seconds</option>
+                                    <option value="30000">30 seconds</option>
+                                    <option value="60000">1 minute</option>
+                                    <option value="0">None</option>
+                                </select>
+                            </div>
+                            <div class="settings-field" id="flipOledContainer" style="display:none; align-items: center; gap: 8px;">
+                                <label for="flipOled">Flip OLED</label>
+                                <input type="checkbox" id="flipOled">
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- WiFi Tab -->
+                    <div id="settingsWifi" class="settings-tab hidden">
+                        <div class="settings-tab-header">
+                            <button class="back-btn" onclick="closeSettingsTab()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></button>
+                            <h3>WiFi Settings</h3>
+                        </div>
+                        <div class="settings-tab-content" id="apSettings">
+                            <div class="settings-field">
+                                <label for="ap_ssid">SSID</label>
+                                <input type="text" id="ap_ssid">
+                            </div>
+                            <div class="settings-field">
+                                <label for="ap_pwd">Password</label>
+                                <div class="password-wrapper" style="position: relative; display: flex; align-items: center;">
+                                    <input type="password" id="ap_pwd" style="padding-right: 35px; width: 100%;">
+                                    <span id="togglePwdBtn" onclick="togglePasswordVisibility()" style="position: absolute; right: 8px; cursor: pointer; display: flex; align-items: center;">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px;">
+                                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M1 1l22 22"></path>
+                                            <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path>
+                                        </svg>
+                                    </span>
+                                </div>
+                                <div id="pwdHint" class="hidden">
+                                    Password must be 8+ chars (or empty for open network)
+                                </div>
+                            </div>
+                            <div class="settings-field" style="display: flex; align-items: center; gap: 8px;">
+                                <label for="ssid_hidden">Hidden</label>
+                                <input type="checkbox" id="ssid_hidden">
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- User Tab -->
+                    <div id="settingsUser" class="settings-tab hidden">
+                        <div class="settings-tab-header">
+                            <button class="back-btn" onclick="closeSettingsTab()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></button>
+                            <h3>User Settings</h3>
+                        </div>
+                        <div class="settings-tab-content">
+                            <div class="settings-field">
+                                <label for="customMessage">Welcome Message</label>
+                                <input type="text" id="customMessage" maxlength="20">
+                            </div>
+                            <div class="settings-field">
+                                <label for="ledValid">LED On Valid Card</label>
+                                <select id="ledValid">
+                                    <option value="1">Rapid Flash</option>
+                                    <option value="2">Long Flash</option>
+                                    <option value="0">None</option>
+                                </select>
+                            </div>
+                        </div>
+
+                    </div>
                 </div>
             </div>
-            
-            <h2><br>Last Read Cards</h2>
-            <table id="lastReadCardsTable">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Status</th>
-                        <th>Details</th>
-                    </tr>
-                </thead>
-                <tbody>
-                </tbody>
-            </table>
-            <h2 class="collapsible" onclick="toggleCollapsible()">
-                User Management 
-                <span class="badge badge-purple badge-clickable"> click to expand / collapse</span>
+
+            <div class="data-sections">
+            <div class="section-line"></div>
+            <h2 class="collapsible" onclick="toggleSection('scansContent', this)" style="cursor:pointer; margin-left: 15px; font-family: 'Michroma', sans-serif; letter-spacing: 0.15em;">
+                <span class="retro-led"></span>
+                <span class="title-text">SCANS</span>
+                <span class="badge-group">
+                    <span id="badgeCardData" class="badge badge-purple badge-clickable" onclick="toggleCardDataMode(event)"
+                        title="Toggle Hex / Binary view">DATA: BIN</span>
+                    <span id="badgeHideData" class="badge badge-gray badge-clickable" onclick="toggleHideData(event)"
+                        title="Blur data columns to focus on names">BLUR DATA</span>
+                    <span id="badgeLearnerView" class="badge badge-gray badge-clickable" onclick="toggleLearnerView(event)"
+                        title="Highlight Facility Code and Card Number bit positions">DECODE COLORS</span>
+                    <span id="badgeToggleBits" class="badge badge-purple badge-clickable" onclick="toggleShowBits(event)"
+                        title="Toggle display of bit count badge">SHOW BIT COUNT</span>
+                    <span id="badgeToggleParity" class="badge badge-purple badge-clickable" onclick="toggleShowParity(event)"
+                        title="Toggle display of parity badge">SHOW PARITY</span>
+                </span>
             </h2>
-            <div class="contentCollapsible">
-                <table id="userTable">
+            <div id="scansContent" class="contentCollapsible">
+                <div class="collapsible-inner">
+            <div class="table-responsive" id="scanLogTableContainer">
+                <table id="scanLogTable">
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th>Facility Code</th>
-                            <th>Card Number</th>
-                            <th>Name</th>
-                            <th>Flag</th>
-                            <th>Action</th>
+                            <th id="thName">User</th>
+                            <th class="col-data">Decode</th>
+                            <th class="col-data" id="thCardData">Card Data</th>
                         </tr>
                     </thead>
                     <tbody>
                     </tbody>
                 </table>
-                <div style="margin-top: 20px; border-top: 1px solid #333; padding-top: 15px;">
-                    <h3>Batch Tool</h3>
-                    
-                    <div style="background: #1b1b1b; padding: 15px; border-radius: 8px; display:flex; flex-wrap:wrap; gap: 15px; align-items: center;">
-                        
-                        <div>
-                            <input type="file" id="usersUpload" accept=".json" style="max-width:200px;">
-                        </div>
+            </div>
+            <div id="logExpandControl">
+                <span id="logExpandBtn" class="badge badge-gray badge-clickable" onclick="toggleLogExpand()">&#9660; Show 25</span>
+                <span id="logClearBtn" class="badge badge-gray badge-clickable badge-clear" onclick="clearLog()">CLEAR</span>
+            </div>
+                </div>
+            </div>
+            <div class="section-line"></div>
+            <h2 id="userManagementHeader" class="collapsible" onclick="toggleSection('usersContent', this)" style="font-family: 'Michroma', sans-serif; letter-spacing: 0.15em; margin-left: 15px; cursor:pointer;">
+                <span class="retro-led"></span>
+                <span class="title-text">USERS</span>
+            </h2>
+            <div id="usersContent" class="contentCollapsible">
+                <div class="collapsible-inner">
+                <div class="table-responsive">
+                    <table id="userTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Facility Code</th>
+                                <th>Card Number</th>
+                                <th>Name</th>
+                                <th>Flag</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="user-management-control">
+                    <span id="userClearBtn" class="badge badge-gray badge-clickable badge-clear"
+                        onclick="clearUsers()">CLEAR</span>
+                </div>
+                <div
+                    style="margin-top: 20px; background: #1b1b1b; padding: 15px 20px; border-radius: 8px; display: flex; flex-wrap: wrap; gap: 15px; align-items: center;">
+                    <h3 style="font-family: 'Michroma', sans-serif; letter-spacing: 0.15em; text-transform: uppercase; margin: 0 5px 0 0; white-space: nowrap;">Batch Tool</h3>
 
-                        <button id="btnImport" onclick="uploadUserFile()">Import File</button>
+                    <div style="width: 1px; height: 30px; background: #444; margin: 0 5px;"></div>
 
-                        <div style="width:1px; height:30px; background:#444; margin:0 5px;"></div>
-
-                        <button onclick="confirmExport()">Export File</button>
-
-                        <div style="width:1px; height:30px; background:#444; margin:0 5px;"></div>
-
-                        <button class="button-secondary" onclick="confirmSampleDownload()">Download Sample File</button>
-                        
-                        <span id="uploadStatus" style="font-weight:bold; margin-left:5px; align-self: center;"></span>
+                    <div>
+                        <input type="file" id="usersUpload" accept=".json" style="max-width: 200px;">
                     </div>
+
+                    <button id="btnImport" onclick="uploadUserFile()">Import File</button>
+
+                    <div style="width: 1px; height: 30px; background: #444; margin: 0 5px;"></div>
+
+                    <button onclick="confirmExport()">Export File</button>
+
+                    <div style="width: 1px; height: 30px; background: #444; margin: 0 5px;"></div>
+
+                    <button class="button-secondary" onclick="confirmSampleDownload()">Download Sample File</button>
+
+                    <span id="uploadStatus" style="font-weight: bold; margin-left: 5px; align-self: center;"></span>
                 </div>
             </div>
         </div>
-        <div id="settings" class="hidden">
-            <h1>Settings</h1>
+        <div class="users-bottom-line"></div>
+    </div>
+</div>
+</div>
 
-            <h2><br>General</h2>
-            <div class="indent-section">
-                <label for="modeSelect">Mode:</label>
-                <select id="modeSelect">
-                    <option value="ctf">CTF</option>
-                    <option value="raw">Raw</option>
-                </select>
-                <br><br>
-                <label for="activeDisplayType">Display Type:</label>
-                <select id="activeDisplayType">
-                    <option value="1">LCD 20x4</option>
-                    <option value="2">OLED 128x32</option>
-                    <option value="2">OLED 128x64 Large Text</option>
-                    <!-- TODO: Implement tall OLED with status bar --> 
-                    <!-- <option value="3">OLED 128x64 w / Status Bar</option> --> 
-                </select>
-
-                <span id="flipOledContainer" style="margin-left:20px; display:none; vertical-align: middle;">
-                    <label for="flipOled">Flip OLED Screen:</label>
-                    <input type="checkbox" id="flipOled" style="vertical-align: middle;">
-                </span>
-                
-                <br><br>
-                <label for="timeoutSelect">Display Timeout:</label>
-                <select id="timeoutSelect">
-                    <option value="5000">5 seconds</option>
-                    <option value="7000">7 seconds</option>
-                    <option value="15000">15 seconds</option>
-                    <option value="20000">20 seconds</option>
-                    <option value="30000">30 seconds</option>
-                    <option value="60000">1 minute</option>
-                    <option value="0">None</option>
-                </select>
-                <div style="margin-top: 30px;">
-                    <label for="enable_tamper_detect">Enable Tamper Detect:</label>
-                    <input type="checkbox" id="enable_tamper_detect">
-                </div>
-                <div style="margin-top: 30px;">
-                    <label for="disable_encoder">Disable Knob Menu:</label>
-                    <input type="checkbox" id="disable_encoder">
-                </div>
-            </div>
-            <h2><br>Wifi</h2>
-            <div id="apSettings" class="indent-section">
-                <label for="ap_ssid">SSID:</label>
-                <input type="text" id="ap_ssid">
-                <br><br>
-
-                <div class="input-group">
-                    <label for="ap_pwd">Password:</label>
-                    <div class="password-wrapper">
-                        <input type="password" id="ap_pwd" style="padding-right: 35px;">
-                        <span id="togglePwdBtn" onclick="togglePasswordVisibility()">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M1 1l22 22"></path>
-                                <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"></path>
-                            </svg>
-                        </span>
-                    </div>
-                    <div id="pwdHint" class="hidden">
-                        Password must be 8+ chars (or empty for open network)
-                    </div>
-                    
-                </div>
-
-                <div style="margin-top: 30px;">
-                    <label for="ssid_hidden">Hidden:</label>
-                    <input type="checkbox" id="ssid_hidden">
-                </div>
-            </div>
-
-            <h2><br>CTF Mode</h2>
-            <div class="indent-section">
-                <label for="customMessage">Welcome Message:</label>
-                <input type="text" id="customMessage" maxlength="20">
-                <br><br>
-
-                <div>
-                    <label for="ledValid">LED On Valid Card:</label>
-                    <select id="ledValid">
-                        <option value="1">Rapid Flash</option>
-                        <option value="2">Long Flash</option>
-                        <option value="0">None</option>
-                    </select>
-                </div>
-            </div>
-            <br>
-            <div class="settings-actions">
-                <button onclick="saveSettings()">Save Settings</button>
-                <div id="rebootWarning" class="hidden"></div>
-            </div>
-            
-            <div style="height:1px; background:#333; margin: 25px 0 15px 0;"></div>
-
-            <div style="display:flex; justify-content:space-between; align-items:flex-end;">
-                <div id="versionInfo" style="color:var(--muted);font-size:0.85rem;">
+    <footer class="main-footer">
+        <div class="footer-line"></div>
+        <div class="footer-container">
+            <div class="brand-title">OPENDOORSIM</div>
+            <div class="version-wrapper" style="display: flex; align-items: center; gap: 15px;">
+                <div id="versionInfo">
                     Version: <span id="versionValue"></span><br>
                     by shortrange.tech
                 </div>
-                
-                <div style="display:flex; gap: 15px;">
-                    <button id="btnPause" class="button-purple" onclick="togglePause()">Pause DoorSim</button>
-                    <button class="button-danger" onclick="rebootDevice()">Remote Reboot</button>
-                </div>
+                <img id="logo" src="logo512_big.png" alt="logo">
             </div>
         </div>
-    </div>
-<script src="script.js"></script>
+    </footer>
+    <script src="script.js"></script>
 </body>
 
 </html>

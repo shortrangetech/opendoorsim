@@ -13,5 +13,6 @@
     "display_timeout": 7000,
     "flip_oled_display": false,
     "enable_tamper_detect": false,
-    "disable_encoder": false
+    "disable_encoder": false,
+    "enable_parity_check": false
 }
