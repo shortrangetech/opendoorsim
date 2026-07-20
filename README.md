@@ -4,32 +4,49 @@
     <img src="images/logo.png" alt="OpenDoorSim Logo">
 </p>
 
-OpenDoorSim is an **open-source PACS / RFID lab** you can **build yourself!** OpenDoorSim simulates Physical Access Control Systems (PACS) just like the real world - and makes running everything from home experiments to big CTFs and demos a breeze. Sporting a **fresh web UI**, an **on-device hardware menu**, turnkey **tamper detection**, and easy **batch user management**, you may find it hard to put down... 
+OpenDoorSim is your personal **open-source PACS / RFID lab!**. OpenDoorSim simulates Physical Access Control Systems (PACS) by connecting to real readers, so you can **hack the real thing!** At-home experiments, big CTFs, hands-on workshops, banger demos and advanced research are a breeze! It works with **any Wiegand or (soon) OSDP reader**, and fits easily in your bag. Sporting a **fresh web UI with a mirrored virtual display**, an **on-device hardware menu**, and multiple **modes** to make life easy, you may find it hard to put down... 
 
-[Documentation (Mintlify)](#) · [Hardware Guide](hardware/README.md) · [Software Guide](firmware/README.md) · [Get a Kit](https://shortrange.tech)
+[Documentation](#) · [Build Guide](#) · [Firmware Guide](#) · [User Guide](#) · [Support the Project - Buy an Official Kit!](https://shortrange.tech) · [Self-Manufacture](#)
 
 ## Features
 
-- Designed for students, hobbyists, and industry professionals
-- Portable, easy to use and wire
-- Can be built entirely with off-the-shelf parts (Tarrif-ic Model)
-- Compatible with any wiegand reader!
-- USB-C Powered
-- Beautiful Web UI, manage CTFs and card data with ease
-- Hardware Menu (run it offline!)
-- Multiple Modes for various use cases (Raw, CTF, Wifi, Tamper Detect, etc)
-- Rugged 3D printed cases!
-- Compatible with various screens (LCD, OLED)
-- Tamper Detection (for supported readers)
+<p align="center">
+    <img src="images/ThinBanner.jpg" alt="OpenDoorSim Banner">
+</p>
+
+- Use any Wiegand or (soon) OSDP reader!
+- Powered by 5V USB-C
+- Beautiful Web UI for displaying data, managing users and modifying settings
+- Handy on-device Menu for offline operations
+- Multi Mode (Raw, User, Wifi, Stealth, Tamper Detect, etc)
+- Live Virtual Display for easy demos
+- Rugged 3D printed case
 - Batch User Management
-- Knob. <3
+
+[ youtube video here ]
 
 ## Quick start
 
-Our main documentation is hosted on Mintlify. For full details on the project, please visit the [Official Documentation](#).
+For starters -- you'll need at minimum an OpenDoorSim (ODS) Board and a reader. You can manufacture your own PCBs using the project files, or buy an official PCB completely assembled and pre-flashed at [shortrange.tech](https://shortrange.tech). The card reader is up to you -- buy one from ebay, borrow one from work, etc...
 
-- Want to build your own OpenDoorSim? Check out the [Hardware Guide](hardware/README.md).
-- Want to flash firmware or learn the software? Check out the [Software Guide](firmware/README.md).
+Once you have an ODS board and reader, plug the reader's data and power lines into the board, and then power it via 5V USB-C. Connect to the OpenDoorSim's Wifi SSID and navigate to 192.168.8.8 to interact with the web UI. Now, you're ready to begin scanning!
+
+You may want to add a physical screen, knob, and protective case to physically interact with your OpenDoorSim beyond the web UI. Upgrades, people! Again, you can purchase / build these yourself using the project files and Bill of Materials, or buy as part of an official kit. 
+
+Once you have the parts you need from the BOM, follow the official [build guide](#).
+
+For full details on the project, please visit the [Official Documentation](#).
+
+Finally, make sure to tell your friends about the project!
+
+## Support the Project
+
+There are so many ways to support the project! Here are a few:
+- Tell your friends about OpenDoorSim!
+- Use your OpenDoorSim!
+- Get your parts from the official BOM!
+- Star the repository!
+- Buy an [official kit!](https://shortrange.tech).
 
 ## Licenses and Agreements
 
@@ -42,7 +59,7 @@ See [LICENSE](LICENSE) for more details.
 
 ## Acknowledgments
 
-This project is largely based on and greatly inspired by evildaemond's [DoorSim project](https://github.com/evildaemond/doorsim), without which this project would likely not exist, or at least have materialized nearly as soon as it did.
+This project was initially based on and greatly inspired by evildaemond's [DoorSim project](https://github.com/evildaemond/doorsim), without which this project would likely not exist, or at least have materialized nearly as soon as it did. 
 
 Thanks to nechry for his [PlatformIO refactoring fork](https://github.com/nechry/DoorSim) of evildaemond's original DoorSim project. It was a great base to work from and LittleFS as well as PlatformIO really saved the day on development.  
 
