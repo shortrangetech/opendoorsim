@@ -6,9 +6,12 @@
 
 OpenDoorSim is your personal **open-source PACS / RFID lab!**. OpenDoorSim simulates Physical Access Control Systems (PACS) by connecting to real readers, so you can **hack the real thing!** At-home experiments, big CTFs, hands-on workshops, banger demos and advanced research are a breeze! It works with **any Wiegand or (soon) OSDP reader**, and fits easily in your bag. Sporting a **fresh web UI with a mirrored virtual display**, an **on-device hardware menu**, and multiple **modes** to make life easy, you may find it hard to put down... 
 
-[Documentation](#) · [Build Guide](#) · [Firmware Guide](#) · [User Guide](#)  
-  
-[Support the Project - Buy an Official Kit!](https://shortrange.tech) · [Self-Manufacture](#)
+<p align="center">
+  <a href="#">Documentation</a> · <a href="#">Build Guide</a> · <a href="#">Firmware Guide</a> · <a href="#">User Guide</a>
+</p>
+<p align="center">
+  <a href="https://shortrange.tech">Support the Project - Buy an Official Kit!</a> · <a href="#">Self-Manufacture</a>
+</p>
 
 ## Features
 
@@ -24,13 +27,8 @@ OpenDoorSim is your personal **open-source PACS / RFID lab!**. OpenDoorSim simul
 
 <p align="center">
   <a href="https://youtu.be/uSH2qY0MCnA">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="70%">
-      <!-- YouTube Thumbnail -->
-      <image href="https://img.youtube.com/vi/uSH2qY0MCnA/maxresdefault.jpg" width="1280" height="720"/>
-      <!-- Play button overlay -->
-      <circle cx="640" cy="360" r="80" fill="rgba(0, 0, 0, 0.7)"/>
-      <polygon points="610,320 610,400 690,360" fill="white"/>
-    </svg>
+    <img src="https://img.youtube.com/vi/uSH2qY0MCnA/maxresdefault.jpg" alt="OpenDoorSim Demo Video" width="70%"><br>
+    <sub>▶️ Click here to watch the demo video on YouTube</sub>
   </a>
 </p>
 
