@@ -24,7 +24,13 @@ OpenDoorSim is your personal **open-source PACS / RFID lab!**. OpenDoorSim simul
 
 <p align="center">
   <a href="https://youtu.be/uSH2qY0MCnA">
-    <img src="https://img.youtube.com/vi/uSH2qY0MCnA/maxresdefault.jpg" alt="OpenDoorSim Demo Video" width="70%">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="70%">
+      <!-- YouTube Thumbnail -->
+      <image href="https://img.youtube.com/vi/uSH2qY0MCnA/maxresdefault.jpg" width="1280" height="720"/>
+      <!-- Play button overlay -->
+      <circle cx="640" cy="360" r="80" fill="rgba(0, 0, 0, 0.7)"/>
+      <polygon points="610,320 610,400 690,360" fill="white"/>
+    </svg>
   </a>
 </p>
 
