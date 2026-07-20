@@ -1,4 +1,7 @@
 # OpenDoorSim — Personal RFID Lab
+> [!NOTE]
+> 
+> 🚧 README and Documentation are under construction! Full documentation and links are being released incrementally through August. Check back for updates. 🚧
 
 <p align="center">
     <img src="images/logo.png" alt="OpenDoorSim Logo" width="63%">
