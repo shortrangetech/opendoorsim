@@ -51,6 +51,10 @@ For full details on the project, please visit the [Official Documentation](#).
 
 Finally, make sure to tell your friends about the project!
 
+<p align="center">
+    <img src="images/quickstart.jpg" alt="QuickStart Guide" width="70%">
+</p>
+
 ## Support the Project
 
 There are so many ways to support the project! Here are a few:
