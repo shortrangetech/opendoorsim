@@ -6,6 +6,8 @@ const importExportArea = document.getElementById('importExportArea');
 let originalSsid = "";
 let originalHidden = false;
 let originalPwd = "";
+let originalChannel = 1;
+let originalTxPower = 1;
 
 let originalDisplayType = 1;
 let originalFlipOled = false;
@@ -57,6 +59,8 @@ function checkDirty() {
     const currSsid = document.getElementById('ap_ssid').value;
     const currPwd = document.getElementById('ap_pwd').value;
     const currHidden = document.getElementById('ssid_hidden').checked;
+    const currChannel = document.getElementById('ap_channel')?.value;
+    const currTxPower = document.getElementById('ap_tx_power')?.value;
 
     const currTimeout = document.getElementById('timeoutSelect').value;
     const currMsg = document.getElementById('customMessage').value;
@@ -69,6 +73,8 @@ function checkDirty() {
     if (currSsid !== originalSsid) isDirty = true;
     if (currPwd !== originalPwd) isDirty = true;
     if (currHidden !== originalHidden) isDirty = true;
+    if (currChannel != originalChannel) isDirty = true;
+    if (currTxPower != originalTxPower) isDirty = true;
 
     if (currTimeout != originalTimeout) isDirty = true;
     if (currMsg !== originalCustomMessage) isDirty = true;
@@ -82,7 +88,8 @@ function checkDirty() {
     const pwdChanged = (currPwd !== originalPwd);
     const ssidChanged = (currSsid !== originalSsid);
     const hiddenChanged = (currHidden !== originalHidden);
-    const wifiChanged = (pwdChanged || ssidChanged || hiddenChanged);
+    const channelChanged = (currChannel != originalChannel);
+    const wifiChanged = (pwdChanged || ssidChanged || hiddenChanged || channelChanged);
 
     const displayChanged = (currDisplay != originalDisplayType) || (currFlip !== originalFlipOled);
     const rebootRequired = wifiChanged || displayChanged;
@@ -849,6 +856,8 @@ function saveSettings(rebootRequired = false) {
         ap_ssid: ssidInput,
         ap_pwd: pwdInput,
         ssid_hidden: hiddenInput ? 1 : 0,
+        ap_channel: parseInt(document.getElementById('ap_channel')?.value || '1', 10),
+        ap_tx_power: parseInt(document.getElementById('ap_tx_power')?.value || '1', 10),
         custom_message: customMessage,
         led_valid: parseInt(ledValid, 10),
         active_display_type: parseInt(activeDisplayType, 10),
@@ -916,6 +925,8 @@ function updateSettingsUI(settings, forceFormUpdate = false) {
     const apSsid = settings.ap_ssid || settings.apSsid || '';
     const apPass = settings.ap_pwd || settings.apPassphrase || '';
     const ssidHidden = (settings.ssid_hidden !== undefined) ? settings.ssid_hidden : settings.ssidHidden;
+    const apChannel = (settings.ap_channel !== undefined) ? settings.ap_channel : 1;
+    const apTxPower = (settings.ap_tx_power !== undefined) ? settings.ap_tx_power : 1;
     const customMessage = settings.custom_message || settings.customMessage || '';
     const activeDisplayType = settings.active_display_type || settings.activeDisplayType || '';
     const version = settings.version || settings.version || '';
@@ -1031,6 +1042,18 @@ function updateSettingsUI(settings, forceFormUpdate = false) {
     if (forceFormUpdate || currFlip === originalFlipOled) {
         if (document.getElementById('flipOled')) document.getElementById('flipOled').checked = settings.flip_oled_display;
         originalFlipOled = settings.flip_oled_display;
+    }
+    // Update Channel
+    const currChannel = document.getElementById('ap_channel')?.value;
+    if (forceFormUpdate || currChannel == originalChannel) {
+        if (document.getElementById('ap_channel')) document.getElementById('ap_channel').value = apChannel;
+        originalChannel = apChannel;
+    }
+    // Update TX Power
+    const currTxPower = document.getElementById('ap_tx_power')?.value;
+    if (forceFormUpdate || currTxPower == originalTxPower) {
+        if (document.getElementById('ap_tx_power')) document.getElementById('ap_tx_power').value = apTxPower;
+        originalTxPower = apTxPower;
     }
 
     // Listeners and side effects
@@ -1510,13 +1533,15 @@ function toggleSettingsView() {
                 const currSsid = document.getElementById('ap_ssid').value;
                 const currPwd = document.getElementById('ap_pwd').value;
                 const currHidden = document.getElementById('ssid_hidden').checked;
+                const currChannel = document.getElementById('ap_channel')?.value;
                 const currDisplay = document.getElementById('activeDisplayType').value;
                 const currFlip = document.getElementById('flipOled').checked;
 
                 const pwdChanged = (currPwd !== originalPwd);
                 const ssidChanged = (currSsid !== originalSsid);
                 const hiddenChanged = (currHidden !== originalHidden);
-                const wifiChanged = (pwdChanged || ssidChanged || hiddenChanged);
+                const channelChanged = (currChannel != originalChannel);
+                const wifiChanged = (pwdChanged || ssidChanged || hiddenChanged || channelChanged);
                 const displayChanged = (currDisplay != originalDisplayType) || (currFlip !== originalFlipOled);
                 const rebootRequired = wifiChanged || displayChanged;
 
@@ -1590,6 +1615,8 @@ function discardSettingsChanges() {
     document.getElementById('ap_ssid').value = originalSsid;
     document.getElementById('ap_pwd').value = originalPwd;
     document.getElementById('ssid_hidden').checked = originalHidden;
+    if (document.getElementById('ap_channel')) document.getElementById('ap_channel').value = originalChannel;
+    if (document.getElementById('ap_tx_power')) document.getElementById('ap_tx_power').value = originalTxPower;
     document.getElementById('timeoutSelect').value = originalTimeout;
     document.getElementById('customMessage').value = originalCustomMessage;
     document.getElementById('ledValid').value = originalLedValid;

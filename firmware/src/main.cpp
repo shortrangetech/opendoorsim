@@ -200,6 +200,9 @@ String apSsid = "doorsim";
 String apPwd;
 int apChannel = 1;
 int ssidHidden;
+// TX Power index: 0=-1dBm, 1=2dBm, 2=5dBm, 3=8.5dBm, 4=13dBm
+// Default is index 1 (2 dBm) — short-range for co-located boards
+int apTxPower = 1;
 
 // LED Flash Green on Valid Setting 0 (None), 1 (Rapid Flash), 2 (Long Flash)
 int ledValid = 1;
@@ -709,6 +712,7 @@ void saveSettingsToPreferences() {
   doc["ap_ssid"] = apSsid;
   doc["ap_pwd"] = apPwd;
   doc["ap_channel"] = apChannel;
+  doc["ap_tx_power"] = apTxPower;
   doc["ssid_hidden"] = ssidHidden;
   doc["led_valid"] = ledValid;
   doc["custom_message"] = customMessage;
@@ -774,6 +778,7 @@ void loadSettingsFromPreferences() {
 
   apPwd = doc["ap_pwd"] | "";
   apChannel = doc["ap_channel"] | 1;
+  apTxPower = constrain((int)(doc["ap_tx_power"] | 1), 0, 4);
   ssidHidden = doc["ssid_hidden"] | 0;
   ledValid = doc["led_valid"] | 1;
   customMessage = doc["custom_message"] | "OPENDOORSIM";
@@ -1975,10 +1980,22 @@ void setupWifi() {
     Serial.println("[SYSTEM] Security: OPEN (No password set)");
   }
 
+  // TX power levels (5 spread options for co-located board deployments)
+  const wifi_power_t txPowerLevels[] = {
+      WIFI_POWER_MINUS_1dBm, // 0: -1 dBm — same desk only
+      WIFI_POWER_2dBm,       // 1:  2 dBm — arm's reach (default)
+      WIFI_POWER_5dBm,       // 2:  5 dBm — same table
+      WIFI_POWER_8_5dBm,     // 3:  8.5 dBm — across the room
+      WIFI_POWER_13dBm,      // 4: 13 dBm — full room
+  };
+
   if (WiFi.softAP(ssid, pwd, apChannel, ssidHidden)) {
     Serial.println("[SYSTEM] SoftAP started successfully.");
     Serial.print("[SYSTEM] IP Address: ");
     Serial.println(WiFi.softAPIP());
+    int clampedTxPower = constrain(apTxPower, 0, 4);
+    WiFi.setTxPower(txPowerLevels[clampedTxPower]);
+    Serial.printf("[SYSTEM] TX Power set to index %d\n", clampedTxPower);
   } else {
     Serial.println("[SYSTEM] CRITICAL ERROR: Failed to start SoftAP!");
   }
@@ -2046,6 +2063,7 @@ void webServer() {
     doc["tamper_tripped"] = tamperState;
     doc["ssid_hidden"] = ssidHidden;
     doc["ap_channel"] = apChannel;
+    doc["ap_tx_power"] = apTxPower;
     doc["custom_message"] = customMessage;
     doc["version"] = firmwareVersion;
     doc["led_valid"] = ledValid;
@@ -2167,6 +2185,8 @@ void webServer() {
 
         displayTimeout = jsonObj["display_timeout"] | 30000;
 
+        apChannel = constrain((int)(jsonObj["ap_channel"] | 1), 1, 13);
+        apTxPower = constrain((int)(jsonObj["ap_tx_power"] | 1), 0, 4);
         ssidHidden = jsonObj["ssid_hidden"] | 0;
         customMessage = jsonObj["custom_message"] | "OPENDOORSIM";
         ledValid = jsonObj["led_valid"] | 1;

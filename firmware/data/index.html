@@ -170,9 +170,28 @@
                                 <label for="ssid_hidden">Hidden</label>
                                 <input type="checkbox" id="ssid_hidden">
                             </div>
+                            <div class="settings-field">
+                                <label for="ap_channel">Channel</label>
+                                <select id="ap_channel">
+                                    <option value="1">1</option>
+                                    <option value="6">6</option>
+                                    <option value="11">11</option>
+                                </select>
+                            </div>
+                            <div class="settings-field">
+                                <label for="ap_tx_power">TX Power</label>
+                                <select id="ap_tx_power">
+                                    <option value="0">1 — Minimum (-1 dBm)</option>
+                                    <option value="1">2 — Very Low (2 dBm)</option>
+                                    <option value="2">3 — Low (5 dBm)</option>
+                                    <option value="3">4 — Medium (8.5 dBm)</option>
+                                    <option value="4">5 — High (13 dBm)</option>
+                                </select>
+                            </div>
                         </div>
 
                     </div>
+
 
                     <!-- User Tab -->
                     <div id="settingsUser" class="settings-tab hidden">

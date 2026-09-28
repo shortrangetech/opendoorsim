@@ -4,6 +4,7 @@
     "ap_ssid": "OpenDoorSim",
     "ap_pwd": "",
     "ap_channel": 1,
+    "ap_tx_power": 1,
     "ssid_hidden": 0,
     "max_bits": 100,
     "wiegand_wait_time": 30000,
