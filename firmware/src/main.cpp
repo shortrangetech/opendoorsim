@@ -14,6 +14,19 @@
 
 #include "opendoorsim.h"
 
+// OSDP ACU state machine (osdp-embedded; pinned in platformio.ini).
+// C headers, already extern "C" guarded.
+#include <osdp/osdp_acu.h>
+#include <osdp/osdp_commands.h>
+#include <osdp/osdp_replies.h>
+#include <osdp/osdp_sc.h>
+
+// Secure Channel primitives. The library never vendors crypto; the ESP32
+// supplies AES-128 from mbedTLS and randomness from the hardware RNG.
+#include "esp_random.h"
+#include "mbedtls/aes.h"
+#include <Preferences.h>
+
 // --- MENU SYSTEM CONSTANTS & STRUCTS ---
 
 enum MenuState {
@@ -26,6 +39,7 @@ enum MenuState {
   STATE_CONFIRM_REBOOT,
   STATE_CONFIRM_WIFI_REBOOT,
   STATE_CONFIRM_SCREEN_REBOOT,
+  STATE_CONFIRM_READER_REBOOT,
   STATE_SYSTEM_PAUSED
 };
 
@@ -88,6 +102,14 @@ const char *wiegandFormatsFile = "/wiegand_formats.json";
 // optional, tamper detection relay
 #define TMPR_PIN 21
 
+// OSDP reader pins (v2.2 board: MAX3485 transceiver on UART2).
+// The TX_OSDP / RX_OSDP / DE_OSDP nets; DE and #RE are tied together, so
+// one pin picks the direction: HIGH drives the bus, LOW listens.
+// GPIO34/35 (Wiegand DATA0/DATA1) are input-only, hence separate pins.
+#define OSDP_TX_PIN 17
+#define OSDP_RX_PIN 16
+#define OSDP_DE_PIN 4
+
 // Reader output pins
 #define LED_PIN 15
 
@@ -131,6 +153,49 @@ int oledRotation =
 // general device settings
 bool isCapturing = true;
 String deviceMode = "user"; // "user" or "raw"
+
+// Reader interface settings. The D0/D1 terminals carry either Wiegand data
+// lines or the RS-485 pair, so only one interface is brought up per boot;
+// changing readerType takes effect on the next restart.
+String readerType = "wiegand"; // "wiegand" or "osdp"
+unsigned long osdpBaud = 9600;
+int osdpAddress = 0;
+
+// Poll cadence while the PD is idle. Well inside the spec 5.7 8 s offline
+// window, and slow enough to leave the CPU to the UI.
+#define OSDP_POLL_INTERVAL_MS 100
+
+static osdp_acu_t osdpAcu;
+static osdp_acu_pd_slot_t osdpSlots[1];
+static bool osdpStarted = false;
+static bool osdpOnline = false;
+static unsigned long lastOsdpPoll = 0;
+
+// Secure Channel. "none" talks clear text, "install" handshakes with the
+// spec's well-known default key (SCBK-D) so an out-of-the-box reader can be
+// commissioned, and "scbk" uses the per-installation key held in NVS.
+String osdpScMode = "none"; // "none" | "install" | "scbk"
+static uint8_t osdpScbk[OSDP_SC_KEY_LEN];
+static bool osdpScbkSet = false;
+
+static bool osdpScEstablished = false;
+static bool osdpScHandshaking = false;
+static unsigned long osdpScNextAttempt = 0;
+static int osdpScFailures = 0;
+
+// osdp_KEYSET, which installs an SCBK on the reader. It rides an established
+// session, so the request is queued and sent once one is up, and the outcome
+// only lands when the reader ACKs it.
+static volatile bool osdpKeysetQueued = false; // asked for, session not up yet
+static bool osdpKeysetAwaitingAck = false;
+// Set by the web task, acted on in loop(): rebuilding the ACU underneath a
+// tick would corrupt its state.
+static volatile bool osdpScSettingsDirty = false;
+// Link or Secure Channel state moved; the standby screen owes a repaint.
+static bool osdpIndicatorsDirty = false;
+static uint8_t osdpKeysetKey[OSDP_SC_KEY_LEN];
+String osdpKeysetResult = ""; // "", "pending", "ok", "nak", "timeout", "error"
+
 bool enableParityCheck = false;
 int lastParityStatus = -1; // -1: disabled, 0: fail, 1: pass
 
@@ -240,6 +305,9 @@ int wiegandFormatCounter = 0;
 
 int tempDeviceModeInt = 0;
 int tempTimeoutIndex = 0;
+int tempReaderTypeInt = 0; // 0 = Wiegand, 1 = OSDP
+String origReaderType =
+    "wiegand"; // Captures readerType on GENERAL submenu entry
 bool origFlipOled = false; // Captures flipOledDisplay on GENERAL submenu entry
 
 // --- MENU ARRAYS ---
@@ -269,6 +337,7 @@ MenuItem menuItems_Display[] = {
 MenuItem menuItems_General[] = {
     {"Back", ITEM_ACTION, nullptr, 0, 0, nullptr, 0},
     {"Mode", ITEM_SELECT, &tempDeviceModeInt, 0, 1, nullptr, 0},
+    {"Reader", ITEM_SELECT, &tempReaderTypeInt, 0, 1, nullptr, 0},
     {"Parity Chk", ITEM_TOGGLE, &enableParityCheck, 0, 1, nullptr, 0},
     {"Tamper", ITEM_TOGGLE, &enableTamperDetect, 0, 1, nullptr, 0}};
 
@@ -405,6 +474,15 @@ void handleMenuInput() {
         selectedIndex = 3;
         scrollOffset = 0;
         forceMenuUpdate = true;
+      } else if (currentMenuState == STATE_CONFIRM_READER_REBOOT) {
+        readerType = origReaderType; // Revert the selection
+        tempReaderTypeInt = (readerType == "osdp") ? 1 : 0;
+        currentMenuState = STATE_MENU_NAV;
+        currentMenuLevel = menuItems_Main;
+        currentMenuSize = sizeof(menuItems_Main) / sizeof(menuItems_Main[0]);
+        selectedIndex = 2;
+        scrollOffset = 0;
+        forceMenuUpdate = true;
       }
 
       updateDisplay();
@@ -526,6 +604,8 @@ void renderMenu() {
       }
       if (String(item->label) == "Mode") {
         label += ": " + String(val == 0 ? "RAW" : "USER");
+      } else if (String(item->label) == "Reader") {
+        label += ": " + String(val == 0 ? "WIEGAND" : "OSDP");
       } else if (String(item->label) == "Timeout") {
         String tStr;
         switch (val) {
@@ -695,6 +775,89 @@ void IRAM_ATTR ISR_INT1() {
   weigandCounter = weigandWaitTime;
 }
 
+// ---- Secure Channel key material ----------------------------------------
+// The SCBK lives in NVS rather than settings.json: it survives a filesystem
+// reflash, and it never sits in a file the device serves over HTTP.
+
+static const char *osdpNvsNamespace = "osdp";
+static const char *osdpNvsScbkKey = "scbk";
+
+// Parse exactly `len` bytes of hex. Returns false on any non-hex character or
+// a length mismatch, leaving `out` untouched.
+static bool hexToBytes(const String &hex, uint8_t *out, size_t len) {
+  if (hex.length() != len * 2)
+    return false;
+  for (size_t i = 0; i < len; i++) {
+    uint8_t byte = 0;
+    for (int nibble = 0; nibble < 2; nibble++) {
+      char c = hex.charAt(i * 2 + nibble);
+      uint8_t v;
+      if (c >= '0' && c <= '9')
+        v = c - '0';
+      else if (c >= 'a' && c <= 'f')
+        v = c - 'a' + 10;
+      else if (c >= 'A' && c <= 'F')
+        v = c - 'A' + 10;
+      else
+        return false;
+      byte = (byte << 4) | v;
+    }
+    out[i] = byte;
+  }
+  return true;
+}
+
+static bool loadScbkFromNvs() {
+  Preferences prefs;
+  if (!prefs.begin(osdpNvsNamespace, true)) // read-only
+    return false;
+  bool ok = false;
+  if (prefs.getBytesLength(osdpNvsScbkKey) == OSDP_SC_KEY_LEN) {
+    ok = prefs.getBytes(osdpNvsScbkKey, osdpScbk, OSDP_SC_KEY_LEN) ==
+         OSDP_SC_KEY_LEN;
+  }
+  prefs.end();
+  return ok;
+}
+
+static bool saveScbkToNvs(const uint8_t *key) {
+  Preferences prefs;
+  if (!prefs.begin(osdpNvsNamespace, false)) {
+    Serial.println("[OSDP] ERROR: Could not open NVS to store the SCBK.");
+    return false;
+  }
+  bool ok = prefs.putBytes(osdpNvsScbkKey, key, OSDP_SC_KEY_LEN) ==
+            OSDP_SC_KEY_LEN;
+  prefs.end();
+  return ok;
+}
+
+static void clearScbkInNvs() {
+  Preferences prefs;
+  if (prefs.begin(osdpNvsNamespace, false)) {
+    prefs.remove(osdpNvsScbkKey);
+    prefs.end();
+  }
+  memset(osdpScbk, 0, sizeof(osdpScbk));
+  osdpScbkSet = false;
+}
+
+// The OSDP line rates in spec 5.5. Anything else is refused so a typo
+// cannot leave the reader unreachable until the next reflash.
+static bool isValidOsdpBaud(unsigned long baud) {
+  switch (baud) {
+  case 9600:
+  case 19200:
+  case 38400:
+  case 57600:
+  case 115200:
+  case 230400:
+    return true;
+  default:
+    return false;
+  }
+}
+
 void saveSettingsToPreferences() {
   Serial.println("[SYSTEM] Saving settings to Preferences...");
 
@@ -707,6 +870,10 @@ void saveSettingsToPreferences() {
   // Write settings to JSON
   JsonDocument doc;
   doc["device_mode"] = deviceMode;
+  doc["reader_type"] = readerType;
+  doc["osdp_address"] = osdpAddress;
+  doc["osdp_baud"] = osdpBaud;
+  doc["osdp_sc_mode"] = osdpScMode; // the SCBK itself lives in NVS
   doc["display_timeout"] = displayTimeout;
   doc["ap_mode"] = apMode;
   doc["ap_ssid"] = apSsid;
@@ -765,6 +932,30 @@ void loadSettingsFromPreferences() {
   deviceMode = doc["device_mode"] | "user";
   if (deviceMode == "ctf")
     deviceMode = "user";
+
+  readerType = doc["reader_type"] | "wiegand";
+  if (readerType != "osdp")
+    readerType = "wiegand";
+  tempReaderTypeInt = (readerType == "osdp") ? 1 : 0;
+  origReaderType = readerType;
+
+  osdpAddress = doc["osdp_address"] | osdpAddress;
+  if (osdpAddress < 0 || osdpAddress > 126) {
+    Serial.println("[SYSTEM] WARNING: OSDP address out of range. Using 0.");
+    osdpAddress = 0;
+  }
+
+  osdpBaud = doc["osdp_baud"] | osdpBaud;
+  if (!isValidOsdpBaud(osdpBaud)) {
+    Serial.println("[SYSTEM] WARNING: Unsupported OSDP baud. Using 9600.");
+    osdpBaud = 9600;
+  }
+
+  osdpScMode = doc["osdp_sc_mode"] | "none";
+  if (osdpScMode != "install" && osdpScMode != "scbk")
+    osdpScMode = "none";
+  osdpScbkSet = loadScbkFromNvs();
+
   displayTimeout = doc["display_timeout"] | 30000;
   apMode = doc["ap_mode"] | true;
 
@@ -1819,6 +2010,69 @@ void printDisplayRawCard() {
   }
 }
 
+// The reader's status, as one value rather than a set of flags:
+//
+//   offline  the reader is not answering polls
+//   clear    online, no Secure Channel (or one still being negotiated)
+//   install  online, secure with the spec's well-known default key -- the
+//            channel is encrypted but the key is public, so it is not secure
+//            in any useful sense, which is why it shares a colour with clear
+//   secure   online, secure with the per-installation SCBK
+//
+// The web UI colours them yellow / yellow / green (and red for offline);
+// see script.js, which carries the matching coordinates.
+static const char *osdpStatusName() {
+  if (readerType != "osdp")
+    return "n/a";
+  if (!osdpOnline)
+    return "offline";
+  if (!osdpScEstablished)
+    return "clear";
+  return (osdpScMode == "install") ? "install" : "secure";
+}
+
+// The same status as a 3-character tag for the OLED, which is monochrome and
+// cannot carry the colour.
+static const char *osdpStatusTag() {
+  const char *name = osdpStatusName();
+  if (strcmp(name, "offline") == 0)
+    return "OFF";
+  if (strcmp(name, "clear") == 0)
+    return "CLR";
+  if (strcmp(name, "install") == 0)
+    return "INS";
+  return "SEC";
+}
+
+// Status indicator in the bottom-right of the standby screen: a 3-character
+// tag and a dot, filled while the reader is online. Drawn into the framebuffer
+// so the web UI's mirrored screen shows it too.
+#define OSDP_STATUS_TEXT_X 96
+#define OSDP_STATUS_TEXT_Y 56
+#define OSDP_DOT_X 122
+#define OSDP_DOT_Y 59
+#define OSDP_DOT_R 3
+
+static void drawOsdpIndicators() {
+  if (readerType != "osdp")
+    return;
+  if (activeDisplayType != DISPLAY_OLED_64 || oledDisplay == nullptr)
+    return;
+
+  oledDisplay->setTextSize(1); // printDisplayText draws at 1x2; this is 1x1
+  oledDisplay->setTextColor(SSD1306_WHITE);
+  oledDisplay->setCursor(OSDP_STATUS_TEXT_X, OSDP_STATUS_TEXT_Y);
+  oledDisplay->print(osdpStatusTag());
+
+  if (osdpOnline) {
+    oledDisplay->fillCircle(OSDP_DOT_X, OSDP_DOT_Y, OSDP_DOT_R, SSD1306_WHITE);
+  } else {
+    oledDisplay->drawCircle(OSDP_DOT_X, OSDP_DOT_Y, OSDP_DOT_R, SSD1306_WHITE);
+  }
+
+  oledDisplay->display();
+}
+
 void printStandbyMessage() {
   if (enableTamperDetect && tamperState) {
     printDisplayText("    TAMPER ALERT!   ", "", "   THIS INCIDENT    ",
@@ -1832,6 +2086,8 @@ void printStandbyMessage() {
   } else {
     printDisplayText("      RAW  MODE      ", "", "    Present  Card    ", "");
   }
+
+  drawOsdpIndicators();
 }
 
 void updateDisplay() {
@@ -1915,6 +2171,11 @@ void updateDisplay() {
 
   case STATE_CONFIRM_SCREEN_REBOOT:
     printDisplayText("   CONFIRM REBOOT?   ", " New Screen Settings ",
+                     "  Click to Confirm,  ", "  Rotate to Cancel.  ");
+    break;
+
+  case STATE_CONFIRM_READER_REBOOT:
+    printDisplayText("   CONFIRM REBOOT?   ", " New Reader Setting  ",
                      "  Click to Confirm,  ", "  Rotate to Cancel.  ");
     break;
   }
@@ -2003,8 +2264,12 @@ void setupWifi() {
 
 void webServer() {
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-    // request->send(200, "text/html", FPSTR(index_html));
-    request->send(LittleFS, "/index.html", String());
+    // No-cache: the page is re-flashed with the firmware, and a browser
+    // holding an old copy silently hides every UI change (see serveStatic).
+    AsyncWebServerResponse *response =
+        request->beginResponse(LittleFS, "/index.html", "text/html");
+    response->addHeader("Cache-Control", "no-cache");
+    request->send(response);
   });
 
   server.on("/getCards", HTTP_GET, [](AsyncWebServerRequest *request) {
@@ -2053,6 +2318,16 @@ void webServer() {
   server.on("/getSettings", HTTP_GET, [](AsyncWebServerRequest *request) {
     JsonDocument doc;
     doc["device_mode"] = deviceMode;
+    doc["reader_type"] = readerType;
+    doc["osdp_address"] = osdpAddress;
+    doc["osdp_baud"] = osdpBaud;
+    doc["osdp_online"] = (readerType == "osdp") ? osdpOnline : false;
+    doc["osdp_sc_mode"] = osdpScMode;
+    doc["osdp_scbk_set"] = osdpScbkSet; // never the key itself
+    doc["osdp_sc_established"] =
+        (readerType == "osdp") ? osdpScEstablished : false;
+    doc["osdp_status"] = osdpStatusName();
+    doc["osdp_keyset_result"] = osdpKeysetResult;
     doc["display_timeout"] = displayTimeout;
     doc["ap_ssid"] = apSsid;
     doc["ap_pwd"] = apPwd;
@@ -2179,9 +2454,96 @@ void webServer() {
           return;
         }
 
+        // reader interface
+        String reqReader = jsonObj["reader_type"] | readerType;
+        if (reqReader != "wiegand" && reqReader != "osdp") {
+          request->send(400, "application/json",
+                        "{\"status\":\"error\", \"message\":\"Reader type "
+                        "must be wiegand or osdp\"}");
+          return;
+        }
+
+        int reqAddress = jsonObj["osdp_address"] | osdpAddress;
+        if (reqAddress < 0 || reqAddress > 126) {
+          request->send(400, "application/json",
+                        "{\"status\":\"error\", \"message\":\"OSDP address "
+                        "must be 0-126\"}");
+          return;
+        }
+
+        unsigned long reqBaud = jsonObj["osdp_baud"] | osdpBaud;
+        if (!isValidOsdpBaud(reqBaud)) {
+          request->send(400, "application/json",
+                        "{\"status\":\"error\", \"message\":\"Unsupported "
+                        "OSDP baud rate\"}");
+          return;
+        }
+
+        String reqScMode = jsonObj["osdp_sc_mode"] | osdpScMode;
+        if (reqScMode != "none" && reqScMode != "install" &&
+            reqScMode != "scbk") {
+          request->send(400, "application/json",
+                        "{\"status\":\"error\", \"message\":\"Secure Channel "
+                        "mode must be none, install or scbk\"}");
+          return;
+        }
+
+        // The SCBK is write-only: an empty field means "leave it alone", and
+        // it is never handed back out through /getSettings.
+        String reqScbk = jsonObj["osdp_scbk"] | "";
+        bool clearScbk = jsonObj["osdp_scbk_clear"] | false;
+        uint8_t newScbk[OSDP_SC_KEY_LEN];
+        bool haveNewScbk = false;
+        if (reqScbk.length() > 0) {
+          if (!hexToBytes(reqScbk, newScbk, OSDP_SC_KEY_LEN)) {
+            request->send(400, "application/json",
+                          "{\"status\":\"error\", \"message\":\"SCBK must be "
+                          "32 hex characters (16 bytes)\"}");
+            return;
+          }
+          haveNewScbk = true;
+        }
+
+        if (reqScMode == "scbk" && !haveNewScbk && !osdpScbkSet && !clearScbk) {
+          request->send(400, "application/json",
+                        "{\"status\":\"error\", \"message\":\"No SCBK stored "
+                        "-- enter a key or use install mode\"}");
+          return;
+        }
+
         // update settings (mode is now managed via /setMode)
         apSsid = reqSsid;
         apPwd = reqPwd;
+
+        // Applied on the next boot, like the other interface-level settings.
+        readerType = reqReader;
+        osdpAddress = reqAddress;
+        osdpBaud = reqBaud;
+        tempReaderTypeInt = (readerType == "osdp") ? 1 : 0;
+        origReaderType = readerType;
+
+        // Secure Channel settings apply live -- only the UART and pins are
+        // fixed at boot.
+        bool scChanged = (reqScMode != osdpScMode);
+        if (clearScbk) {
+          clearScbkInNvs();
+          scChanged = true;
+        }
+        if (haveNewScbk) {
+          osdpScbkSet = saveScbkToNvs(newScbk);
+          if (osdpScbkSet) {
+            memcpy(osdpScbk, newScbk, OSDP_SC_KEY_LEN);
+          } else {
+            request->send(500, "application/json",
+                          "{\"status\":\"error\", \"message\":\"Could not "
+                          "store the SCBK\"}");
+            return;
+          }
+          scChanged = true;
+        }
+        osdpScMode = reqScMode;
+        if (scChanged)
+          osdpApplyScSettings();
 
         displayTimeout = jsonObj["display_timeout"] | 30000;
 
@@ -2234,6 +2596,71 @@ void webServer() {
         }
       });
   server.addHandler(handler);
+
+  // Read back the stored SCBK. Its own endpoint rather than a field in
+  // /getSettings: that payload is polled on a timer and pushed on every
+  // settings event, and key material should only move when it is asked for.
+  server.on("/osdpScbk", HTTP_GET, [](AsyncWebServerRequest *request) {
+    if (!osdpScbkSet) {
+      request->send(404, "application/json",
+                    "{\"status\":\"error\", \"message\":\"No SCBK stored\"}");
+      return;
+    }
+
+    char hex[OSDP_SC_KEY_LEN * 2 + 1];
+    for (size_t i = 0; i < OSDP_SC_KEY_LEN; i++) {
+      snprintf(&hex[i * 2], 3, "%02x", osdpScbk[i]);
+    }
+
+    JsonDocument doc;
+    doc["scbk"] = hex;
+    String response;
+    serializeJson(doc, response);
+    request->send(200, "application/json", response);
+  });
+
+  // Install an SCBK on the reader. Needs a Secure Channel session to ride, so
+  // the send waits for one and the outcome arrives asynchronously -- poll
+  // /getSettings for osdp_keyset_result.
+  AsyncCallbackJsonWebHandler *keysetHandler = new AsyncCallbackJsonWebHandler(
+      "/osdpKeyset", [](AsyncWebServerRequest *request, JsonVariant &json) {
+        JsonObject jsonObj = json.as<JsonObject>();
+
+        if (readerType != "osdp") {
+          request->send(409, "application/json",
+                        "{\"status\":\"error\", \"message\":\"The OSDP reader "
+                        "interface is not active\"}");
+          return;
+        }
+        if (osdpScMode == "none") {
+          request->send(409, "application/json",
+                        "{\"status\":\"error\", \"message\":\"A key can only "
+                        "be installed over a Secure Channel session\"}");
+          return;
+        }
+
+        String keyHex = jsonObj["scbk"] | "";
+        uint8_t key[OSDP_SC_KEY_LEN];
+        if (!hexToBytes(keyHex, key, OSDP_SC_KEY_LEN)) {
+          request->send(400, "application/json",
+                        "{\"status\":\"error\", \"message\":\"SCBK must be 32 "
+                        "hex characters (16 bytes)\"}");
+          return;
+        }
+
+        if (!osdpRequestKeyset(key)) {
+          request->send(409, "application/json",
+                        "{\"status\":\"error\", \"message\":\"The OSDP reader "
+                        "interface is not running\"}");
+          return;
+        }
+
+        Serial.println("[OSDP] KEYSET requested from the web UI.");
+        request->send(202, "application/json",
+                      "{\"status\":\"pending\", \"message\":\"Key queued; it "
+                      "is sent once a Secure Channel session is up\"}");
+      });
+  server.addHandler(keysetHandler);
 
   server.on("/addUser", HTTP_GET, [](AsyncWebServerRequest *request) {
     if (userCount >= MAX_USERS)
@@ -2619,7 +3046,12 @@ void webServer() {
   });
 
   // Route to load style.css file, and script.js file
-  server.serveStatic("/", LittleFS, "/");
+  // Serve the UI assets with no-cache so a filesystem upload actually shows
+  // up. Without a Cache-Control header browsers apply heuristic caching and
+  // can hold style.css / script.js indefinitely without ever revalidating,
+  // which makes a UI update look like it did not take. "no-cache" still lets
+  // the browser store the file -- it just has to check back first.
+  server.serveStatic("/", LittleFS, "/").setCacheControl("no-cache");
 
   server.addHandler(&events);
 
@@ -2690,6 +3122,15 @@ void processMenuAction() {
     return;
   }
 
+  // --- READER TYPE REBOOT CONFIRMATION ---
+  if (currentMenuState == STATE_CONFIRM_READER_REBOOT) {
+    printDisplayText("     SAVING...       ", "    REBOOTING....    ", "", "");
+    saveSettingsToPreferences();
+    delay(1000);
+    ESP.restart();
+    return;
+  }
+
   // --- SCREEN FLIP REBOOT CONFIRMATION ---
   if (currentMenuState == STATE_CONFIRM_SCREEN_REBOOT) {
     printDisplayText("     SAVING...       ", "    REBOOTING....    ", "", "");
@@ -2745,6 +3186,10 @@ void processMenuAction() {
       if (String(item->label) == "Mode") {
         deviceMode = (editTempIndex == 0) ? "raw" : "user";
       }
+      if (String(item->label) == "Reader") {
+        // Applied on the next boot; leaving GENERAL offers the reboot.
+        readerType = (editTempIndex == 0) ? "wiegand" : "osdp";
+      }
       if (String(item->label) == "Timeout") {
         switch (editTempIndex) {
         case 0:
@@ -2787,7 +3232,9 @@ void processMenuAction() {
     case ITEM_SUBMENU:
       currentMenuLevel = item->submenu;
       if (String(item->label) == "GENERAL") {
-        currentMenuSize = 4;
+        currentMenuSize = 5;
+        // Capture reader setting on entry
+        origReaderType = readerType;
       } else if (String(item->label) == "DISPLAY") {
         currentMenuSize = 3;
         // Capture flip setting on entry
@@ -2810,6 +3257,16 @@ void processMenuAction() {
         if (currentMenuLevel == menuItems_Display) {
           if (flipOledDisplay != origFlipOled) {
             currentMenuState = STATE_CONFIRM_SCREEN_REBOOT;
+            forceMenuUpdate = true;
+            updateDisplay();
+            return;
+          }
+        }
+
+        // --- READER CHANGE DETECTION ---
+        if (currentMenuLevel == menuItems_General) {
+          if (readerType != origReaderType) {
+            currentMenuState = STATE_CONFIRM_READER_REBOOT;
             forceMenuUpdate = true;
             updateDisplay();
             return;
@@ -2880,9 +3337,413 @@ void processMenuAction() {
   }
 }
 
+// ============================================================================
+// OSDP reader support
+// ----------------------------------------------------------------------------
+// Drives the osdp::acu state machine over RS-485 (UART2 + the MAX3485). The
+// OpenDoorSim is the ACU here and the reader is the PD: we poll it, and card
+// reads come back as osdp_RAW replies. Decoded bits are pushed into the same
+// databits[] / flagDone pipeline the Wiegand ISRs feed, so card processing,
+// the display, the log and the web UI behave identically for both readers.
+//
+// Scope: cleartext (no Secure Channel), a single PD, card reads only.
+// ============================================================================
+
+// Transport HAL. The library never touches the UART itself; these three
+// callbacks are its only I/O. DE and #RE are tied together on the transceiver,
+// so the write callback owns the bus for exactly as long as it is sending.
+static int osdpTransportRead(void *user, uint8_t *buf, size_t cap) {
+  (void)user;
+  size_t n = 0;
+  while (n < cap && Serial2.available() > 0) {
+    buf[n++] = (uint8_t)Serial2.read();
+  }
+  return (int)n;
+}
+
+static int osdpTransportWrite(void *user, const uint8_t *buf, size_t len) {
+  (void)user;
+  digitalWrite(OSDP_DE_PIN, HIGH); // drive the bus
+  size_t written = Serial2.write(buf, len);
+  Serial2.flush();                // hold DE until the last bit is on the wire
+  digitalWrite(OSDP_DE_PIN, LOW); // release it so the PD can answer
+  return (int)written;
+}
+
+static uint32_t osdpTransportNow(void *user) {
+  (void)user;
+  return (uint32_t)millis();
+}
+
+// OpenDoorSim speaks Secure Channel 1 only: AES-128, SCBK / SCBK-D, security
+// blocks SCS_11..18. SC2 (AES-256-GCM, SCS_21..28) is deliberately not used --
+// the library's frame codec can recognise and size SC2 frames, but the ACU
+// never initiates one and nothing here selects an AES-256 key type. These
+// assertions fail the build if a future library version moves the key size,
+// rather than letting a different channel generation arrive unnoticed.
+static_assert(OSDP_SC_KEY_LEN == 16,
+              "OpenDoorSim binds AES-128 Secure Channel only; an SCBK length "
+              "other than 16 bytes means the library has moved on");
+static_assert(OSDP_AES_KEY_LEN == 16,
+              "OpenDoorSim binds AES-128 Secure Channel only");
+
+// Secure Channel crypto HAL. Annex D reduces to AES-128 ECB on single blocks
+// plus randomness, and the library asks the application for both rather than
+// vendoring an implementation.
+static osdp_status_t osdpAesEncrypt(void *user,
+                                    const uint8_t key[OSDP_AES_KEY_LEN],
+                                    const uint8_t in[OSDP_AES_BLOCK_LEN],
+                                    uint8_t out[OSDP_AES_BLOCK_LEN]) {
+  (void)user;
+  mbedtls_aes_context ctx;
+  mbedtls_aes_init(&ctx);
+  int rc = mbedtls_aes_setkey_enc(&ctx, key, 128);
+  if (rc == 0)
+    rc = mbedtls_aes_crypt_ecb(&ctx, MBEDTLS_AES_ENCRYPT, in, out);
+  mbedtls_aes_free(&ctx);
+  return (rc == 0) ? OSDP_OK : OSDP_ERR_INVALID_ARG;
+}
+
+static osdp_status_t osdpAesDecrypt(void *user,
+                                    const uint8_t key[OSDP_AES_KEY_LEN],
+                                    const uint8_t in[OSDP_AES_BLOCK_LEN],
+                                    uint8_t out[OSDP_AES_BLOCK_LEN]) {
+  (void)user;
+  mbedtls_aes_context ctx;
+  mbedtls_aes_init(&ctx);
+  int rc = mbedtls_aes_setkey_dec(&ctx, key, 128);
+  if (rc == 0)
+    rc = mbedtls_aes_crypt_ecb(&ctx, MBEDTLS_AES_DECRYPT, in, out);
+  mbedtls_aes_free(&ctx);
+  return (rc == 0) ? OSDP_OK : OSDP_ERR_INVALID_ARG;
+}
+
+static osdp_status_t osdpRandBytes(void *user, uint8_t *out, size_t len) {
+  (void)user;
+  // The ESP32 hardware RNG is only a true random source while the RF
+  // subsystem is running. With the access point switched off it degrades to
+  // a pseudo-random source, which weakens RND.A -- worth knowing before
+  // commissioning keys on a device running with WiFi disabled.
+  esp_fill_random(out, len);
+  return OSDP_OK;
+}
+
+static const osdp_sc_crypto_t osdpCrypto = {osdpAesEncrypt, osdpAesDecrypt,
+                                            osdpRandBytes, nullptr};
+
+// Card data. osdp_RAW carries the credential's bits exactly as the reader saw
+// them, which is what the Wiegand path produces too, so the formats, parity
+// checking and user matching all apply unchanged.
+static void osdpOnReply(void *user, const osdp_acu_reply_event_t *event) {
+  (void)user;
+
+  // The reader's verdict on a key we tried to install.
+  if (osdpKeysetAwaitingAck && event->cmd_code == OSDP_CMD_KEYSET) {
+    osdpKeysetAwaitingAck = false;
+    if (event->reply_code == OSDP_REPLY_ACK) {
+      memcpy(osdpScbk, osdpKeysetKey, OSDP_SC_KEY_LEN);
+      osdpScbkSet = saveScbkToNvs(osdpScbk);
+      osdpKeysetResult = osdpScbkSet ? "ok" : "error";
+      if (osdpScbkSet) {
+        // The reader answers to this key from now on, so follow it there.
+        // The running session keeps the old key until it is renegotiated.
+        osdpScMode = "scbk";
+        osdp_acu_set_pd_scbk(&osdpAcu, (uint8_t)osdpAddress, osdpScbk);
+        saveSettingsToPreferences();
+        Serial.println("[OSDP] KEYSET accepted. SCBK stored; Secure Channel "
+                       "mode is now scbk.");
+      } else {
+        Serial.println("[OSDP] KEYSET accepted but the SCBK could not be "
+                       "written to NVS -- the reader now expects a key this "
+                       "device has not kept.");
+      }
+    } else {
+      osdpKeysetResult =
+          (event->reply_code == OSDP_REPLY_NAK) ? "nak" : "error";
+      Serial.printf("[OSDP] KEYSET refused by the reader (reply 0x%02X).\n",
+                    event->reply_code);
+    }
+    memset(osdpKeysetKey, 0, sizeof(osdpKeysetKey));
+    events.send("ping", "settings");
+    return;
+  }
+
+  if (event->reply_code != OSDP_REPLY_RAW)
+    return;
+
+  // Mirror the Wiegand ISR gate: no captures while paused or in the menu.
+  if (isSystemPaused || currentMenuState != STATE_STANDBY)
+    return;
+
+  osdp_raw_t raw;
+  if (osdp_raw_decode(event->payload, event->payload_len, &raw) != OSDP_OK) {
+    Serial.println("[OSDP] Malformed osdp_RAW reply, ignoring.");
+    return;
+  }
+  if (raw.bit_count == 0 || raw.bit_data == nullptr)
+    return;
+
+  unsigned int n = raw.bit_count;
+  if (n > raw.bit_data_len * 8)
+    n = (unsigned int)(raw.bit_data_len * 8);
+  if (n > maxBits) {
+    Serial.printf("[OSDP] Card is %u bits, truncating to the %u bit limit.\n",
+                  raw.bit_count, maxBits);
+    n = maxBits;
+  }
+
+  // bit_data is MSB-first packed; unpack it into one byte per bit.
+  for (unsigned int i = 0; i < n; i++) {
+    databits[i] = (raw.bit_data[i >> 3] >> (7 - (i & 7))) & 0x01;
+  }
+  bitCount = n;
+  flagDone = 1; // loop() picks it up and runs the normal card pipeline
+
+  Serial.printf("[OSDP] Card read: reader %u, format 0x%02X, %u bits\n",
+                raw.reader_no, raw.format_code, raw.bit_count);
+}
+
+static void osdpOnTimeout(void *user, const osdp_acu_timeout_event_t *event) {
+  (void)user;
+  if (osdpKeysetAwaitingAck && event->cmd_code == OSDP_CMD_KEYSET) {
+    osdpKeysetAwaitingAck = false;
+    osdpKeysetResult = "timeout";
+    memset(osdpKeysetKey, 0, sizeof(osdpKeysetKey));
+    Serial.println("[OSDP] KEYSET went unanswered; the key was not installed.");
+    events.send("ping", "settings");
+  }
+  // Silence is normal on a bus with no reader attached, so this is only worth
+  // a line while the PD is still considered online.
+  if (osdpOnline) {
+    Serial.printf("[OSDP] No reply to command 0x%02X from PD %u.\n",
+                  event->cmd_code, event->pd_address);
+  }
+}
+
+// Handshake outcomes. CCRYPT and RMAC_I never reach osdpOnReply -- the
+// library consumes them -- so this is the only view of how a handshake went.
+static void osdpOnScEvent(void *user, const osdp_acu_sc_event_t *event) {
+  (void)user;
+  osdpScHandshaking = false;
+
+  switch (event->kind) {
+  case OSDP_ACU_SC_EVENT_ESTABLISHED:
+    osdpScFailures = 0;
+    Serial.printf("[OSDP] Secure Channel established with PD %u using the %s "
+                  "key.\n",
+                  event->pd_address,
+                  (osdpScMode == "install") ? "default install" : "stored");
+    break;
+
+  case OSDP_ACU_SC_EVENT_HANDSHAKE_FAILED:
+    if (osdpScFailures < 5)
+      osdpScFailures++;
+    osdpScNextAttempt = millis() + (1000UL << osdpScFailures); // 2s..32s
+    Serial.printf("[OSDP] Secure Channel handshake with PD %u failed -- wrong "
+                  "key, or the reader refused it. Retrying.\n",
+                  event->pd_address);
+    break;
+
+  case OSDP_ACU_SC_EVENT_SESSION_LOST:
+    osdpScNextAttempt = millis() + 1000;
+    Serial.printf("[OSDP] Secure Channel session with PD %u was lost; "
+                  "re-handshaking.\n",
+                  event->pd_address);
+    break;
+  }
+  events.send("ping", "settings");
+}
+
+// (Re)build the ACU from the current settings. Rebuilding drops any Secure
+// Channel session with it, which is how a mode change takes effect without a
+// reboot: the reader tears its own side down per spec D.1.4 when the next
+// message does not match the session it thinks is running.
+static void osdpStartAcu() {
+  osdp_acu_init(&osdpAcu, osdpSlots, 1);
+
+  osdp_acu_transport_t transport = {osdpTransportRead, osdpTransportWrite,
+                                    osdpTransportNow, nullptr};
+  osdp_acu_set_transport(&osdpAcu, &transport);
+  osdp_acu_set_reply_handler(&osdpAcu, osdpOnReply, nullptr);
+  osdp_acu_set_timeout_handler(&osdpAcu, osdpOnTimeout, nullptr);
+  osdp_acu_set_sc_event_handler(&osdpAcu, osdpOnScEvent, nullptr);
+
+  if (osdp_acu_register_pd(&osdpAcu, 0, (uint8_t)osdpAddress) != OSDP_OK) {
+    Serial.printf("[OSDP] ERROR: address %d is not a valid PD address.\n",
+                  osdpAddress);
+    osdpStarted = false;
+    return;
+  }
+
+  // Secure Channel is opt-in: with no crypto vtable bound the library behaves
+  // exactly as it did before, and the AES paths are never entered.
+  if (osdpScMode != "none") {
+    osdp_acu_set_sc_crypto(&osdpAcu, &osdpCrypto);
+    osdp_acu_set_pd_scbk_d(&osdpAcu, (uint8_t)osdpAddress, OSDP_SCBK_DEFAULT);
+    if (osdpScbkSet)
+      osdp_acu_set_pd_scbk(&osdpAcu, (uint8_t)osdpAddress, osdpScbk);
+  }
+
+  osdpScEstablished = false;
+  osdpScHandshaking = false;
+  osdpScFailures = 0;
+  osdpScNextAttempt = 0;
+  osdpStarted = true;
+}
+
+// Re-apply Secure Channel settings changed at run time (web UI). No reboot is
+// needed -- only the UART and pin setup is boot-time.
+void osdpApplyScSettings() {
+  if (readerType != "osdp" || !osdpStarted)
+    return;
+  // Deferred: the rebuild happens in osdpLoop(), on the task that owns the ACU.
+  osdpScSettingsDirty = true;
+}
+
+// Queue an osdp_KEYSET. It can only ride an established session, so the send
+// waits for one; osdpOnReply reports what the reader made of it.
+bool osdpRequestKeyset(const uint8_t *key) {
+  if (readerType != "osdp" || !osdpStarted)
+    return false;
+
+  // Store the key now, not when the reader answers. A reader may never answer
+  // -- or may apply the key and have its ACK lost -- and a key that lived only
+  // in the pending request would go with it, taking the way back into that
+  // reader along with it.
+  memcpy(osdpScbk, key, OSDP_SC_KEY_LEN);
+  osdpScbkSet = saveScbkToNvs(osdpScbk);
+  if (!osdpScbkSet) {
+    Serial.println("[OSDP] ERROR: Could not store the SCBK; KEYSET not sent.");
+    osdpKeysetResult = "error";
+    return false;
+  }
+
+  // The mode switch still waits for the ACK. Moving to scbk now would drop the
+  // install-mode session this command has to ride on, and the reader would
+  // never receive it.
+  memcpy(osdpKeysetKey, key, OSDP_SC_KEY_LEN);
+  osdpKeysetQueued = true;
+  osdpKeysetAwaitingAck = false;
+  osdpKeysetResult = "pending";
+  Serial.println("[OSDP] SCBK stored; KEYSET queued for the reader.");
+  return true;
+}
+
+void osdpSetup() {
+  pinMode(OSDP_DE_PIN, OUTPUT);
+  digitalWrite(OSDP_DE_PIN, LOW); // start out listening
+  Serial2.begin(osdpBaud, SERIAL_8N1, OSDP_RX_PIN, OSDP_TX_PIN);
+
+  osdpStartAcu();
+  if (!osdpStarted)
+    return;
+
+  osdpOnline = false;
+  Serial.printf("[OSDP] ACU started: PD address %d, %lu baud, 8N1, %s.\n",
+                osdpAddress, osdpBaud,
+                (osdpScMode == "install")
+                    ? "Secure Channel (install key)"
+                    : (osdpScMode == "scbk" ? "Secure Channel (stored SCBK)"
+                                            : "cleartext"));
+  if (osdpScMode == "scbk" && !osdpScbkSet) {
+    Serial.println("[OSDP] WARNING: Secure Channel is set to scbk but no key "
+                   "is stored. Install one, or switch to install mode.");
+  }
+}
+
+void osdpLoop() {
+  if (!osdpStarted)
+    return;
+
+  const uint8_t addr = (uint8_t)osdpAddress;
+
+  // Secure Channel settings changed from the web UI. Rebuilding here rather
+  // than in the request handler keeps the ACU single-threaded.
+  if (osdpScSettingsDirty) {
+    osdpScSettingsDirty = false;
+    osdpStartAcu();
+    Serial.println("[OSDP] Secure Channel settings applied; session reset.");
+    events.send("ping", "settings");
+    return; // pick up again next loop with a fresh context
+  }
+
+  // A queued KEYSET goes out ahead of the next poll, once a session carries it.
+  if (osdpKeysetQueued && !osdpKeysetAwaitingAck && osdpScEstablished &&
+      !osdp_acu_is_pd_busy(&osdpAcu, addr)) {
+    uint8_t payload[OSDP_KEYSET_HEADER_BYTES + OSDP_SC_KEY_LEN];
+    size_t written = 0;
+    // Key type 0x01 = SCBK, the AES-128 base key. Never SCBK_AES256 (0x02),
+    // which is the SC2 key.
+    osdp_keyset_cmd_t cmd = {OSDP_KEYSET_KEY_TYPE_SCBK, OSDP_SC_KEY_LEN,
+                             osdpKeysetKey, OSDP_SC_KEY_LEN};
+    if (osdp_keyset_build(&cmd, payload, sizeof(payload), &written) == OSDP_OK &&
+        osdp_acu_send_command(&osdpAcu, addr, OSDP_CMD_KEYSET, payload,
+                              written) == OSDP_OK) {
+      osdpKeysetQueued = false;
+      osdpKeysetAwaitingAck = true;
+      Serial.println("[OSDP] KEYSET sent; awaiting the reader's answer.");
+    }
+  }
+
+  // One command outstanding at a time: poll again once the previous reply has
+  // landed (or timed out) and the interval has passed.
+  if (!osdp_acu_is_pd_busy(&osdpAcu, addr) &&
+      millis() - lastOsdpPoll >= OSDP_POLL_INTERVAL_MS) {
+    osdp_acu_send_command(&osdpAcu, addr, OSDP_CMD_POLL, nullptr, 0);
+    lastOsdpPoll = millis();
+  }
+
+  // Drains RX, dispatches replies, ages out silent PDs. Non-blocking.
+  osdp_acu_tick(&osdpAcu);
+
+  bool online = osdp_acu_is_pd_online(&osdpAcu, addr);
+  if (online != osdpOnline) {
+    osdpOnline = online;
+    Serial.printf("[OSDP] Reader at address %d is %s.\n", osdpAddress,
+                  online ? "ONLINE" : "OFFLINE");
+    if (!online)
+      osdpScHandshaking = false; // a mid-handshake silence already failed
+    osdpIndicatorsDirty = true;
+    events.send("ping", "settings");
+  }
+
+  // Mirror the library's view of the session so the UI and the KEYSET gate
+  // never run ahead of it.
+  bool established = osdp_acu_is_pd_sc_established(&osdpAcu, addr);
+  if (established != osdpScEstablished) {
+    osdpScEstablished = established;
+    osdpIndicatorsDirty = true;
+    events.send("ping", "settings");
+  }
+
+  // Repaint the standby screen so the dots follow the state. Only from
+  // standby: a redraw while a menu or a card is up would interrupt it.
+  if (osdpIndicatorsDirty && currentMenuState == STATE_STANDBY &&
+      !displayingCard) {
+    osdpIndicatorsDirty = false;
+    forceMenuUpdate = true;
+  }
+
+  // Bring a session up once the reader answers, and put one back after a loss.
+  if (osdpScMode != "none" && osdpOnline && !osdpScEstablished &&
+      !osdpScHandshaking && (long)(millis() - osdpScNextAttempt) >= 0 &&
+      !osdp_acu_is_pd_busy(&osdpAcu, addr)) {
+    osdp_status_t rc =
+        osdp_acu_start_sc_handshake(&osdpAcu, addr, osdpScMode == "install");
+    if (rc == OSDP_OK) {
+      osdpScHandshaking = true;
+    } else if (rc == OSDP_ERR_INVALID_ARG) {
+      // No key for this mode, or no crypto bound. Nothing a retry fixes, so
+      // back off hard rather than spinning on it.
+      osdpScNextAttempt = millis() + 30000;
+      Serial.println("[OSDP] Secure Channel is enabled but has no usable key "
+                     "for this mode.");
+    }
+    // OSDP_ERR_NOT_SUPPORTED just means a command is in flight; try next loop.
+  }
+}
+
 void setup() {
-  pinMode(DATA0_PIN, INPUT);
-  pinMode(DATA1_PIN, INPUT);
   pinMode(LED_PIN, OUTPUT);
   pinMode(TMPR_PIN, INPUT_PULLUP);
 
@@ -2924,8 +3785,18 @@ void setup() {
   snprintf(verLine, sizeof(verLine), "%20s", firmwareVersion.c_str());
   printDisplayText("     OPENDOORSIM     ", "         by         ",
                    "   SHORTRANGE.TECH   ", verLine);
-  attachInterrupt(DATA0_PIN, ISR_INT0, FALLING);
-  attachInterrupt(DATA1_PIN, ISR_INT1, FALLING);
+  // The D0/D1 terminals are shared between the two interfaces, so only the
+  // selected one is initialized.
+  if (readerType == "osdp") {
+    Serial.println("[SYSTEM] Reader interface: OSDP (RS-485)");
+    osdpSetup();
+  } else {
+    Serial.println("[SYSTEM] Reader interface: Wiegand");
+    pinMode(DATA0_PIN, INPUT);
+    pinMode(DATA1_PIN, INPUT);
+    attachInterrupt(DATA0_PIN, ISR_INT0, FALLING);
+    attachInterrupt(DATA1_PIN, ISR_INT1, FALLING);
+  }
 
   weigandCounter = weigandWaitTime;
   for (unsigned char i = 0; i < MAX_BITS_CONST; i++) {
@@ -2969,11 +3840,17 @@ void loop() {
 
   updateDisplay();
 
+  // Keep polling while the menu is open too, otherwise the reader drops
+  // offline; card data is only captured in standby (see osdpOnReply).
+  if (readerType == "osdp") {
+    osdpLoop();
+  }
+
   // FIX: strictly wrap ALL card processing logic inside STATE_STANDBY check
   if (currentMenuState == STATE_STANDBY) {
 
-    // Countdown timer logic
-    if (!flagDone) {
+    // Countdown timer logic (Wiegand only; OSDP card reads arrive whole)
+    if (readerType != "osdp" && !flagDone) {
       if (--weigandCounter == 0) {
         flagDone = 1; // No more data expected
         Serial.println("[LOOP] Weigand transmission complete.");

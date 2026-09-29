@@ -110,6 +110,10 @@
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                             User
                         </button>
+                        <button class="settings-menu-btn" onclick="openSettingsTab('reader')" style="grid-column: span 3;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line><line x1="6" y1="15" x2="12" y2="15"></line></svg>
+                            Reader
+                        </button>
                     </div>
 
                     <!-- Display Tab -->
@@ -211,6 +215,77 @@
                                     <option value="2">Long Flash</option>
                                     <option value="0">None</option>
                                 </select>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Reader Tab -->
+                    <div id="settingsReader" class="settings-tab hidden">
+                        <div class="settings-tab-header">
+                            <button class="back-btn" onclick="closeSettingsTab()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg></button>
+                            <h3>Reader Settings</h3>
+                        </div>
+                        <div class="settings-tab-content">
+                            <div class="settings-field">
+                                <label for="readerType">Reader Interface</label>
+                                <select id="readerType">
+                                    <option value="wiegand">Wiegand</option>
+                                    <option value="osdp">OSDP (RS-485)</option>
+                                </select>
+                            </div>
+                            <div id="osdpOptions" style="display:none;">
+                                <div class="settings-field">
+                                    <label for="osdpAddress">PD Address</label>
+                                    <input type="number" id="osdpAddress" min="0" max="126" step="1">
+                                </div>
+                                <div class="settings-field">
+                                    <label for="osdpBaud">Baud Rate</label>
+                                    <select id="osdpBaud">
+                                        <option value="9600">9600</option>
+                                        <option value="19200">19200</option>
+                                        <option value="38400">38400</option>
+                                        <option value="57600">57600</option>
+                                        <option value="115200">115200</option>
+                                        <option value="230400">230400</option>
+                                    </select>
+                                </div>
+                                <div class="settings-field">
+                                    <label>Status</label>
+                                    <span id="osdpStatus" class="badge badge-gray">OFFLINE</span>
+                                </div>
+                                <div class="settings-field">
+                                    <label for="osdpScMode">Secure Channel</label>
+                                    <select id="osdpScMode">
+                                        <option value="none">Off (clear text)</option>
+                                        <option value="install">Install mode (default key)</option>
+                                        <option value="scbk">Secure (stored SCBK)</option>
+                                    </select>
+                                </div>
+                                <div class="settings-field">
+                                    <label for="osdpScbk">SCBK <span id="osdpScbkState" style="opacity:0.7;"></span></label>
+                                    <div style="display:flex; gap:8px; align-items:center;">
+                                        <input type="password" id="osdpScbk" maxlength="32" autocomplete="new-password"
+                                               placeholder="32 hex characters" style="flex:1; min-width:0;">
+                                        <button type="button" class="settings-menu-btn" onclick="generateScbk()"
+                                                style="height:auto; padding:6px 10px; flex-shrink:0;"
+                                                title="Generate a random 16-byte key">Generate</button>
+                                        <button type="button" class="settings-menu-btn" onclick="revealScbk()"
+                                                style="height:auto; padding:6px 10px; flex-shrink:0;"
+                                                title="Show the key stored on this device">Show</button>
+                                    </div>
+                                    <div id="osdpScbkNotice" class="hidden" style="opacity:0.85; font-size:0.7rem;">
+                                        Copy this key somewhere safe now — it is never shown again, and the reader
+                                        will only answer to it once installed.
+                                    </div>
+                                </div>
+                                <div class="settings-field">
+                                    <button type="button" id="osdpKeysetBtn" class="settings-menu-btn"
+                                            style="width:100%; height:auto; padding:8px;" onclick="installOsdpKey()">
+                                        Install Key on Reader
+                                    </button>
+                                    <span id="osdpKeysetResult" style="opacity:0.8;"></span>
+                                </div>
                             </div>
                         </div>
 

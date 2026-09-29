@@ -38,6 +38,15 @@ let originalTimeout = 5000;
 let originalCustomMessage = "";
 let originalLedValid = 1;
 
+// Reader interface (Wiegand / OSDP) — changes apply on reboot
+let originalReaderType = "wiegand";
+let originalOsdpAddress = 0;
+let originalOsdpBaud = 9600;
+
+// Secure Channel — applies live, so it never forces a reboot. The SCBK is
+// write-only: the device reports whether one is stored, never the key.
+let originalOsdpScMode = "none";
+
 // Mode toggle state — prevents spam clicking out of sync with hardware
 let modePending = false;
 let currentMode = 'raw'; // mirrors last confirmed hardware mode
@@ -49,6 +58,21 @@ let tamperPending = false;
 
 // Virtual Screen Vars
 let screenInterval = null;
+
+// Mirrors drawOsdpIndicators() in main.cpp: the status tag and dot in the
+// bottom-right of the standby screen. The firmware draws them into a
+// monochrome framebuffer, so the colour is applied here.
+const OSDP_STATUS_BOX = { x: 94, y: 54, w: 34, h: 10 };
+const OSDP_STATUS_COLORS = {
+    offline: [255, 70, 70],   // red   - not answering polls
+    clear: [255, 200, 40],    // amber - no Secure Channel
+    install: [255, 200, 40],  // amber - secure, but with the public default key
+    secure: [60, 230, 120]    // green - secure with the installation's own key
+};
+let osdpStatus = 'n/a';
+// The stored key, once shown. Held so that displaying it does not read as an
+// edit and get written back on the next save.
+let revealedScbk = '';
 const canvas = document.getElementById('oledCanvas');
 const ctx = canvas?.getContext('2d');
 
@@ -67,6 +91,12 @@ function checkDirty() {
     const currLed = document.getElementById('ledValid').value;
     const currDisplay = document.getElementById('activeDisplayType').value;
     const currFlip = document.getElementById('flipOled').checked;
+
+    const currReader = document.getElementById('readerType').value;
+    const currOsdpAddress = document.getElementById('osdpAddress').value;
+    const currOsdpBaud = document.getElementById('osdpBaud').value;
+    const currScMode = document.getElementById('osdpScMode').value;
+    const currScbk = document.getElementById('osdpScbk').value;
     // 2. Compare
     let isDirty = false;
 
@@ -82,6 +112,12 @@ function checkDirty() {
     if (currDisplay != originalDisplayType) isDirty = true;
     if (currFlip !== originalFlipOled) isDirty = true;
 
+    if (currReader !== originalReaderType) isDirty = true;
+    if (currOsdpAddress != originalOsdpAddress) isDirty = true;
+    if (currOsdpBaud != originalOsdpBaud) isDirty = true;
+    if (currScMode !== originalOsdpScMode) isDirty = true;
+    if (currScbk.length > 0 && currScbk !== revealedScbk) isDirty = true;
+
     // 3. Update UI
     unsavedChanges = isDirty;
 
@@ -92,7 +128,11 @@ function checkDirty() {
     const wifiChanged = (pwdChanged || ssidChanged || hiddenChanged || channelChanged);
 
     const displayChanged = (currDisplay != originalDisplayType) || (currFlip !== originalFlipOled);
-    const rebootRequired = wifiChanged || displayChanged;
+    // The reader interface is brought up once at boot, so any change here needs one.
+    const readerChanged = (currReader !== originalReaderType)
+        || (currOsdpAddress != originalOsdpAddress)
+        || (currOsdpBaud != originalOsdpBaud);
+    const rebootRequired = wifiChanged || displayChanged || readerChanged;
 
     const gearBtn = document.getElementById('navBtnSettings');
     const cancelBtn = document.getElementById('navBtnCancel');
@@ -219,8 +259,36 @@ function updateScreen() {
 
             ctx.drawImage(offscreen, 0, 0);
             ctx.restore();
+
+            // Recolour the status indicator after the un-rotation, so the
+            // coordinates hold whichever way the hardware display is mounted.
+            tintOsdpStatus(ctx, displayW, displayH);
         })
         .catch(err => console.error("Firefox Fetch Error:", err));
+}
+
+// Repaint whatever is lit inside the status box in the colour of the current
+// status. Unlit pixels stay black, so a ring stays a ring and a filled dot
+// stays filled.
+function tintOsdpStatus(ctx, displayW, displayH) {
+    const color = OSDP_STATUS_COLORS[osdpStatus];
+    if (!color) return; // Wiegand, or a status the firmware does not draw
+
+    const x0 = Math.max(0, OSDP_STATUS_BOX.x);
+    const y0 = Math.max(0, OSDP_STATUS_BOX.y);
+    const w = Math.min(displayW - x0, OSDP_STATUS_BOX.w);
+    const h = Math.min(displayH - y0, OSDP_STATUS_BOX.h);
+    if (w <= 0 || h <= 0) return;
+
+    const img = ctx.getImageData(x0, y0, w, h);
+    for (let i = 0; i < img.data.length; i += 4) {
+        if (img.data[i] || img.data[i + 1] || img.data[i + 2]) {
+            img.data[i] = color[0];
+            img.data[i + 1] = color[1];
+            img.data[i + 2] = color[2];
+        }
+    }
+    ctx.putImageData(img, x0, y0);
 }
 
 function toggleHideData(e) {
@@ -761,6 +829,116 @@ function toggleFlipOption() {
     }
 }
 
+// A typed key tends to be a weak key, so offer a real one. Generated in the
+// browser rather than on the device: crypto.getRandomValues is a CSPRNG (and
+// unlike crypto.subtle it works on a plain-http origin, which this is), the key
+// never has to cross the wire to get here, and it stays on screen long enough
+// to be written down -- the device will not hand it back afterwards.
+function generateScbk() {
+    if (!window.crypto || !crypto.getRandomValues) {
+        alert('This browser cannot generate a key securely. Enter one manually.');
+        return;
+    }
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+
+    const field = document.getElementById('osdpScbk');
+    revealedScbk = ''; // a new key, not the one on the device
+    field.type = 'text'; // has to be readable to be recorded
+    field.value = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+
+    const notice = document.getElementById('osdpScbkNotice');
+    if (notice) notice.classList.remove('hidden');
+
+    field.focus();
+    field.select();
+    checkDirty();
+}
+
+// Show the key this device has stored, so a key can be recovered later rather
+// than only at the moment it is created.
+function revealScbk() {
+    fetch('/osdpScbk?t=' + Date.now())
+        .then(response => response.json().then(data => ({ ok: response.ok, data })))
+        .then(({ ok, data }) => {
+            if (!ok) {
+                alert(data.message || 'No key is stored on this device.');
+                return;
+            }
+            const field = document.getElementById('osdpScbk');
+            revealedScbk = data.scbk;
+            field.type = 'text';
+            field.value = data.scbk;
+            field.focus();
+            field.select();
+            const notice = document.getElementById('osdpScbkNotice');
+            if (notice) notice.classList.add('hidden'); // nothing new to record
+            checkDirty();
+        })
+        .catch(error => console.error('Error reading key:', error));
+}
+
+// Put the key field back to its resting state once the key has been dealt with.
+function resetScbkField() {
+    const field = document.getElementById('osdpScbk');
+    if (field) {
+        field.value = '';
+        field.type = 'password';
+    }
+    revealedScbk = '';
+    const notice = document.getElementById('osdpScbkNotice');
+    if (notice) notice.classList.add('hidden');
+}
+
+function installOsdpKey() {
+    const key = document.getElementById('osdpScbk').value.trim();
+    if (!/^[0-9a-fA-F]{32}$/.test(key)) {
+        alert('Enter the key to install as 32 hex characters first.');
+        return;
+    }
+    if (document.getElementById('osdpScMode').value === 'none') {
+        alert('A key can only be installed over a Secure Channel session. Switch to install mode and save first.');
+        return;
+    }
+    if (!confirm('Install this key on the reader? The reader will only answer to it afterwards — keep a copy.')) {
+        return;
+    }
+
+    // Any pending change (the Secure Channel mode in particular) has to reach
+    // the device first: the firmware checks the saved mode, not the form.
+    const ready = unsavedChanges ? saveSettings(false) : Promise.resolve(true);
+
+    ready.then(saved => {
+        if (saved === false) return;
+
+        return fetch('/osdpKeyset', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ scbk: key })
+        })
+            .then(response => response.json().then(data => ({ ok: response.ok, data })))
+            .then(({ ok, data }) => {
+                if (!ok) {
+                    alert('Could not install the key: ' + (data.message || 'unknown error'));
+                    return;
+                }
+                // The device has stored the key by this point; the reader gets
+                // it once a secure session exists. Show reads it back.
+                resetScbkField();
+                checkDirty();
+                fetchSettings(true);
+            });
+    }).catch(error => console.error('Error installing key:', error));
+}
+
+function toggleOsdpOptions() {
+    const readerType = document.getElementById('readerType').value;
+    const container = document.getElementById('osdpOptions');
+    if (container) {
+        container.style.display = (readerType === 'osdp') ? 'block' : 'none';
+    }
+}
+
 function updateUserIndicator(settings) {
     const mode = (settings.device_mode || settings.mode || '').toString().toLowerCase();
     const isUserOn = (mode === 'user');
@@ -850,6 +1028,11 @@ function saveSettings(rebootRequired = false) {
     const customMessage = document.getElementById('customMessage').value;
     const ledValid = document.getElementById('ledValid').value;
     const activeDisplayType = document.getElementById('activeDisplayType').value;
+    const readerType = document.getElementById('readerType').value;
+    const osdpAddress = document.getElementById('osdpAddress').value;
+    const osdpBaud = document.getElementById('osdpBaud').value;
+    const osdpScMode = document.getElementById('osdpScMode').value;
+    const osdpScbk = document.getElementById('osdpScbk').value;
 
     let settings = {
         display_timeout: parseInt(timeout, 10),
@@ -862,12 +1045,18 @@ function saveSettings(rebootRequired = false) {
         led_valid: parseInt(ledValid, 10),
         active_display_type: parseInt(activeDisplayType, 10),
         flip_oled_display: currentFlip,
+        reader_type: readerType,
+        osdp_address: parseInt(osdpAddress, 10),
+        osdp_baud: parseInt(osdpBaud, 10),
+        osdp_sc_mode: osdpScMode,
+        // An unchanged key on show is not a key to write back.
+        osdp_scbk: (osdpScbk === revealedScbk) ? '' : osdpScbk,
         enable_tamper_detect: tamperEnabled,
         should_reboot: rebootRequired,
         disable_encoder: !knobEnabled
     };
 
-    fetch('/saveSettings', {
+    return fetch('/saveSettings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings)
@@ -881,14 +1070,28 @@ function saveSettings(rebootRequired = false) {
                 } else {
                     // RESET DIRTY FLAG ON SUCCESSFUL SAVE
                     unsavedChanges = false;
+                    // The key is stored now; do not keep it in the form.
+                    resetScbkField();
                     fetchSettings(true);
                 }
 
-            } else {
-                alert('Failed to save settings');
+                return true;
             }
+            // Say which setting the device refused, rather than just "failed".
+            return response.json()
+                .then(data => {
+                    alert('Failed to save settings: ' + (data.message || 'unknown error'));
+                    return false;
+                })
+                .catch(() => {
+                    alert('Failed to save settings');
+                    return false;
+                });
         })
-        .catch(error => console.error('Error saving settings:', error));
+        .catch(error => {
+            console.error('Error saving settings:', error);
+            return false;
+        });
 }
 
 
@@ -999,6 +1202,10 @@ function updateSettingsUI(settings, forceFormUpdate = false) {
     const currLed = document.getElementById('ledValid')?.value;
     const currDisplay = document.getElementById('activeDisplayType')?.value;
     const currFlip = document.getElementById('flipOled')?.checked;
+    const currReader = document.getElementById('readerType')?.value;
+    const currOsdpAddress = document.getElementById('osdpAddress')?.value;
+    const currOsdpBaud = document.getElementById('osdpBaud')?.value;
+    const currScMode = document.getElementById('osdpScMode')?.value;
 
     // Update SSID
     if (forceFormUpdate || currSsid === originalSsid) {
@@ -1056,7 +1263,79 @@ function updateSettingsUI(settings, forceFormUpdate = false) {
         originalTxPower = apTxPower;
     }
 
+    // Update Reader Interface
+    const readerType = settings.reader_type || 'wiegand';
+    if (forceFormUpdate || currReader === originalReaderType) {
+        if (document.getElementById('readerType')) document.getElementById('readerType').value = readerType;
+        originalReaderType = readerType;
+    }
+    // Update OSDP Address
+    const osdpAddress = (settings.osdp_address !== undefined) ? settings.osdp_address : 0;
+    if (forceFormUpdate || currOsdpAddress == originalOsdpAddress) {
+        if (document.getElementById('osdpAddress')) document.getElementById('osdpAddress').value = osdpAddress;
+        originalOsdpAddress = osdpAddress;
+    }
+    // Update OSDP Baud
+    const osdpBaud = (settings.osdp_baud !== undefined) ? settings.osdp_baud : 9600;
+    if (forceFormUpdate || currOsdpBaud == originalOsdpBaud) {
+        if (document.getElementById('osdpBaud')) document.getElementById('osdpBaud').value = osdpBaud;
+        originalOsdpBaud = osdpBaud;
+    }
+    // Update Secure Channel mode
+    const osdpScMode = settings.osdp_sc_mode || 'none';
+    if (forceFormUpdate || currScMode === originalOsdpScMode) {
+        if (document.getElementById('osdpScMode')) document.getElementById('osdpScMode').value = osdpScMode;
+        originalOsdpScMode = osdpScMode;
+    }
+    // Stored-key indicator and channel state
+    const scbkState = document.getElementById('osdpScbkState');
+    if (scbkState) {
+        scbkState.textContent = settings.osdp_scbk_set ? '(stored — enter a new key to replace)' : '(none stored)';
+    }
+    const keysetResultEl = document.getElementById('osdpKeysetResult');
+    if (keysetResultEl) {
+        const result = settings.osdp_keyset_result || '';
+        const text = {
+            pending: 'Waiting for a secure session…',
+            ok: 'Key installed on the reader.',
+            nak: 'Reader refused the key.',
+            timeout: 'Reader never answered.',
+            error: 'Key could not be stored.'
+        }[result] || '';
+        keysetResultEl.textContent = text;
+    }
+
+    // Drives the colour of the indicator on the virtual screen. In Wiegand
+    // mode the firmware draws no indicator and the status is "n/a".
+    osdpStatus = settings.osdp_status || 'n/a';
+
+    // Reader link state (OSDP only; the Wiegand interface has no link to report)
+    // One badge for the link and the channel together, in the same four
+    // states (and colours) as the indicator on the screen.
+    const osdpStatusEl = document.getElementById('osdpStatus');
+    if (osdpStatusEl) {
+        const label = {
+            offline: 'OFFLINE',
+            clear: 'CLEAR TEXT',
+            install: 'INSTALL KEY',
+            secure: 'SECURE'
+        }[osdpStatus] || 'OFFLINE';
+        osdpStatusEl.textContent = label;
+        osdpStatusEl.classList.toggle('badge-green', osdpStatus === 'secure');
+        osdpStatusEl.classList.toggle('badge-yellow',
+            osdpStatus === 'clear' || osdpStatus === 'install');
+        osdpStatusEl.classList.toggle('badge-red', osdpStatus === 'offline');
+        osdpStatusEl.classList.toggle('badge-gray', osdpStatus === 'n/a');
+    }
+
     // Listeners and side effects
+    const readerSelect = document.getElementById('readerType');
+    if (readerSelect) {
+        readerSelect.removeEventListener('change', toggleOsdpOptions);
+        readerSelect.addEventListener('change', toggleOsdpOptions);
+    }
+    toggleOsdpOptions();
+
     const displaySelect = document.getElementById('activeDisplayType');
     if (displaySelect) {
         displaySelect.removeEventListener('change', toggleFlipOption);
@@ -1498,19 +1777,27 @@ document.getElementById('modeSelect') && document.getElementById('modeSelect').a
 document.getElementById('timeoutSelect').addEventListener('change', checkDirty);
 document.getElementById('ledValid').addEventListener('change', checkDirty);
 document.getElementById('customMessage').addEventListener('input', checkDirty);
+document.getElementById('readerType').addEventListener('change', checkDirty);
+document.getElementById('osdpAddress').addEventListener('input', checkDirty);
+document.getElementById('osdpBaud').addEventListener('change', checkDirty);
+document.getElementById('osdpScMode').addEventListener('change', checkDirty);
+document.getElementById('osdpScbk').addEventListener('input', checkDirty);
 
 function openSettingsTab(tabName) {
     document.getElementById('settingsMenu').classList.add('hidden');
     document.getElementById('settingsDisplay').classList.add('hidden');
     document.getElementById('settingsWifi').classList.add('hidden');
     document.getElementById('settingsUser').classList.add('hidden');
-    
+    document.getElementById('settingsReader').classList.add('hidden');
+
     if (tabName === 'display') {
         document.getElementById('settingsDisplay').classList.remove('hidden');
     } else if (tabName === 'wifi') {
         document.getElementById('settingsWifi').classList.remove('hidden');
     } else if (tabName === 'user') {
         document.getElementById('settingsUser').classList.remove('hidden');
+    } else if (tabName === 'reader') {
+        document.getElementById('settingsReader').classList.remove('hidden');
     }
 }
 
@@ -1519,6 +1806,7 @@ function closeSettingsTab() {
     document.getElementById('settingsDisplay').classList.add('hidden');
     document.getElementById('settingsWifi').classList.add('hidden');
     document.getElementById('settingsUser').classList.add('hidden');
+    document.getElementById('settingsReader').classList.add('hidden');
 }
 
 function toggleSettingsView() {
@@ -1536,6 +1824,9 @@ function toggleSettingsView() {
                 const currChannel = document.getElementById('ap_channel')?.value;
                 const currDisplay = document.getElementById('activeDisplayType').value;
                 const currFlip = document.getElementById('flipOled').checked;
+                const currReader = document.getElementById('readerType').value;
+                const currOsdpAddress = document.getElementById('osdpAddress').value;
+                const currOsdpBaud = document.getElementById('osdpBaud').value;
 
                 const pwdChanged = (currPwd !== originalPwd);
                 const ssidChanged = (currSsid !== originalSsid);
@@ -1543,7 +1834,10 @@ function toggleSettingsView() {
                 const channelChanged = (currChannel != originalChannel);
                 const wifiChanged = (pwdChanged || ssidChanged || hiddenChanged || channelChanged);
                 const displayChanged = (currDisplay != originalDisplayType) || (currFlip !== originalFlipOled);
-                const rebootRequired = wifiChanged || displayChanged;
+                const readerChanged = (currReader !== originalReaderType)
+                    || (currOsdpAddress != originalOsdpAddress)
+                    || (currOsdpBaud != originalOsdpBaud);
+                const rebootRequired = wifiChanged || displayChanged || readerChanged;
 
                 if (rebootRequired) {
                     // Validations first!
@@ -1579,7 +1873,7 @@ function toggleSettingsView() {
                     }
 
                     // Reboot confirmation
-                    if (!confirm("WiFi or Display settings have changed. The device will reboot. Continue?")) {
+                    if (!confirm("WiFi, Display or Reader settings have changed. The device will reboot. Continue?")) {
                         // User canceled reboot: discard changes and close
                         discardSettingsChanges();
                         closeBezel();
@@ -1622,7 +1916,13 @@ function discardSettingsChanges() {
     document.getElementById('ledValid').value = originalLedValid;
     document.getElementById('activeDisplayType').value = originalDisplayType;
     document.getElementById('flipOled').checked = originalFlipOled;
+    document.getElementById('readerType').value = originalReaderType;
+    document.getElementById('osdpAddress').value = originalOsdpAddress;
+    document.getElementById('osdpBaud').value = originalOsdpBaud;
+    document.getElementById('osdpScMode').value = originalOsdpScMode;
+    resetScbkField();
 
+    toggleOsdpOptions();
     toggleFlipOption();
 
     const pwdHintEl = document.getElementById('pwdHint');

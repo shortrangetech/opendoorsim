@@ -1614,6 +1614,10 @@ a {
     gap: 8px;
     flex-grow: 1;
     overflow-y: auto;
+    min-height: 0;
+    /* A flex child will not shrink below its content by default, so without
+       this overflow-y never engages and a long tab is clipped by the bezel
+       instead of scrolling. */
     padding-right: 5px;
     /* space for scrollbar if needed */
 }
@@ -1734,4 +1738,121 @@ a {
 .settings-bezel #pwdHint.hidden,
 .settings-bezel #rebootWarning.hidden {
     display: none !important;
+}
+/* ---- Fluid bezels -------------------------------------------------------
+   The phone breakpoint below only catches portrait. In landscape a phone
+   reports roughly 840px wide, which clears the breakpoint but is still well
+   short of the ~1220px this row wants with the settings panel open, so the
+   bezels were cut off at the right edge. These rules apply at every width:
+   the row wraps when it runs out of room rather than overflowing, and each
+   fixed-width box is allowed to shrink to the screen. At full desktop width
+   they all resolve to the same sizes as before. */
+#monitor .indent-section {
+    flex-wrap: wrap;
+}
+
+#oledCanvas {
+    max-width: 100%;
+    height: auto;
+    aspect-ratio: 512 / 128;
+    /* Keeps the 4:1 display ratio while shrinking, rather than squashing. */
+}
+
+.settings-bezel.settings-open {
+    max-width: min(410px, 100%);
+}
+
+.settings-menu-grid,
+.settings-tab {
+    width: min(368px, 100%);
+}
+
+.settings-menu-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    /* 6 x 48px + 5 x 16px gap = 368px, so this is identical at full width. */
+}
+
+/* ---- Phone layout -------------------------------------------------------
+   The monitor row (virtual screen, button bezel, settings panel) is a flex
+   row of fixed-width bezels: about 790px before the settings panel is even
+   open, and roughly 1220px with it. Nothing above made those fluid, so on a
+   phone the page overflowed sideways rather than reflowing. Below 600px the
+   row wraps and the fixed widths give way to the viewport. Desktop layout is
+   untouched. */
+@media (max-width: 600px) {
+
+    /* Each bezel takes its own row instead of sitting side by side. */
+    .screens-bezel,
+    .buttons-bezel {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* Virtual screen scales with the viewport, keeping the 4:1 display ratio
+       it is drawn at (a 128x64 buffer shown at 512x128). */
+    .screen-container {
+        width: 100%;
+    }
+
+    #oledCanvas {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 512 / 128;
+    }
+
+    /* Settings panel: 368px of fixed-width content plus 40px of padding does
+       not fit a phone, so the panel and everything inside it size to the
+       screen. The closed state still collapses -- these only apply once it is
+       open. */
+    .settings-bezel.settings-open {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    .settings-menu-grid {
+        width: 100%;
+        grid-template-columns: repeat(6, 1fr);
+        grid-template-rows: auto;
+        height: auto;
+    }
+
+    /* Tabs vary in length -- Reader carries the most fields of any of them --
+       so give them the room they need up to a share of the screen, and let
+       .settings-tab-content scroll beyond that. */
+    .settings-tab {
+        width: 100%;
+        height: auto;
+        max-height: 60vh;
+    }
+
+    /* The panel is pinned to 218px with overflow:hidden so it lines up with
+       the button bezel beside it. Stacked on a phone there is nothing to line
+       up with, so let it grow to its content and only start scrolling (inside
+       .settings-tab-content) once it would take most of the screen. */
+    .settings-bezel.settings-open {
+        height: auto;
+        max-height: 80vh;
+    }
+}
+
+/* ---- Short viewport -----------------------------------------------------
+   Keyed to height rather than width, because the constraint here is vertical.
+   A phone in landscape is roughly 390px tall, where the panel's fixed 218px
+   is over half the screen and still only gives the tab a 188px window. The
+   218px exists to line the panel up with the button bezel; on a screen this
+   short there is no room for that to matter, so the panel sizes to its
+   content and may use most of the height that is actually there. Short tabs
+   stay short; long ones grow and scroll inside .settings-tab-content. */
+@media (max-height: 560px) {
+
+    .settings-bezel.settings-open {
+        height: auto;
+        max-height: 88vh;
+    }
+
+    .settings-tab {
+        height: auto;
+        max-height: 80vh;
+    }
 }

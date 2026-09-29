@@ -1,5 +1,9 @@
 {
     "device_mode": "raw",
+    "reader_type": "wiegand",
+    "osdp_address": 0,
+    "osdp_baud": 9600,
+    "osdp_sc_mode": "none",
     "ap_mode": true,
     "ap_ssid": "OpenDoorSim",
     "ap_pwd": "",
